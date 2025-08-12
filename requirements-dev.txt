@@ -1,0 +1,7 @@
+# For code quality
+mypy==1.6.1
+django-stubs[compatible-mypy]
+ruff==0.11.9
+
+# Pre-commit
+pre-commit==4.0.1

@@ -1,0 +1,13 @@
+{
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true
+  },
+  "conventionalCommits.scopes": ["utils", "config", "group", "split", "expense"],
+  "ruff.configuration": "ruff.toml",
+  "cSpell.words": ["uids"]
+}

@@ -1,0 +1,24 @@
+Django==5.2.1
+
+django-ninja-extra==0.30.0
+django-ninja==1.4.1
+
+PyJWT==2.10.1
+python-dotenv==1.1.0
+
+# Database
+# For Linux (e.g., Ubuntu)
+psycopg2-binary>=2.9.9; sys_platform != "win32"
+
+# For Windows
+psycopg2; sys_platform == "win32"
+
+python-dotenv
+
+whitenoise
+
+django-cors-headers
+
+cloudinary 
+
+django-cloudinary-storage
