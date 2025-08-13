@@ -10,13 +10,19 @@ class UserAdmin(BaseUserAdmin):
     add_form = UserCreationEmailRequiredForm
     form = UserChangeEmailRequiredForm
 
-    list_display = ("email", "get_full_name", "phone_number", "is_staff", "is_active")
+    list_display = (
+        "username",
+        "get_full_name",
+        "phone_number",
+        "is_staff",
+        "is_active",
+    )
     list_filter = ("is_staff", "is_active")
-    search_fields = ("email", "full_name", "phone_number")
-    ordering = ("email",)
+    search_fields = ("username", "full_name", "phone_number")
+    ordering = ("username",)
 
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
+        (None, {"fields": ("username", "password")}),
         (_("Personal info"), {"fields": ("full_name", "phone_number")}),
         (
             _("Permissions"),
@@ -39,7 +45,7 @@ class UserAdmin(BaseUserAdmin):
             {
                 "classes": ("wide",),
                 "fields": (
-                    "email",
+                    "username",
                     "full_name",
                     "phone_number",
                     "password1",

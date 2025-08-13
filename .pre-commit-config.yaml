@@ -30,6 +30,7 @@ repos:
           - "whitenoise"
           - "django-cors-headers"
           - cloudinary
+          - django-cloudinary-storage
           - "requests"
           - "types-requests"
         args: [--config=pyproject.toml, --explicit-package-bases]

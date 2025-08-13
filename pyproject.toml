@@ -9,6 +9,8 @@ ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "split_expense_system.settings"
+custom_user_model = "authenticate.User"
+
 
 [tool.isort]
 profile = "black"

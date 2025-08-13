@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 class User(AbstractUser):
     full_name = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
+    avatar = models.URLField(max_length=500, blank=True, null=True)
 
 
 class AuthenticateToken(models.Model):

@@ -51,12 +51,13 @@ class Service(BaseService):
         )
 
     def login(
-        self, request: HttpRequest, email: str, password: str
+        self, request: HttpRequest, username: str, password: str
     ) -> Tuple[TUser, str, str]:
-        user = self.query.get_user_by_email_and_password(
-            email=email,
+        user = self.query.get_user_by_username_and_password(
+            username=username,
             password=password,
         )
+        print("hihi")
         self.auth.login(request=request, user=user)
         return (
             user,

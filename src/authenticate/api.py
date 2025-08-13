@@ -45,7 +45,7 @@ class AuthenticateAPI(Controller):
     @post("/login", response=LoginResponseSchema)
     def login(self, request: UnauthenticatedRequest, data: LoginSchema):
         user, access_token, refresh_token = self.service.login(
-            request=request, email=data.email, password=data.password
+            request=request, username=data.email, password=data.password
         )
         self.logger.info(f"> [LOGIN] {user} - {access_token}")
         return LoginResponseSchema(

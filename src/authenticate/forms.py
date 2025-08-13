@@ -7,18 +7,18 @@ from .models import User
 class UserCreationEmailRequiredForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ("full_name", "email", "phone_number")
+        fields = ("full_name", "username", "phone_number")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["email"].required = True
+        self.fields["username"].required = True
         self.fields["phone_number"].required = True
 
-    def clean_email(self):
-        email = self.cleaned_data.get("email").lower()
-        if User.objects.filter(email__iexact=email).exists():
+    def clean_username(self):
+        username = self.cleaned_data.get("username").lower()
+        if User.objects.filter(username__iexact=username).exists():
             raise forms.ValidationError("A user with that email already exists.")
-        return email
+        return username
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get("phone_number")
@@ -30,24 +30,24 @@ class UserCreationEmailRequiredForm(UserCreationForm):
 class UserChangeEmailRequiredForm(UserChangeForm):
     class Meta:
         model = User
-        fields = ("full_name", "email", "phone_number", "is_active", "is_staff")
+        fields = ("full_name", "username", "phone_number", "is_active", "is_staff")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["email"].required = True
+        self.fields["username"].required = True
         self.fields["phone_number"].required = True
 
-    def clean_email(self):
-        email = self.cleaned_data.get("email").lower()
+    def clean_username(self):
+        username = self.cleaned_data.get("username").lower()
         if (
-            User.objects.filter(email__iexact=email)
+            User.objects.filter(username__iexact=username)
             .exclude(pk=self.instance.pk)
             .exists()
         ):
             raise forms.ValidationError(
                 "That email is already in use by another account."
             )
-        return email
+        return username
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get("phone_number")

@@ -33,6 +33,7 @@ class RegisterSchema(Schema):
             or not re.search(r"[^A-Za-z0-9]", v)
         ):
             raise WeakPasswordError
+        return v
 
     @validator("phone_number")
     def validate_phone_number(cls, v):

@@ -20,14 +20,14 @@ class Query:
         )
 
     @staticmethod
-    def get_user_by_email_and_password(email: str, password: str) -> TUser:
+    def get_user_by_username_and_password(username: str, password: str) -> TUser:
         try:
-            user = User.objects.get(username=email)
+            user = User.objects.get(username=username)
         except User.DoesNotExist:
             raise EmailOrPasswordIncorrect
-
         # Check if password is correct
         if not user.check_password(password):
+            print("_____________", user.check_password(password))
             raise EmailOrPasswordIncorrect
         return user
 
@@ -88,7 +88,7 @@ class Query:
         return ResetPassword.objects.filter(user=user, active=True).update(active=False)
 
     @staticmethod
-    def create_reset_password_token(user: TUser, raw_token: str):
+    def create_reset_password_token(user: TUser, raw_token: str) -> ResetPassword:
         return ResetPassword.objects.create(user=user, token=raw_token)
 
     @staticmethod
@@ -119,4 +119,6 @@ class Query:
         RefreshToken.objects.filter(user_id=user_id).update(is_blacklisted=True)
 
         # Store the new refresh token
-        RefreshToken.objects.create(user_id=user_id, token=token, is_blacklisted=False)
+        RefreshToken.objects.create(
+            user_id=user_id, refresh_token=token, is_blacklisted=False
+        )
