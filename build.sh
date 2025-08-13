@@ -28,11 +28,14 @@ ls -la "$SRC_DIR"
 echo -e "\n=== Running Django Commands ==="
 cd "$PROJECT_ROOT"
 
-# Add src to PYTHONPATH if not already there
-if [[ ":$PYTHONPATH:" != *":$SRC_DIR:"* ]]; then
-    export PYTHONPATH="$SRC_DIR:$PYTHONPATH"
-    echo "Added $SRC_DIR to PYTHONPATH"
-fi
+# Set Python path to include src directory
+export PYTHONPATH="$PROJECT_ROOT:$PROJECT_ROOT/src:$PYTHONPATH"
+echo "PYTHONPATH set to: $PYTHONPATH"
+
+# Verify Python can find the module
+echo -e "\n=== Verifying Python module import ==="
+python -c "import sys; print('\n'.join(sys.path))"
+python -c "from split_expense_system.wsgi import application; print('Successfully imported WSGI application')" || echo "Failed to import WSGI application"
 
 # Check if manage.py exists and is executable
 if [ -f "$SRC_DIR/manage.py" ]; then
