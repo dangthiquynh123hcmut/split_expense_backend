@@ -1,1 +1,1 @@
-web: gunicorn split_expense.wsgi:application
+web: gunicorn split_expense_system.wsgi:application --chdir src
