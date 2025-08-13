@@ -1,1 +1,1 @@
-web: gunicorn split_expense_system.wsgi:application
+web: gunicorn src.split_expense_system.wsgi:application

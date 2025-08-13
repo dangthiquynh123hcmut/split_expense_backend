@@ -3,7 +3,7 @@ services:
     name: split-expense-backend
     env: python
     buildCommand: "chmod a+x ./build.sh && ./build.sh"
-    startCommand: "gunicorn split_expense_system.wsgi:application"
+    startCommand: "gunicorn src.split_expense_system.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
         value: "3.10.7"
@@ -19,5 +19,18 @@ services:
         value: 0
       - key: PYTHONUNBUFFERED
         value: "True"
+      # Email Configuration
+      - key: EMAIL_BACKEND
+        value: "django.core.mail.backends.smtp.EmailBackend"
+      - key: EMAIL_HOST
+        value: "smtp.gmail.com"  # Update this with your email host
+      - key: EMAIL_PORT
+        value: "587"  # Standard port for TLS
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: EMAIL_HOST_USER
+        value: "your-email@gmail.com"  # Update with your email
+      - key: EMAIL_HOST_PASSWORD
+        value: "your-app-password"  # Use an App Password for Gmail
     plan: free
     buildCommandPriority: high
