@@ -52,7 +52,7 @@ class AuthenticateAPI(Controller):
 
     @put("/me", auth=True, response=UserSchema)
     def update_me(self, request: AuthenticatedRequest, data: UpdateMeSchema):
-        return self.service.update_me(user=request.user, full_name=data.full_name)
+        return self.service.update_me(user=request.user, data=data)
 
     @put("password/change", auth=True, response=bool, exceptions=(PasswordIncorrect,))
     def change_password(

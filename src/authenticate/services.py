@@ -5,7 +5,7 @@ from uuid import uuid4
 from django.contrib import auth as django_auth
 from django.http import HttpRequest
 
-from authenticate.schemas import PasswordChangeRequest, PasswordNewRequest, RegisterSchema
+from authenticate.schemas import PasswordChangeRequest, PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
 from exceptions.users import PasswordIncorrect, UserNotFound, EmailAlreadyExists, PhoneNumberAlreadyExists
 from utils.services.base import BaseService
@@ -57,8 +57,8 @@ class Service(BaseService):
         self.auth.logout(request=request)
         return True
 
-    def update_me(self, user: TUser, full_name: str) -> TUser:
-        return self.query.update_me(user=user, full_name=full_name)
+    def update_me(self, user: TUser, data: UpdateMeSchema) -> TUser:
+        return self.query.update_me(user=user, data=data)
 
     def change_password(self, user: TUser, payload: PasswordChangeRequest):
         is_password_correct = self.query.check_password(

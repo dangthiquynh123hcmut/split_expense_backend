@@ -1,7 +1,7 @@
 from django.utils.timezone import now
 
 from authenticate.models import ResetPassword, RefreshToken
-from authenticate.schemas import PasswordNewRequest, RegisterSchema
+from authenticate.schemas import PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
 from exceptions.users import EmailOrPasswordIncorrect
 from utils.types import TUser, User
@@ -57,8 +57,11 @@ class Query:
             raise InvalidOrExpiredToken
 
     @staticmethod
-    def update_me(user: TUser, full_name: str) -> TUser:
-        user.first_name = full_name
+    def update_me(user: TUser, data: UpdateMeSchema) -> TUser:
+        user.first_name = data.full_name
+        user.avatar = data.avatar
+        user.email = data.email
+        user.phone_number = data.phone_number
         user.save()
         return user
 
