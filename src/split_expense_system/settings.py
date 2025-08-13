@@ -13,22 +13,39 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables
 env = os.getenv("ENV", "dev")
-if env not in ["dev", "staging", "prod"]:
-    raise ValueError(f"Invalid env: {env}")
 
-load_dotenv(os.path.join(BASE_DIR, f"../env/.env.{env}"))
+# For Render.com, we'll use environment variables directly
+if os.getenv("RENDER"):
+    # Running on Render
+    DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-SECRET_KEY = os.environ.get("SECRET_KEY")
+    # Get the secret key from environment variables
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    if not SECRET_KEY:
+        raise ValueError("SECRET_KEY must be set in environment variables")
 
-DEBUG = env == "dev"
+    # Allow all hosts for now, but you should restrict this in production
+    ALLOWED_HOSTS = ["*"]
+else:
+    # Local development
+    if env not in ["dev", "staging", "prod"]:
+        raise ValueError(f"Invalid env: {env}")
 
-ALLOWED_HOSTS = ["*"]
+    # Load environment variables from .env file
+    load_dotenv(os.path.join(BASE_DIR, f"../env/.env.{env}"))
+
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    DEBUG = env == "dev"
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
 INSTALLED_APPS = [
@@ -54,6 +71,7 @@ AUTH_USER_MODEL = "authenticate.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -61,7 +79,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     # Custom middleware
     "utils.router.middleware.APIMiddleware",
 ]
@@ -90,16 +107,21 @@ WSGI_APPLICATION = "split_expense_system.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "split_expense_db"),
-        "USER": os.environ.get("POSTGRES_USER", "postgres"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "postgres"),
-        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+if os.getenv("RENDER"):
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL"),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
+    }
 
 
 # Password validation
@@ -139,9 +161,13 @@ LOGIN_URL = "/admin/login/"
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "/static/"
+
+if not DEBUG:
+    STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),)
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 FIXTURE_DIRS = "fixtures"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

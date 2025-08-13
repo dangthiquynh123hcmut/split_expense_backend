@@ -15,10 +15,15 @@ psycopg2; sys_platform == "win32"
 
 python-dotenv
 
-whitenoise
+whitenoise==6.7.0
 
 django-cors-headers
 
 cloudinary
 
 django-cloudinary-storage
+
+
+# For deployment
+gunicorn==21.2.0
+dj-database-url==2.1.0

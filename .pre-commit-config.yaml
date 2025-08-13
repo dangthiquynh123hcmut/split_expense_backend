@@ -29,8 +29,9 @@ repos:
           - "psycopg2-binary==2.9.9"
           - "whitenoise"
           - "django-cors-headers"
-          - cloudinary
-          - django-cloudinary-storage
+          - "cloudinary"
+          - "django-cloudinary-storage"
+          - "dj-database-url"
           - "requests"
           - "types-requests"
         args: [--config=pyproject.toml, --explicit-package-bases]
