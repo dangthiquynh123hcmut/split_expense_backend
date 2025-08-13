@@ -3,7 +3,7 @@ services:
     name: split-expense-backend
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn split_expense_system.wsgi:application --chdir src"
+    startCommand: "gunicorn src.split_expense_system.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
         value: "3.10.7"
