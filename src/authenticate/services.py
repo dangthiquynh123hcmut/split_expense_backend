@@ -35,9 +35,8 @@ class Service(BaseService):
             raise PhoneNumberAlreadyExists
     
         user = self.query.create_user(
-           data=data,
+           data=data
         )
-        print(user.first_name)
         return user, self.query.generate_access_token(user_id=user.id), self.query.generate_refresh_token(user_id=user.id)
 
     def login(

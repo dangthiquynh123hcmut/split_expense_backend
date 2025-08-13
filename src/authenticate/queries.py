@@ -13,7 +13,7 @@ class Query:
     @staticmethod
     def create_user(data: RegisterSchema) -> TUser:
         return User.objects.create_user(
-            email=data.email,
+            username=data.email,
             password=data.password,
             first_name=data.full_name,
             phone_number=data.phone_number,
@@ -22,7 +22,7 @@ class Query:
     @staticmethod
     def get_user_by_email_and_password(email: str, password: str) -> TUser:
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(username=email)
         except User.DoesNotExist:
             raise EmailOrPasswordIncorrect
 
@@ -58,7 +58,7 @@ class Query:
 
     @staticmethod
     def update_me(user: TUser, full_name: str) -> TUser:
-        user.full_name = full_name
+        user.first_name = full_name
         user.save()
         return user
 
@@ -74,7 +74,7 @@ class Query:
 
     @staticmethod
     def get_user_by_email(email: str) -> TUser | None:
-        return User.objects.filter(email=email).first()
+        return User.objects.filter(username=email).first()
 
     @staticmethod
     def get_user_by_phone_number(phone_number: str) -> TUser | None:

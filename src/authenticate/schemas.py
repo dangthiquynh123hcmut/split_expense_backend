@@ -24,15 +24,8 @@ class RegisterSchema(Schema):
 
     @validator('password')
     def validate_password(cls, v):
-        if not re.search(r'[A-Z]', v):
-            raise WeakPasswordError('Password must contain at least one uppercase letter')
-        if not re.search(r'[a-z]', v):
-            raise WeakPasswordError('Password must contain at least one lowercase letter')
-        if not re.search(r'[0-9]', v):
-            raise WeakPasswordError('Password must contain at least one number')
-        if not re.search(r'[^A-Za-z0-9]', v):
-            raise WeakPasswordError('Password must contain at least one special character')
-        return v
+        if not re.search(r'[A-Z]', v) or not re.search(r'[a-z]', v) or not re.search(r'[0-9]', v) or not re.search(r'[^A-Za-z0-9]', v):
+            raise WeakPasswordError 
 
     @validator('phone_number')
     def validate_phone_number(cls, v):

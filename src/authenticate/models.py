@@ -13,7 +13,6 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     full_name = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
-
 class AuthenticateToken(models.Model):
     user = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
@@ -162,3 +161,4 @@ class RefreshToken(models.Model):
             refresh_token=refresh_token,
             expires_at=str(refresh_token_payload["exp"]),
         )
+    

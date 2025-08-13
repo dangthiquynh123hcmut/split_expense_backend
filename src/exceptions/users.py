@@ -46,7 +46,5 @@ class InvalidPhoneNumberFormat(APIException):
 class WeakPasswordError(APIException):
     error_code = HTTPStatus.BAD_REQUEST
     message_code = "WEAK_PASSWORD"
+    message = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
     
-    def __init__(self, message: str = None):
-        self.message = message or "Password is too weak"
-        super().__init__()
