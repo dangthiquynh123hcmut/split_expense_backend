@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
-from .models import User 
+
+from .models import User
 
 
 class UserCreationEmailRequiredForm(UserCreationForm):
@@ -47,7 +48,7 @@ class UserChangeEmailRequiredForm(UserChangeForm):
                 "That email is already in use by another account."
             )
         return email
-    
+
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get("phone_number")
         if (

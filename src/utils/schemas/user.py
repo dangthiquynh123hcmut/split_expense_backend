@@ -9,8 +9,5 @@ class UserSchema(Schema):
     email: str = Field(alias="username")
     full_name: Optional[str] = Field(alias="first_name")
     phone_number: Optional[str]
-    
-    model_config = ConfigDict(
-        from_attributes=True,
-        populate_by_name=True
-    )
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

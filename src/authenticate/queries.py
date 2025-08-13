@@ -1,6 +1,6 @@
 from django.utils.timezone import now
 
-from authenticate.models import ResetPassword, RefreshToken
+from authenticate.models import RefreshToken, ResetPassword
 from authenticate.schemas import PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
 from exceptions.users import EmailOrPasswordIncorrect
@@ -36,7 +36,7 @@ class Query:
         new_key = AuthenticateToken.generate_access_token(user_id=user_id)
         new_key.save()
         return new_key.access_token
-    
+
     @staticmethod
     def generate_refresh_token(user_id: int) -> str:
         new_key = RefreshToken.generate_refresh_token(user_id=user_id)
@@ -105,22 +105,18 @@ class Query:
         record.active = False
         record.save()
         return True
-        
+
     @staticmethod
     def store_refresh_token(user_id: int, token: str) -> None:
         """
         Store refresh token in the database for validation.
-        
+
         Args:
             user_id: ID of the user
             token: Refresh token to store
         """
         # Invalidate any existing refresh tokens for this user
         RefreshToken.objects.filter(user_id=user_id).update(is_blacklisted=True)
-        
+
         # Store the new refresh token
-        RefreshToken.objects.create(
-            user_id=user_id,
-            token=token,
-            is_blacklisted=False
-        )
+        RefreshToken.objects.create(user_id=user_id, token=token, is_blacklisted=False)

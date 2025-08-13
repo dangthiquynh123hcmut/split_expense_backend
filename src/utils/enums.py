@@ -16,6 +16,7 @@ class SubjectGenderEnum(TextChoices):
     FEMALE = "FEMALE", "Female"
     OTHER = "OTHER", "Other"
 
+
 @unique
 class SortTypeEnum(Enum):
     ASC = "asc"

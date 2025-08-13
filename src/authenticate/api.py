@@ -1,5 +1,11 @@
 from exceptions.auth import InvalidOrExpiredToken
-from exceptions.users import PasswordIncorrect, UserNotFound, EmailAlreadyExists, PhoneNumberAlreadyExists, WeakPasswordError
+from exceptions.users import (
+    EmailAlreadyExists,
+    PasswordIncorrect,
+    PhoneNumberAlreadyExists,
+    UserNotFound,
+    WeakPasswordError,
+)
 from utils.router.controller import Controller, api, get, post, put
 from utils.types import AuthenticatedRequest, UnauthenticatedRequest
 
@@ -21,9 +27,15 @@ class AuthenticateAPI(Controller):
     def __init__(self, service: Service):
         self.service = service
 
-    @post("/register", response=LoginResponseSchema, exceptions=(EmailAlreadyExists, PhoneNumberAlreadyExists, WeakPasswordError))
+    @post(
+        "/register",
+        response=LoginResponseSchema,
+        exceptions=(EmailAlreadyExists, PhoneNumberAlreadyExists, WeakPasswordError),
+    )
     def register(self, request: UnauthenticatedRequest, data: RegisterSchema):
-        user, access_token, refresh_token = self.service.register(request=request, data=data)
+        user, access_token, refresh_token = self.service.register(
+            request=request, data=data
+        )
         return LoginResponseSchema(
             access_token=access_token,
             refresh_token=refresh_token,

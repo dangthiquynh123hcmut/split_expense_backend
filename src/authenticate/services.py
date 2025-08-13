@@ -1,13 +1,22 @@
-
 from typing import Tuple
 from uuid import uuid4
 
 from django.contrib import auth as django_auth
 from django.http import HttpRequest
 
-from authenticate.schemas import PasswordChangeRequest, PasswordNewRequest, RegisterSchema, UpdateMeSchema
+from authenticate.schemas import (
+    PasswordChangeRequest,
+    PasswordNewRequest,
+    RegisterSchema,
+    UpdateMeSchema,
+)
 from exceptions.auth import InvalidOrExpiredToken
-from exceptions.users import PasswordIncorrect, UserNotFound, EmailAlreadyExists, PhoneNumberAlreadyExists
+from exceptions.users import (
+    EmailAlreadyExists,
+    PasswordIncorrect,
+    PhoneNumberAlreadyExists,
+    UserNotFound,
+)
 from utils.services.base import BaseService
 from utils.services.email.client import EmailClient
 from utils.services.email.template import EmailTemplate
@@ -33,11 +42,13 @@ class Service(BaseService):
         user = self.query.get_user_by_phone_number(phone_number=data.phone_number)
         if user:
             raise PhoneNumberAlreadyExists
-    
-        user = self.query.create_user(
-           data=data
+
+        user = self.query.create_user(data=data)
+        return (
+            user,
+            self.query.generate_access_token(user_id=user.id),
+            self.query.generate_refresh_token(user_id=user.id),
         )
-        return user, self.query.generate_access_token(user_id=user.id), self.query.generate_refresh_token(user_id=user.id)
 
     def login(
         self, request: HttpRequest, email: str, password: str
@@ -47,7 +58,11 @@ class Service(BaseService):
             password=password,
         )
         self.auth.login(request=request, user=user)
-        return user, self.query.generate_access_token(user_id=user.id), self.query.generate_refresh_token(user_id=user.id)
+        return (
+            user,
+            self.query.generate_access_token(user_id=user.id),
+            self.query.generate_refresh_token(user_id=user.id),
+        )
 
     def get_me(self, user: TUser) -> TUser:
         return user

@@ -9,12 +9,12 @@ from .models import User
 class UserAdmin(BaseUserAdmin):
     add_form = UserCreationEmailRequiredForm
     form = UserChangeEmailRequiredForm
-    
+
     list_display = ("email", "get_full_name", "phone_number", "is_staff", "is_active")
     list_filter = ("is_staff", "is_active")
     search_fields = ("email", "full_name", "phone_number")
     ordering = ("email",)
-    
+
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         (_("Personal info"), {"fields": ("full_name", "phone_number")}),
@@ -32,7 +32,7 @@ class UserAdmin(BaseUserAdmin):
         ),
         (_("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
-    
+
     add_fieldsets = (
         (
             None,
@@ -50,21 +50,21 @@ class UserAdmin(BaseUserAdmin):
             },
         ),
     )
-    
+
     def get_fieldsets(self, request, obj=None):
         if not obj:
             return self.add_fieldsets
         return super().get_fieldsets(request, obj)
-    
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         is_superuser = request.user.is_superuser
-        
+
         if not is_superuser:
-            form.base_fields['is_superuser'].disabled = True
-            form.base_fields['is_staff'].disabled = True
-            form.base_fields['is_active'].disabled = True
-            
+            form.base_fields["is_superuser"].disabled = True
+            form.base_fields["is_staff"].disabled = True
+            form.base_fields["is_active"].disabled = True
+
         return form
 
 

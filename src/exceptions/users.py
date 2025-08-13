@@ -20,10 +20,12 @@ class PasswordIncorrect(APIException):
     message_code = "PASSWORD_INCORRECT"
     message = "Password incorrect"
 
+
 class EmailAlreadyExists(APIException):
     error_code = HTTPStatus.CONFLICT
     message_code = "EMAIL_ALREADY_EXISTS"
     message = "Email already exists"
+
 
 class PhoneNumberAlreadyExists(APIException):
     error_code = HTTPStatus.CONFLICT
@@ -47,4 +49,3 @@ class WeakPasswordError(APIException):
     error_code = HTTPStatus.BAD_REQUEST
     message_code = "WEAK_PASSWORD"
     message = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
-    

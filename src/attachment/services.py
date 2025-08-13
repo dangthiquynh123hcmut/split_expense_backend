@@ -1,16 +1,16 @@
 from uuid import UUID
 
 import boto3
+from dish.orm import DishORM
 from django.conf import settings
 from django.core.files import File
 from django.db import transaction
+from food.orm import FoodORM
 
 from attachment.models import AttachmentType
-from dish.orm import DishORM
 from exceptions.attachments import AttachmentAlreadyCompleted, AttachmentNotFound
 from exceptions.dishes import DishNotFoundException
 from exceptions.food import FoodDoesNotExist
-from food.orm import FoodORM
 from utils.services import BaseService
 from utils.types import TUser
 
