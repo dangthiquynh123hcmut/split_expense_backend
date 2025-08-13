@@ -3,12 +3,12 @@ services:
     name: split-expense-backend
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn split_expense.wsgi:application"
+    startCommand: "gunicorn split_expense_system.wsgi:application --chdir src"
     envVars:
       - key: PYTHON_VERSION
         value: "3.10.7"
       - key: DJANGO_SETTINGS_MODULE
-        value: "split_expense.settings"
+        value: "split_expense_system.settings"
       - key: SECRET_KEY
         generateValue: true
       - key: WEB_CONCURRENCY
