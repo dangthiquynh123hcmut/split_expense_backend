@@ -9,21 +9,36 @@ from .models import User
 class UserAdmin(BaseUserAdmin):
     add_form = UserCreationEmailRequiredForm
     form = UserChangeEmailRequiredForm
+    add_fieldsets = (
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": (
+                    "email",
+                    "full_name",
+                    "phone_number",
+                    "password1",
+                    "password2",
+                ),
+            },
+        ),
+    )
 
     list_display = (
-        "username",
-        "get_full_name",
+        "email",
+        "full_name",
         "phone_number",
         "is_staff",
         "is_active",
     )
     list_filter = ("is_staff", "is_active")
-    search_fields = ("username", "full_name", "phone_number")
-    ordering = ("username",)
+    search_fields = ("email", "full_name", "phone_number")
+    ordering = ("email",)
 
     fieldsets = (
-        (None, {"fields": ("username", "password")}),
-        (_("Personal info"), {"fields": ("full_name", "phone_number")}),
+        (None, {"fields": ("email", "password")}),
+        (_("Personal info"), {"fields": ("full_name", "phone_number", "avatar_url")}),
         (
             _("Permissions"),
             {
@@ -45,7 +60,7 @@ class UserAdmin(BaseUserAdmin):
             {
                 "classes": ("wide",),
                 "fields": (
-                    "username",
+                    "email",
                     "full_name",
                     "phone_number",
                     "password1",
@@ -74,5 +89,4 @@ class UserAdmin(BaseUserAdmin):
         return form
 
 
-# Register the custom User model
 admin.site.register(User, UserAdmin)

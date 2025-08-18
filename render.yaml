@@ -6,7 +6,7 @@ services:
     startCommand: "cd src && gunicorn --chdir . split_expense_system.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
-        value: "3.10.7"
+        value: "3.12.1"
       - key: PYTHONPATH
         value: "/opt/render/project/src:/opt/render/project"
       - key: DJANGO_SETTINGS_MODULE

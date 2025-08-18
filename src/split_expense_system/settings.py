@@ -61,6 +61,12 @@ INSTALLED_APPS = [
     "ninja_extra",
     # Local apps
     "authenticate",
+    "event",
+    "expense",
+    "group",
+    "message",
+    "wallet",
+    "friend",
     "cloudinary",
     "cloudinary_storage",
     # "attachment",
@@ -118,8 +124,12 @@ if os.getenv("RENDER"):
 else:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB", "split_expense_db"),
+            "USER": os.environ.get("POSTGRES_USER", "postgres"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "postgres"),
+            "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         }
     }
 

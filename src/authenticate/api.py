@@ -6,7 +6,7 @@ from exceptions.users import (
     UserNotFound,
     WeakPasswordError,
 )
-from utils.router.controller import Controller, api, get, post, put
+from utils.router.controller import Controller, api, post, put
 from utils.types import AuthenticatedRequest, UnauthenticatedRequest
 
 from .schemas import (
@@ -45,7 +45,7 @@ class AuthenticateAPI(Controller):
     @post("/login", response=LoginResponseSchema)
     def login(self, request: UnauthenticatedRequest, data: LoginSchema):
         user, access_token, refresh_token = self.service.login(
-            request=request, username=data.email, password=data.password
+            request=request, email=data.email, password=data.password
         )
         self.logger.info(f"> [LOGIN] {user} - {access_token}")
         return LoginResponseSchema(
@@ -53,10 +53,6 @@ class AuthenticateAPI(Controller):
             refresh_token=refresh_token,
             user=UserSchema.from_orm(user),
         )
-
-    @get("/me", auth=True, response=UserSchema)
-    def get_me(self, request: AuthenticatedRequest):
-        return self.service.get_me(user=request.user)
 
     @put("/logout", auth=True)
     def logout(self, request: AuthenticatedRequest):

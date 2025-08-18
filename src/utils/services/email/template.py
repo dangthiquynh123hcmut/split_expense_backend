@@ -24,7 +24,7 @@ class EmailTemplate:
             user=user,
             template_name="email/reset_password.html",
             data={
-                "user_name": user.get_full_name(),
+                "full_name": user.get_full_name(),
                 "reset_link": f"{self._base_url}/reset-password?token={token}",
             },
             subject="Forgot password / Quên mật khẩu",
@@ -35,7 +35,7 @@ class EmailTemplate:
             user=user,
             template_name="email/change_password.html",
             data={
-                "user_name": user.get_full_name(),
+                "full_name": user.get_full_name(),
                 "formatted_time": datetime.now().strftime("%H:%M - %d/%m/%Y"),
             },
             subject="Change password / Thay đổi mật khẩu",

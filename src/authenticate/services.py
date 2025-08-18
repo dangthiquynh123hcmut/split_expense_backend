@@ -46,27 +46,23 @@ class Service(BaseService):
         user = self.query.create_user(data=data)
         return (
             user,
-            self.query.generate_access_token(user_id=user.id),
-            self.query.generate_refresh_token(user_id=user.id),
+            self.query.generate_access_token(user_uid=str(user.uid)),
+            self.query.generate_refresh_token(user_uid=str(user.uid)),
         )
 
     def login(
-        self, request: HttpRequest, username: str, password: str
+        self, request: HttpRequest, email: str, password: str
     ) -> Tuple[TUser, str, str]:
-        user = self.query.get_user_by_username_and_password(
-            username=username,
+        user = self.query.get_user_by_email_and_password(
+            email=email,
             password=password,
         )
-        print("hihi")
         self.auth.login(request=request, user=user)
         return (
             user,
-            self.query.generate_access_token(user_id=user.id),
-            self.query.generate_refresh_token(user_id=user.id),
+            self.query.generate_access_token(user_uid=str(user.uid)),
+            self.query.generate_refresh_token(user_uid=str(user.uid)),
         )
-
-    def get_me(self, user: TUser) -> TUser:
-        return user
 
     def logout(self, request: AuthenticatedRequest) -> bool:
         self.query.logout(token=request.token)

@@ -7,8 +7,8 @@ class CreatorAndUpdaterModel(models.Model):
     creator = models.ForeignKey(
         to=User,
         on_delete=models.SET_NULL,
-        to_field="id",
-        db_column="creator_id",
+        to_field="uid",
+        db_column="creator_uid",
         related_name="%(class)s_fk_creator",
         db_constraint=True,
         blank=True,
@@ -18,8 +18,8 @@ class CreatorAndUpdaterModel(models.Model):
     updater = models.ForeignKey(
         to=User,
         on_delete=models.SET_NULL,
-        to_field="id",
-        db_column="updater_id",
+        to_field="uid",
+        db_column="updater_uid",
         related_name="%(class)s_fk_updater",
         db_constraint=True,
         blank=True,

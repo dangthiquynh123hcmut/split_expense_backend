@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.utils.timezone import now
 
 from authenticate.models import RefreshToken, ResetPassword
@@ -13,33 +16,31 @@ class Query:
     @staticmethod
     def create_user(data: RegisterSchema) -> TUser:
         return User.objects.create_user(
-            username=data.email,
+            email=data.email,
             password=data.password,
-            first_name=data.full_name,
+            full_name=data.full_name,
             phone_number=data.phone_number,
         )
 
     @staticmethod
-    def get_user_by_username_and_password(username: str, password: str) -> TUser:
+    def get_user_by_email_and_password(email: str, password: str) -> TUser:
         try:
-            user = User.objects.get(username=username)
+            user = User.objects.get(email=email)
         except User.DoesNotExist:
             raise EmailOrPasswordIncorrect
-        # Check if password is correct
         if not user.check_password(password):
-            print("_____________", user.check_password(password))
             raise EmailOrPasswordIncorrect
         return user
 
     @staticmethod
-    def generate_access_token(user_id: int) -> str:
-        new_key = AuthenticateToken.generate_access_token(user_id=user_id)
+    def generate_access_token(user_uid: str) -> str:
+        new_key = AuthenticateToken.generate_access_token(user_uid=user_uid)
         new_key.save()
         return new_key.access_token
 
     @staticmethod
-    def generate_refresh_token(user_id: int) -> str:
-        new_key = RefreshToken.generate_refresh_token(user_id=user_id)
+    def generate_refresh_token(user_uid: str) -> str:
+        new_key = RefreshToken.generate_refresh_token(user_uid=user_uid)
         new_key.save()
         return new_key.refresh_token
 
@@ -58,8 +59,8 @@ class Query:
 
     @staticmethod
     def update_me(user: TUser, data: UpdateMeSchema) -> TUser:
-        user.first_name = data.full_name
-        user.avatar = data.avatar
+        user.full_name = data.full_name
+        user.avatar_url = data.avatar  # Changed from user.avatar to user.avatar_url
         user.email = data.email
         user.phone_number = data.phone_number
         user.save()
@@ -77,7 +78,7 @@ class Query:
 
     @staticmethod
     def get_user_by_email(email: str) -> TUser | None:
-        return User.objects.filter(username=email).first()
+        return User.objects.filter(email=email).first()
 
     @staticmethod
     def get_user_by_phone_number(phone_number: str) -> TUser | None:
@@ -107,18 +108,12 @@ class Query:
         return True
 
     @staticmethod
-    def store_refresh_token(user_id: int, token: str) -> None:
-        """
-        Store refresh token in the database for validation.
+    def store_refresh_token(user_uid: str, token: str) -> None:
+        RefreshToken.objects.filter(user_id=user_uid).update(is_blacklisted=True)
 
-        Args:
-            user_id: ID of the user
-            token: Refresh token to store
-        """
-        # Invalidate any existing refresh tokens for this user
-        RefreshToken.objects.filter(user_id=user_id).update(is_blacklisted=True)
-
-        # Store the new refresh token
         RefreshToken.objects.create(
-            user_id=user_id, refresh_token=token, is_blacklisted=False
+            user_id=user_uid,
+            refresh_token=token,
+            is_blacklisted=False,
+            expires_at=now() + timedelta(days=settings.REFRESH_TOKEN_LIFETIME),
         )
