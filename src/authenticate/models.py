@@ -32,6 +32,10 @@ class UserManager(BaseUserManager["User"]):
 
 
 class User(AbstractUser):
+    username = None  # type: ignore[assignment]
+    first_name = None  # type: ignore[assignment]
+    last_name = None  # type: ignore[assignment]
+
     full_name = models.CharField(max_length=255, blank=False, null=False)
     email = models.EmailField(unique=True, max_length=255)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
