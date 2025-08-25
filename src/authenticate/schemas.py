@@ -60,6 +60,15 @@ class LoginResponseSchema(Schema):
     user: UserSchema
 
 
+class RefreshResponse(Schema):
+    access_token: str
+    refresh_token: str
+
+
+class RefreshRequest(Schema):
+    refresh_token: str
+
+
 class PasswordChangeRequest(Schema):
     old_password: str
     new_password: str = Field(..., min_length=8)

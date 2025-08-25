@@ -55,7 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Third party apps
+    "django_crontab",
     "corsheaders",
     "whitenoise",
     "ninja_extra",
@@ -185,20 +185,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ACCESS_TOKEN_LIFETIME = int(os.getenv("ACCESS_TOKEN_LIFETIME", "15"))
 REFRESH_TOKEN_LIFETIME = int(os.getenv("REFRESH_TOKEN_LIFETIME", "15"))
+REFRESH_TOKEN_REMAIN = int(os.getenv("REFRESH_TOKEN_REMAIN", "1"))
 RESET_PASSWORD_EXPIRES_IN_MINUTES = int(
     os.getenv("RESET_PASSWORD_EXPIRES_IN_MINUTES", "15")
 )
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
-
-# S3
-S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
-S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
-S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")
-S3_REGION = os.getenv("S3_REGION")
-S3_PUBLIC_URL = os.getenv("S3_PUBLIC_URL")
-S3_EXPIRES_IN = int(os.getenv("S3_EXPIRES_IN", "3600"))
 
 # Sent email
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
@@ -217,3 +210,5 @@ CLOUDINARY_STORAGE = {
     "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
 }
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+CRONJOBS = [("0 0 * * *", "authenticate.management.commands.cleanup_expired_tokens")]

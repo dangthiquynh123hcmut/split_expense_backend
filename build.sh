@@ -54,6 +54,20 @@ if [ -f "$SRC_DIR/manage.py" ]; then
     # Run migrations
     echo "Running migrations..."
     python "$SRC_DIR/manage.py" migrate || echo "Warning: Migrations failed, but continuing..."
+
+    # Install django-crontab if not already installed
+    echo "Installing django-crontab..."
+    pip install django-crontab || echo "Warning: Failed to install django-crontab, but continuing..."
+
+    # Add and verify cron job for token cleanup
+    echo "Setting up cron job for token cleanup..."
+    if python "$SRC_DIR/manage.py" crontab add 2>/dev/null; then
+        echo "Cron job added successfully"
+        echo "Current registered cron jobs:"
+        python "$SRC_DIR/manage.py" crontab show || echo "Failed to show cron jobs"
+    else
+        echo "Warning: Failed to add cron job. Make sure django-crontab is installed and configured in settings.py"
+    fi
 else
     echo "Error: manage.py not found in $SRC_DIR"
     echo "Current directory: $(pwd)"

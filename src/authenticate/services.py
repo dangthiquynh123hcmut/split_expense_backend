@@ -1,8 +1,12 @@
 from typing import Tuple
 from uuid import uuid4
 
+import jwt
+from datatime import timedelta
+from django.conf import settings
 from django.contrib import auth as django_auth
 from django.http import HttpRequest
+from django.utils.timezone import now
 
 from authenticate.schemas import (
     PasswordChangeRequest,
@@ -64,12 +68,53 @@ class Service(BaseService):
             self.query.generate_refresh_token(user_uid=str(user.uid)),
         )
 
+    def refresh(self, request: HttpRequest, refresh_token: str) -> Tuple[str, str]:
+        try:
+            payload = jwt.decode(
+                refresh_token,
+                settings.SECRET_KEY,
+                algorithms=["HS256"],
+                options={"verify_exp": True},
+            )
+
+            if payload.get("type") != "refresh":
+                raise InvalidOrExpiredToken
+
+            user_uid = payload.get("user_uid")
+            if not user_uid:
+                raise InvalidOrExpiredToken
+
+            try:
+                stored_token = self.query.get_refresh_token(
+                    user_uid=user_uid, refresh_token=refresh_token
+                )
+            except InvalidOrExpiredToken:
+                raise InvalidOrExpiredToken
+
+            new_access_token = self.query.generate_access_token(user_uid=user_uid)
+            if payload.get("exp") < now() + timedelta(
+                seconds=settings.REFRESH_TOKEN_REMAIN
+            ):
+                self.query.add_refresh_token_to_blacklist(refresh_token=stored_token)
+                refresh_token = self.query.generate_refresh_token(user_uid=user_uid)
+
+            return new_access_token, refresh_token
+
+        except jwt.PyJWTError:
+            raise InvalidOrExpiredToken
+
     def logout(self, request: AuthenticatedRequest) -> bool:
         self.query.logout(token=request.token)
         self.auth.logout(request=request)
         return True
 
     def update_me(self, user: TUser, data: UpdateMeSchema) -> TUser:
+        is_user = self.query.get_user_by_email(email=data.email)
+        if is_user:
+            raise EmailAlreadyExists
+        is_user = self.query.get_user_by_phone_number(phone_number=data.phone_number)
+        if is_user:
+            raise PhoneNumberAlreadyExists
         return self.query.update_me(user=user, data=data)
 
     def change_password(self, user: TUser, payload: PasswordChangeRequest):

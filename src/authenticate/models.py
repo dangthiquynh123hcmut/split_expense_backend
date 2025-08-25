@@ -172,7 +172,6 @@ class RefreshToken(models.Model):
 
     @property
     def is_valid(self) -> bool:
-        """Check if the token is still valid (not blacklisted and not expired)."""
         if self.is_blacklisted:
             return False
 

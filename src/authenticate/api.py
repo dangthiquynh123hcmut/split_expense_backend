@@ -15,6 +15,8 @@ from .schemas import (
     PasswordChangeRequest,
     PasswordForgetRequest,
     PasswordNewRequest,
+    RefreshRequest,
+    RefreshResponse,
     RegisterSchema,
     UpdateMeSchema,
     UserSchema,
@@ -54,11 +56,26 @@ class AuthenticateAPI(Controller):
             user=UserSchema.from_orm(user),
         )
 
+    @post("/refresh", response=RefreshResponse)
+    def refresh(self, request: UnauthenticatedRequest, data: RefreshRequest):
+        access_token, refresh_token = self.service.refresh(
+            request=request, refresh_token=data.refresh_token
+        )
+        return RefreshResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+
     @put("/logout", auth=True)
     def logout(self, request: AuthenticatedRequest):
         return self.service.logout(request=request)
 
-    @put("/me", auth=True, response=UserSchema)
+    @put(
+        "/me",
+        auth=True,
+        response=UserSchema,
+        exceptions=(EmailAlreadyExists, PhoneNumberAlreadyExists),
+    )
     def update_me(self, request: AuthenticatedRequest, data: UpdateMeSchema):
         return self.service.update_me(user=request.user, data=data)
 

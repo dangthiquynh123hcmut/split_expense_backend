@@ -117,3 +117,17 @@ class Query:
             is_blacklisted=False,
             expires_at=now() + timedelta(days=settings.REFRESH_TOKEN_LIFETIME),
         )
+
+    @staticmethod
+    def get_refresh_token(user_uid: str, refresh_token: str):
+        return RefreshToken.objects.get(
+            refresh_token=refresh_token,
+            user_id=user_uid,
+            is_blacklisted=False,
+            expires_at__gt=now(),
+        )
+
+    @staticmethod
+    def add_refresh_token_to_blacklist(refresh_token: RefreshToken) -> None:
+        refresh_token.is_blacklisted = True
+        refresh_token.save()

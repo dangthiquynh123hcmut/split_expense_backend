@@ -13,8 +13,6 @@ def root_view(request):
     return JsonResponse(
         {
             "message": "Welcome to Split Expense API",
-            "documentation": "Please use /api/ to access the API endpoints",
-            "admin": "/admin/ for admin interface",
         }
     )
 
