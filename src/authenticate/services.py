@@ -1,12 +1,12 @@
+from datetime import datetime, timedelta
 from typing import Tuple
 from uuid import uuid4
 
 import jwt
-from datatime import timedelta
 from django.conf import settings
 from django.contrib import auth as django_auth
 from django.http import HttpRequest
-from django.utils.timezone import now
+from django.utils import timezone
 
 from authenticate.schemas import (
     PasswordChangeRequest,
@@ -92,7 +92,10 @@ class Service(BaseService):
                 raise InvalidOrExpiredToken
 
             new_access_token = self.query.generate_access_token(user_uid=user_uid)
-            if payload.get("exp") < now() + timedelta(
+            exp_time = datetime.fromtimestamp(
+                payload.get("exp"), tz=timezone.get_current_timezone()
+            )
+            if exp_time < timezone.now() + timedelta(
                 seconds=settings.REFRESH_TOKEN_REMAIN
             ):
                 self.query.add_refresh_token_to_blacklist(refresh_token=stored_token)

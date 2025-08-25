@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand
-from django.db.models import Q
 from django.utils import timezone
 
 from authenticate.models import AuthenticateToken, RefreshToken
@@ -16,7 +15,7 @@ class Command(BaseCommand):
         ).delete()
 
         refresh_tokens_deleted, _ = RefreshToken.objects.filter(
-            Q(expires_at__lt=now) | Q(is_blacklisted=True)
+            expires_at__lt=now
         ).delete()
 
         self.stdout.write(
