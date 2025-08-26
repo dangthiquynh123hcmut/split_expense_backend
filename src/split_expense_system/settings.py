@@ -212,4 +212,6 @@ CLOUDINARY_STORAGE = {
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 # CRONJOBS = [("0 0 * * *", "authenticate.management.commands.cleanup_expired_tokens")]
-CRONJOBS = [("*/10 * * * *", "authenticate.management.commands.cleanup_expired_tokens")]
+CRONJOBS = [
+    ("*/10 * * * *", "django.core.management.call_command", ["cleanup_expired_tokens"]),
+]
