@@ -25,7 +25,7 @@ class Pagination(PaginationBase):
     page_size_query_param = "page_size"
 
     class Input(Schema):
-        page_size: int = 50
+        page_size: int = 20
         page: int = 1
 
     def paginate_queryset(self, queryset: Any, pagination: Input, **params: Any):

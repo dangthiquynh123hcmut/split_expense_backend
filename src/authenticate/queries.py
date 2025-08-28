@@ -3,11 +3,11 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils.timezone import now
 
-from authenticate.models import RefreshToken, ResetPassword
+from authenticate.models import RefreshToken, ResetPassword, User
 from authenticate.schemas import PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
 from exceptions.users import EmailOrPasswordIncorrect
-from utils.types import TUser, User
+from utils.types import TUser
 
 from .models import AuthenticateToken
 

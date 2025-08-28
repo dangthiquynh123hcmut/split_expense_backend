@@ -69,6 +69,8 @@ INSTALLED_APPS = [
     "friend",
     "cloudinary",
     "cloudinary_storage",
+    "my_admin",
+    "user",
     # "attachment",
 ]
 
@@ -213,5 +215,5 @@ DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 # CRONJOBS = [("0 0 * * *", "authenticate.management.commands.cleanup_expired_tokens")]
 CRONJOBS = [
-    ("*/10 * * * *", "django.core.management.call_command", ["cleanup_expired_tokens"]),
+    ("0 0 * * *", "django.core.management.call_command", ["cleanup_expired_tokens"]),
 ]

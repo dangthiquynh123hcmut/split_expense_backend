@@ -33,3 +33,4 @@ class Friend(BaseModel):
         choices=FriendStatusEnum.choices,
         default=FriendStatusEnum.PENDING,
     )
+    message_request = models.CharField(max_length=255, null=True, blank=True)
