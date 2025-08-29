@@ -8,8 +8,8 @@ class UserFilter(FilterSchema):
         None,
         q=[
             "phone_number__icontains",
-            "email__icontains",
+            "email__iexact",
             "full_name__icontains",
         ],
-        description="Search by phone_number, email, or full_name (using icontains)",
+        description="Exact match by email and full_name or phone_number(using icontains)",
     )

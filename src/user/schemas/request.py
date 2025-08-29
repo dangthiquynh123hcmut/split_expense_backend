@@ -12,9 +12,9 @@ class UserFilterSchema(FilterSchema):
     search: str = FilterField(
         ...,
         q=[
-            "phone_number__icontains",
-            "email__icontains",
+            "phone_number__iexact",
+            "email__iexact",
             "full_name__icontains",
         ],
-        description="Search by phone_number, email, or full_name (using icontains)",
+        description="Exact match by email, phone_number and full_name (using icontains)",
     )
