@@ -1,22 +1,18 @@
+from typing import Literal
 from uuid import UUID
 
 from ninja import Query
 
 from exceptions.friends import FriendHasRelation
 from exceptions.users import UserNotFound
-from friend.schemas.response import FriendResponse
+from friend.schemas.response import FriendResponse, RequestAddFriend
 from utils.router.authenticate import AuthBear
-from utils.router.controller import Controller, api, delete, get, post
+from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
 from utils.types import AuthenticatedRequest
 
-from .schemas.request import (
-    AddFriendRequest,
-    FilterFriendSchema,
-    OrderByUserSchema,
-    RespondFriendRequest,
-)
+from .schemas.request import AddFriendRequest, FilterFriendSchema, OrderByUserSchema
 from .schemas.response import AddFriendResponse
 from .services import FriendService
 
@@ -53,12 +49,28 @@ class FriendAPI(Controller):
             user=request.user, filter=filter, order_by=order_by
         )
 
-    @post("/respond", response=bool)
-    def respond_request_friend(
-        self, request: AuthenticatedRequest, data: RespondFriendRequest
+    @get("/request", response=RequestAddFriend, paginate=True)
+    @paginate
+    def list_friend_request(
+        self,
+        request: AuthenticatedRequest,
+        request_type: Literal["Received", "Sent"],
+        filter: FilterFriendSchema = Query(...),
+        order_by: OrderByUserSchema = Query(...),
     ):
-        return self.service.respond_request_friend(user=request.user, data=data)
+        return self.service.list_friend_request(
+            user=request.user,
+            filter=filter,
+            order_by=order_by,
+            request_type=request_type,
+        )
 
-    @delete("/{friend_uid}", response=bool)
-    def remove_friend(self, request: AuthenticatedRequest, friend_uid: UUID) -> bool:
-        return self.service.remove_friend(user=request.user, friend_uid=friend_uid)
+    @put("/{friendship_uid}", response=bool)
+    def accept_request_friend(self, friendship_uid: UUID):
+        self.service.accept_request_friend(friendship_uid=friendship_uid)
+        return True
+
+    @delete("/{friendship_uid}", response=bool)
+    def remove_or_reject_friend(self, friendship_uid: UUID) -> bool:
+        self.service.remove_or_reject_friend(friendship_uid=friendship_uid)
+        return True

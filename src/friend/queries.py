@@ -1,6 +1,7 @@
 from typing import Optional
+from uuid import UUID
 
-from django.db.models import Q
+from django.db.models import Case, CharField, F, Q, When
 
 from authenticate.models import User
 from utils.enums import FriendStatusEnum
@@ -33,17 +34,24 @@ class Query:
     @staticmethod
     def list_friends(
         user: User,
+        status: str,
         filter: Optional[FilterFriendSchema] = None,
         order_by: Optional[OrderByUserSchema] = None,
     ):
-        query = Friend.objects.filter(Q(user=user) | Q(friend=user))
+        query = Friend.objects.filter((Q(user=user) | Q(friend=user)), status=status)
 
-        if filter:
-            query = query.filter(filter.get_filter_expression())
+        if filter and filter.search:
+            query = query.filter(filter.filter_search(filter.search, user))
 
+        query = query.annotate(
+            full_name=Case(
+                When(user=user, then=F("friend__full_name")),
+                default=F("user__full_name"),
+                output_field=CharField(),
+            )
+        )
         if order_by:
             query = query.order_by(order_by.get_order_by_expression())
-
         return query
 
     @staticmethod
@@ -53,25 +61,18 @@ class Query:
         ).first()
 
     @staticmethod
-    def accept_request(friend: User, user: User) -> bool:
-        rel = Query.find_relationship(user=user, friend=friend)
+    def accept_request_friend(friendship_uid: UUID):
+        rel = Friend.objects.filter(uid=friendship_uid).first()
         if rel and rel.status == FriendStatusEnum.PENDING:
             rel.status = FriendStatusEnum.ACCEPTED
-            rel.save(update_fields=["status", "updated_at"])
+            rel.message_request = ""
+            rel.save(update_fields=["status", "updated_at", "message_request"])
             return True
         return False
 
     @staticmethod
-    def reject_request(friend: User, user: User) -> bool:
-        rel = Query.find_relationship(user=user, friend=friend)
-        if rel and rel.status == FriendStatusEnum.PENDING:
-            rel.delete()
-            return True
-        return False
-
-    @staticmethod
-    def remove_friend(user: User, friend: User) -> bool:
-        rel = Query.find_relationship(user=user, friend=friend)
+    def remove_or_reject_friend(friendship_uid: UUID) -> bool:
+        rel = Friend.objects.filter(uid=friendship_uid)
         if rel:
             rel.delete()
             return True

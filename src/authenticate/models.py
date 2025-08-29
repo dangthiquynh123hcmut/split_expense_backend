@@ -10,6 +10,8 @@ from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
+from utils.functions.remove_accents import remove_accents
+
 
 class UserManager(BaseUserManager["User"]):
     def create_user(
@@ -37,6 +39,7 @@ class User(AbstractUser):
     last_name = None  # type: ignore[assignment]
 
     full_name = models.CharField(max_length=255, blank=False, null=False)
+    full_name_no_accent = models.TextField(blank=True, editable=False)
     email = models.EmailField(unique=True, max_length=255)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     avatar_url = models.URLField(max_length=500, blank=True, null=True)
@@ -49,6 +52,11 @@ class User(AbstractUser):
 
     def get_full_name(self):
         return self.full_name or super().get_full_name()
+
+    def save(self, *args, **kwargs):
+        if self.full_name:
+            self.full_name_no_accent = remove_accents(self.full_name)
+        return super().save(*args, **kwargs)
 
 
 class AuthenticateToken(models.Model):

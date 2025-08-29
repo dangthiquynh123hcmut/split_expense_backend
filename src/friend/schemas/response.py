@@ -1,10 +1,8 @@
 from typing import Optional
 from uuid import UUID
 
-from ninja import ModelSchema, Schema
+from ninja import Schema
 from pydantic import ConfigDict
-
-from friend.models import Friend
 
 
 class AddFriendResponse(Schema):
@@ -23,10 +21,12 @@ class UserResponse(Schema):
     model_config = ConfigDict(from_attributes=True)
 
 
-class FriendResponse(ModelSchema):
-    user: UserResponse
-    friend: UserResponse
+class FriendResponse(Schema):
+    friend_uid: UUID
+    full_name: str
+    avatar_url: Optional[str] = None
+    friendship_uid: UUID
 
-    class Meta:
-        model = Friend
-        exclude = ["created_at", "updated_at", "message_request"]
+
+class RequestAddFriend(FriendResponse):
+    message_request: Optional[str]

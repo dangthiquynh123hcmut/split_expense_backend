@@ -11,4 +11,5 @@ class UserFilter(FilterSchema):
             "email__icontains",
             "full_name__icontains",
         ],
+        description="Search by phone_number, email, or full_name (using icontains)",
     )
