@@ -6,8 +6,7 @@ from group.models import Group
 class GroupResponse(ModelSchema):
     class Meta:
         model = Group
-        exclude = [
-            "user_uid",
-            "created_at",
-            "updated_at",
-        ]
+        exclude = ["created_at", "updated_at", "status", "name_no_accent"]
+
+
+# class GroupDetailResponse(GroupResponse):

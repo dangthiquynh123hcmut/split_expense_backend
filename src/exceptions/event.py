@@ -3,7 +3,7 @@ from http import HTTPStatus
 from utils.router.exception import APIException
 
 
-class GroupNotFound(APIException):
+class EventNotFound(APIException):
     error_code = HTTPStatus.NOT_FOUND
-    message_code = "GROUP_NOT_FOUND"
-    message = "Group not found"
+    message_code = "EVENT_NOT_FOUND"
+    message = "Event not found"

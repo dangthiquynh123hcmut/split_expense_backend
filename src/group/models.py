@@ -2,11 +2,13 @@ from django.conf import settings
 from django.db import models
 
 from utils.enums import StatusEnum
+from utils.functions.remove_accents import remove_accents
 from utils.models import BaseModel
 
 
 class Group(BaseModel):
     name = models.CharField(max_length=255)
+    name_no_accent = models.TextField(blank=True, editable=False)
     leader = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -25,6 +27,11 @@ class Group(BaseModel):
     )
     avatar_url = models.URLField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.name:
+            self.name_no_accent = remove_accents(self.name)
+        return super().save(*args, **kwargs)
 
 
 class GroupMember(BaseModel):
@@ -49,5 +56,10 @@ class GroupMember(BaseModel):
         db_index=True,
         null=False,
         blank=False,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=StatusEnum.choices,
+        default=StatusEnum.ACTIVE,
     )
     joined_at = models.DateTimeField(auto_now=True, auto_now_add=False)

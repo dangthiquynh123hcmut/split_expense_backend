@@ -1,0 +1,109 @@
+from collections import defaultdict
+from typing import Any, DefaultDict, Dict, List
+from uuid import UUID
+
+from django.db.models import F
+
+from authenticate.models import User
+from event.models import Event, EventMember
+from event.schemas.request import EventRequest, EventUpdateRequest
+from utils.schemas.filter_and_order_by import (
+    FilterFullNameSchema,
+    FilterNameSchema,
+    OrderByFullNameAndUpdatedAtSchema,
+)
+from utils.types import TUser
+
+
+class Query:
+    @staticmethod
+    def create_event(user: TUser, data: EventRequest):
+        data_dict = data.dict(exclude={"list_user_uid"})
+        return Event.objects.create(creator=user, **data_dict)
+
+    @staticmethod
+    def create_event_members(event: Event, member_uids: List[UUID]):
+        users = {u.uid: u for u in User.objects.filter(uid__in=member_uids)}
+        event_members = [
+            EventMember(event=event, user=users[uid]) for uid in member_uids
+        ]
+        EventMember.objects.bulk_create(event_members)
+        return
+
+    @staticmethod
+    def get_event(event_uid: UUID):
+        return Event.objects.filter(uid=event_uid, status="ACTIVE").first()
+
+    @staticmethod
+    def update_event(event: Event, data: EventUpdateRequest):
+        if event:
+            for attr, value in data.dict().items():
+                setattr(event, attr, value)
+            event.save()
+        return event
+
+    @staticmethod
+    def leave_event(user: TUser, event: Event):
+        return EventMember.objects.filter(user=user, event=event).update(
+            status="DELETED"
+        )
+
+    @staticmethod
+    def delete_event(event_uid: UUID):
+        return Event.objects.filter(uid=event_uid).update(status="DELETED")
+
+    @staticmethod
+    def list_event_members(
+        event: Event,
+        filter: FilterFullNameSchema,
+        order_by: OrderByFullNameAndUpdatedAtSchema,
+    ):
+        query = EventMember.objects.filter(event=event, status="ACTIVE").annotate(
+            event_member_uid=F("uid"),
+            user_uid=F("user__uid"),
+            full_name=F("user__full_name"),
+            avatar_url=F("user__avatar_url"),
+        )
+        if filter and filter.search:
+            query = query.filter(filter.filter_search(filter.search))
+
+        if order_by:
+            query = query.annotate(full_name=F("user__full_name")).order_by(
+                order_by.get_order_by_expression()
+            )
+        return query
+
+    @staticmethod
+    def get_detail_event(event_uid: UUID):
+        return Event.objects.filter(uid=event_uid, status="ACTIVE").first()
+
+    @staticmethod
+    def join_event(user: TUser, event: Event):
+        return EventMember.objects.create(user=user, event=event)
+
+    @staticmethod
+    def list_events_groups(user: TUser, filter: FilterNameSchema):
+        queryset = (
+            EventMember.objects.filter(user=user, status="ACTIVE")
+            .select_related("event__group")
+            .annotate(
+                event_uid=F("event__uid"),
+                event_name=F("event__name"),
+                group_uid=F("event__group__uid"),
+                group_name=F("event__group__name"),
+                group_avatar_url=F("event__group__avatar_url"),
+            )
+        )
+        if filter and filter.search:
+            queryset = queryset.filter(filter.filter_search(filter.search))
+        grouped: DefaultDict[str, Dict[str, Any]] = defaultdict(
+            lambda: {"group_name": "", "group_avatar_url": "", "list_event": []}
+        )
+
+        for m in queryset:
+            grouped[m.group_uid]["group_name"] = m.group_name
+            grouped[m.group_uid]["group_avatar_url"] = m.group_avatar_url
+            grouped[m.group_uid]["list_event"].append(
+                {"event_uid": m.event_uid, "event_name": m.event_name}
+            )
+        return list(grouped.values())

@@ -27,9 +27,5 @@ class FilterFriendSchema(FilterSchema):
         ) | Q(user__full_name_no_accent__icontains=search_value, friend=current_user)
 
 
-class FilterFriendRequests(FilterSchema):
-    type: Literal["Received", "Sent"]
-
-
 class OrderByUserSchema(OrderBySchema):
     order_by: Literal["updated_at", "full_name"] = "full_name"

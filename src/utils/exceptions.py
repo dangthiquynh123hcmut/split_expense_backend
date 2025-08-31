@@ -19,3 +19,9 @@ class PasswordIsTooWeak(APIException):
     error_code = HTTPStatus.FORBIDDEN
     message_code = "PASSWORD_TOO_WEAK"
     message = "Password is too weak"
+
+
+class DeleteIsDenied(APIException):
+    error_code = HTTPStatus.FORBIDDEN
+    message_code = "DELETE_IS_DENIED"
+    message = "Delete is denied"
