@@ -24,7 +24,7 @@ class Service:
         group = self.query.create_group(
             leader=leader, name=data.name, avatar_url=data.avatar_url
         )
-        self.query.create_group_members(group=group, members=data.list_user_uid)
+        self.query.create_group_members(group=group, member_uids=data.list_user_uid)
         return group
 
     def list_groups(

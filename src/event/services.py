@@ -19,7 +19,7 @@ class Service:
 
     def create_event(self, user: TUser, data: EventRequest):
         event = self.query.create_event(user=user, data=data)
-        self.query.create_event_members(event=event, members=data.list_user_uid)
+        self.query.create_event_members(event=event, member_uids=data.list_user_uid)
         return event
 
     def get_event(self, event_uid: UUID):
