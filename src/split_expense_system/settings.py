@@ -20,10 +20,8 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables
 env = os.getenv("ENV", "dev")
 
-# For Render.com, we'll use environment variables directly
 if os.getenv("RENDER"):
     # Running on Render
     DEBUG = os.environ.get("DEBUG", "False") == "True"
@@ -40,7 +38,6 @@ else:
     if env not in ["dev", "staging", "prod"]:
         raise ValueError(f"Invalid env: {env}")
 
-    # Load environment variables from .env file
     load_dotenv(os.path.join(BASE_DIR, f"../env/.env.{env}"))
 
     SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -49,6 +46,8 @@ else:
 
 
 INSTALLED_APPS = [
+    "daphne",
+    "channels",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -91,7 +90,24 @@ MIDDLEWARE = [
     "utils.router.middleware.APIMiddleware",
 ]
 
+ASGI_APPLICATION = "split_expense_system.asgi.application"
 ROOT_URLCONF = "split_expense_system.urls"
+
+if DEBUG:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.environ.get("REDIS_URL", "redis://localhost:6379/0")]
+            },  # type: ignore
+        }
+    }
 
 TEMPLATES = [
     {
@@ -108,8 +124,6 @@ TEMPLATES = [
         },
     },
 ]
-
-WSGI_APPLICATION = "split_expense_system.wsgi.application"
 
 
 # Database
@@ -177,8 +191,6 @@ STATIC_URL = "/static/"
 if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),)
-FIXTURE_DIRS = "fixtures"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

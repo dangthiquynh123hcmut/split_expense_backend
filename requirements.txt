@@ -27,3 +27,6 @@ django-allauth
 # For deployment
 gunicorn==21.2.0
 dj-database-url==2.1.0
+
+channels[daphne]
+channels-redis

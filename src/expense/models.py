@@ -58,6 +58,9 @@ class Expense(BaseModel):
     remaind_at = models.DateTimeField(null=False, blank=False)
     receipt_url = models.URLField(max_length=500, null=True, blank=True)
 
+    class Meta:
+        ordering = ["-created_at"]
+
 
 class UserParticipatesInExpense(BaseModel):
     event = models.ForeignKey(

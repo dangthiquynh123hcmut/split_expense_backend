@@ -35,6 +35,9 @@ repos:
           - "requests"
           - "types-requests"
           - "django-crontab"
+          - "daphne"
+          - "channels-redis"
+          - "channels"
         args: [--config=pyproject.toml, --explicit-package-bases]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -60,3 +63,10 @@ repos:
     rev: v5.10.1
     hooks:
       - id: isort
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.11.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+        exclude: ^src/split_expense_system/asgi\.py$

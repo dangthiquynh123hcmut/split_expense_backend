@@ -10,6 +10,13 @@ class StatusEnum(TextChoices):
 
 
 @unique
+class StatusMessageEnum(TextChoices):
+    ACTIVE = "ACTIVE", "active"
+    EDITED = "EDITED", "edited"
+    DELETED = "DELETED", "deleted"
+
+
+@unique
 class FriendStatusEnum(TextChoices):
     PENDING = "PENDING", "pending"
     ACCEPTED = "ACCEPTED", "accepted"

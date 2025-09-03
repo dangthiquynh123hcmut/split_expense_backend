@@ -36,22 +36,22 @@ class Service:
         return self.query.list_groups(user=user, filter=filter, order_by=order_by)
 
     def get_group(self, group_uid: UUID):
-        return self.query.get_group(group_uid=group_uid)
+        return self.query.get_group_sync(group_uid=group_uid)
 
     def update_group(self, group_uid: UUID, data: GroupUpdateRequest):
-        group = self.query.get_group(group_uid=group_uid)
+        group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
         return self.query.update_group(group=group, data=data)
 
     def leave_group(self, user: TUser, group_uid: UUID):
-        group = self.query.get_group(group_uid=group_uid)
+        group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
         return self.query.leave_group(user=user, group=group)
 
     def delete_group(self, user: TUser, group_uid: UUID):
-        group = self.query.get_group(group_uid=group_uid)
+        group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
         return self.query.delete_group(user=user, group=group)
@@ -62,7 +62,7 @@ class Service:
         filter: FilterFullNameSchema,
         order_by: OrderByFullNameAndUpdatedAtSchema,
     ):
-        group = self.query.get_group(group_uid=group_uid)
+        group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
         return self.query.list_group_members(
@@ -70,7 +70,7 @@ class Service:
         )
 
     def get_detail_group(self, group_uid: UUID):
-        group = self.query.get_group(group_uid=group_uid)
+        group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
         return self.query.get_detail_group(group_uid=group_uid)

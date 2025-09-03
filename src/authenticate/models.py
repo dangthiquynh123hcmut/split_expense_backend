@@ -1,6 +1,7 @@
 import secrets
 import uuid
 from datetime import timedelta
+from typing import cast
 from uuid import uuid4
 
 import jwt
@@ -105,7 +106,7 @@ class AuthenticateToken(models.Model):
         return AuthenticateToken(
             user_id=user_uid,
             access_token=jwt.encode(
-                access_token_payload, settings.SECRET_KEY, algorithm="HS256"
+                access_token_payload, cast(str, settings.SECRET_KEY), algorithm="HS256"
             ),
             expires_at=str(access_token_payload["exp"]),
         )
@@ -199,7 +200,7 @@ class RefreshToken(models.Model):
         }
 
         refresh_token = jwt.encode(
-            refresh_token_payload, settings.SECRET_KEY, algorithm="HS256"
+            refresh_token_payload, cast(str, settings.SECRET_KEY), algorithm="HS256"
         )
 
         return RefreshToken(

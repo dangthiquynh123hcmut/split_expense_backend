@@ -1,6 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 
+from channels.db import database_sync_to_async
 from django.db.models import F
 
 from authenticate.models import User
@@ -49,7 +50,12 @@ class Query:
         return queryset
 
     @staticmethod
+    @database_sync_to_async
     def get_group(group_uid: UUID):
+        return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
+
+    @staticmethod
+    def get_group_sync(group_uid: UUID):
         return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
 
     @staticmethod

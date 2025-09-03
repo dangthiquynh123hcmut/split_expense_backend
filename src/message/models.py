@@ -1,13 +1,12 @@
 from django.conf import settings
 from django.db import models
 
-from utils.enums import StatusEnum
+from utils.enums import StatusMessageEnum
 from utils.models import BaseModel
 
 
 class Message(BaseModel):
     content = models.CharField(null=True, blank=False)
-    ordinal = models.IntegerField(null=False, blank=False, default=0)
     user = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -21,8 +20,8 @@ class Message(BaseModel):
     )
     status = models.CharField(
         max_length=20,
-        choices=StatusEnum.choices,
-        default=StatusEnum.ACTIVE,
+        choices=StatusMessageEnum.choices,
+        default=StatusMessageEnum.ACTIVE,
     )
     group = models.ForeignKey(
         to="group.Group",
@@ -35,3 +34,6 @@ class Message(BaseModel):
         null=False,
         blank=False,
     )
+
+    class Meta:
+        ordering = ["-created_at"]
