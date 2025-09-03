@@ -1,7 +1,9 @@
 import logging
 import os
 from datetime import datetime
+from typing import Any
 
+from django.http import HttpRequest, HttpResponse
 from ninja.openapi.docs import Redoc
 from ninja_extra import NinjaExtraAPI
 
@@ -23,16 +25,24 @@ class BaseAPI(NinjaExtraAPI):
         super().__init__(*args, **kwargs)
         self._exception_handlers = get_handlers(self)
 
-    def create_response(self, request, data, *, status=None, temporal_response=None):
+    def create_response(
+        self,
+        request: HttpRequest,
+        data: Any,
+        *,
+        status: int | None = None,
+        temporal_response: Any = None,
+    ) -> HttpResponse:
+        status_code = status or 200
         return super().create_response(
             request,
-            {  # Custom response always has status 200
+            {
                 "data": data,
-                "message_code": "SUCCESS",
-                "message": "Success",
-                "error_code": status if (status != 200) else 0,
+                "message_code": "SUCCESS" if 200 <= status_code < 300 else "ERROR",
+                "message": "Success" if 200 <= status_code < 300 else "Failed",
+                "error_code": 0 if 200 <= status_code < 300 else status_code,
                 "current_time": datetime.now(),
             },
-            status=200,
+            status=status_code,
             temporal_response=temporal_response,
         )
