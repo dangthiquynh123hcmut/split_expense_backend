@@ -11,5 +11,6 @@ class GroupRequest(Schema):
 
 
 class GroupUpdateRequest(Schema):
-    name: Optional[str] = None
+    name: str
     avatar_url: Optional[str] = None
+    list_user_uid: List[UUID] = []

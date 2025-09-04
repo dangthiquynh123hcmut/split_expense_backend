@@ -16,7 +16,6 @@ from utils.schemas.filter_and_order_by import (
 from utils.types import TUser
 
 from .models import Group, GroupMember
-from .schemas.request import GroupUpdateRequest
 
 
 class Query:
@@ -59,10 +58,10 @@ class Query:
         return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
 
     @staticmethod
-    def update_group(group: Group, data: GroupUpdateRequest):
+    def update_group(group: Group, name: str, avatar_url: str):
         if group:
-            for attr, value in data.dict().items():
-                setattr(group, attr, value)
+            group.name = name
+            group.avatar_url = avatar_url
             group.save()
         return group
 

@@ -24,7 +24,9 @@ class Service:
         group = self.query.create_group(
             leader=leader, name=data.name, avatar_url=data.avatar_url
         )
-        self.query.create_group_members(group=group, member_uids=data.list_user_uid)
+        member_uids = data.list_user_uid
+        member_uids.append(leader.uid)
+        self.query.create_group_members(group=group, member_uids=member_uids)
         return group
 
     def list_groups(
@@ -42,7 +44,11 @@ class Service:
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
-        return self.query.update_group(group=group, data=data)
+        group = self.query.update_group(
+            group=group, name=data.name, avatar_url=data.avatar_url
+        )
+        self.query.create_group_members(group=group, member_uids=data.list_user_uid)
+        return group
 
     def leave_group(self, user: TUser, group_uid: UUID):
         group = self.query.get_group_sync(group_uid=group_uid)
