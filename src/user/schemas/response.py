@@ -8,3 +8,7 @@ class UserResponse(Schema):
     full_name: str
     avatar_url: Optional[str] = None
     uid: UUID
+
+
+class SearchUserResponse(UserResponse):
+    status: str | None = None

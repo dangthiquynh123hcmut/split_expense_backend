@@ -70,7 +70,8 @@ def logger_wrapper(
             logger.error(exc)
         else:
             logger.error(exc)
-        return JsonResponse(func(exc))
+        response_dict = func(exc)
+        return JsonResponse(response_dict, status=response_dict["error_code"])
 
     return wrapper
 
@@ -102,7 +103,7 @@ def _validation_error_handler(exc: ValidationError):
     return create_response(
         message="Validation error",
         message_code="VALIDATION_ERROR",
-        error_code=401,
+        error_code=400,
         detail=detail,
     )
 

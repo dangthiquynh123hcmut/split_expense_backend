@@ -4,7 +4,7 @@ from ninja import Query
 
 from event.schemas.response import EventResponse
 from exceptions.group import GroupNotFound
-from friend.schemas.response import UserResponse
+from user.schemas.response import UserResponse
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, get, post, put
 from utils.router.paginate import paginate

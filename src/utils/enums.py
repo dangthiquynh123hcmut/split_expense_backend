@@ -20,7 +20,6 @@ class StatusMessageEnum(TextChoices):
 class FriendStatusEnum(TextChoices):
     PENDING = "PENDING", "pending"
     ACCEPTED = "ACCEPTED", "accepted"
-    BLOCKED = "BLOCKED", "blocked"
 
 
 @unique
