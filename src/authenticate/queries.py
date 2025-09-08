@@ -1,12 +1,14 @@
 from datetime import timedelta
+from uuid import UUID
 
 from django.conf import settings
 from django.utils.timezone import now
 
+from attachment.models import Attachment
 from authenticate.models import RefreshToken, ResetPassword, User
 from authenticate.schemas import PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
-from exceptions.users import EmailOrPasswordIncorrect
+from exceptions.users import EmailOrPasswordIncorrect, UserNotFound
 from utils.types import TUser
 
 from .models import AuthenticateToken
@@ -60,7 +62,6 @@ class Query:
     @staticmethod
     def update_me(user: TUser, data: UpdateMeSchema) -> TUser:
         user.full_name = data.full_name
-        user.avatar_url = data.avatar  # Changed from user.avatar to user.avatar_url
         user.email = data.email
         user.phone_number = data.phone_number
         user.save()
@@ -83,6 +84,16 @@ class Query:
     @staticmethod
     def get_user_by_phone_number(phone_number: str) -> TUser | None:
         return User.objects.filter(phone_number=phone_number).first()
+
+    @staticmethod
+    def get_user_by_uid(uid: UUID) -> TUser:
+        try:
+            return User.objects.get(
+                uid=uid,
+                is_deleted=False,
+            )
+        except User.DoesNotExist:
+            raise UserNotFound
 
     @staticmethod
     def inactive_reset_password_token(user: TUser):
@@ -131,3 +142,14 @@ class Query:
     def add_refresh_token_to_blacklist(refresh_token: RefreshToken) -> None:
         refresh_token.is_blacklisted = True
         refresh_token.save()
+
+    @staticmethod
+    def delete_user(user: TUser) -> None:
+        user.is_deleted = True
+        user.save()
+
+    @staticmethod
+    def add_attachment(user: TUser, attachment: Attachment):
+        user.avatar_url = attachment
+        user.save()
+        return user

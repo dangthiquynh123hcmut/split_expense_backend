@@ -66,11 +66,9 @@ INSTALLED_APPS = [
     "message",
     "wallet",
     "friend",
-    "cloudinary",
-    "cloudinary_storage",
     "my_admin",
     "user",
-    # "attachment",
+    "attachment",
 ]
 
 # Custom user model
@@ -218,14 +216,16 @@ EMAIL_TIMEOUT = os.getenv("EMAIL_TIMEOUT")
 
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
-CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
-    "API_KEY": os.getenv("CLOUDINARY_API_KEY"),
-    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
-}
-DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-
 # CRONJOBS = [("0 0 * * *", "authenticate.management.commands.cleanup_expired_tokens")]
 CRONJOBS = [
     ("0 0 * * *", "django.core.management.call_command", ["cleanup_expired_tokens"]),
 ]
+
+
+# S3
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
+S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")
+S3_REGION = os.getenv("S3_REGION")
+S3_PUBLIC_URL = os.getenv("S3_PUBLIC_URL")
+S3_EXPIRES_IN = int(os.getenv("S3_EXPIRES_IN", "3600"))

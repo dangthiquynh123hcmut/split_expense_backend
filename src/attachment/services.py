@@ -1,16 +1,17 @@
 from uuid import UUID
 
 import boto3
-from dish.orm import DishORM
 from django.conf import settings
 from django.core.files import File
 from django.db import transaction
-from food.orm import FoodORM
 
 from attachment.models import AttachmentType
+from authenticate.queries import Query as UserQuery
 from exceptions.attachments import AttachmentAlreadyCompleted, AttachmentNotFound
-from exceptions.dishes import DishNotFoundException
-from exceptions.food import FoodDoesNotExist
+from exceptions.group import GroupNotFound
+
+# from expense.queries import Query as ExpenseQuery
+from group.queries import Query as GroupQuery
 from utils.services import BaseService
 from utils.types import TUser
 
@@ -35,8 +36,9 @@ class AttachmentService(BaseService):
         )
         self.expires_in = settings.S3_EXPIRES_IN
 
-        self.food_orm = FoodORM()
-        self.dish_orm = DishORM()
+        self.user_query = UserQuery()
+        self.group_query = GroupQuery()
+        # self.expense_query = ExpenseQuery()
 
     def get_presigned_url(self, user: TUser, payload: GeneratePresignedUrlSchema):
         attachment = self.query.create_new_instance(
@@ -78,29 +80,38 @@ class AttachmentService(BaseService):
         if attachment.is_completed:
             raise AttachmentAlreadyCompleted
 
-        if attachment.type == AttachmentType.FOOD:
-            food = self.food_orm.get_food_by_uid(uid=instance_uid)
+        if attachment.type == AttachmentType.USER:
+            user = self.user_query.get_user_by_uid(uid=instance_uid)
 
-            if not food:
-                raise FoodDoesNotExist
-
-            if food.attachment:
+            if user.avatar_url:
                 # TODO: remove old attachment
                 pass
 
-            self.food_orm.add_attachment(food=food, attachment=attachment)
+            self.user_query.add_attachment(user=user, attachment=attachment)
 
-        if attachment.type == AttachmentType.DISH:
-            dish = self.dish_orm.get_dish_by_uid(uid=instance_uid)
+        if attachment.type == AttachmentType.GROUP:
+            group = self.group_query.get_group_sync(group_uid=instance_uid)
 
-            if not dish:
-                raise DishNotFoundException
+            if not group:
+                raise GroupNotFound
 
-            if dish.attachment:
+            if group.avatar_url:
                 # TODO: remove old attachment
                 pass
 
-            self.dish_orm.add_attachment(dish=dish, attachment=attachment)
+            self.group_query.add_attachment(group=group, attachment=attachment)
+
+        # if attachment.type == AttachmentType.EXPENSE:
+        #     expense = self.expense_query.get_expense(uid=instance_uid)
+
+        #     if not expense:
+        #         raise ExpenseNotFound
+
+        #     if expense.avatar_url:
+        #         # TODO: remove old attachment
+        #         pass
+
+        #     self.expense_query.add_attachment(expense=expense, attachment=attachment)
 
         self.query.mark_as_completed(attachment=attachment, user=user)
 

@@ -25,7 +25,16 @@ class Group(BaseModel):
         choices=StatusEnum.choices,
         default=StatusEnum.ACTIVE,
     )
-    avatar_url = models.URLField(max_length=500, blank=True, null=True)
+    avatar_url = models.ForeignKey(
+        to="attachment.Attachment",
+        on_delete=models.SET_NULL,
+        to_field="uid",
+        db_column="avatar_url_uid",
+        related_name="group_fk_avatar_url",
+        db_constraint=True,
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):

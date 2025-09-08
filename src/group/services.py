@@ -21,9 +21,7 @@ class Service:
 
     @transaction.atomic
     def create_group(self, leader: TUser, data: GroupRequest):
-        group = self.query.create_group(
-            leader=leader, name=data.name, avatar_url=data.avatar_url
-        )
+        group = self.query.create_group(leader=leader, name=data.name)
         member_uids = data.list_user_uid
         member_uids.append(leader.uid)
         self.query.create_group_members(group=group, member_uids=member_uids)
@@ -44,9 +42,7 @@ class Service:
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
-        group = self.query.update_group(
-            group=group, name=data.name, avatar_url=data.avatar_url
-        )
+        group = self.query.update_group(group=group, name=data.name)
         self.query.create_group_members(group=group, member_uids=data.list_user_uid)
         return group
 

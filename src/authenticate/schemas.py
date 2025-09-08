@@ -49,7 +49,6 @@ class LoginSchema(Schema):
 
 class UpdateMeSchema(Schema):
     full_name: str
-    avatar: str
     email: str
     phone_number: str
 

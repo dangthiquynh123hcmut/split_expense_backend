@@ -8,9 +8,9 @@ from utils.types import User
 
 @unique
 class AttachmentType(models.TextChoices):
-    FOOD = "FOOD", "Food"
-    DISH = "DISH", "Dish"
-    PORTION = "PORTION", "Portion"
+    GROUP = "GROUP", "Group"
+    USER = "USER", "User"
+    EXPENSE = "EXPENSE", "Expense"
     OTHER = "OTHER", "Other"
 
 
@@ -51,8 +51,8 @@ class Attachment(models.Model):
     owner = models.ForeignKey(
         to=User,
         on_delete=models.SET_NULL,
-        to_field="id",
-        db_column="owner_id",
+        to_field="uid",
+        db_column="owner_uid",
         related_name="attachment_fk_owner",
         db_constraint=True,
         null=True,
@@ -62,8 +62,8 @@ class Attachment(models.Model):
     updater = models.ForeignKey(
         to=User,
         on_delete=models.SET_NULL,
-        to_field="id",
-        db_column="updater_id",
+        to_field="uid",
+        db_column="updater_uid",
         related_name="attachment_fk_updater",
         db_constraint=True,
         null=True,

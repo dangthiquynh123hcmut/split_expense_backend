@@ -1,9 +1,10 @@
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
 from channels.db import database_sync_to_async
 from django.db.models import F
 
+from attachment.models import Attachment
 from authenticate.models import User
 from event.models import Event
 from utils.exceptions import DeleteIsDenied
@@ -20,8 +21,8 @@ from .models import Group, GroupMember
 
 class Query:
     @staticmethod
-    def create_group(leader: User, name: str, avatar_url: Optional[str]):
-        return Group.objects.create(leader=leader, name=name, avatar_url=avatar_url)
+    def create_group(leader: User, name: str):
+        return Group.objects.create(leader=leader, name=name)
 
     @staticmethod
     def create_group_members(group: Group, member_uids: List[UUID]):
@@ -58,10 +59,9 @@ class Query:
         return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
 
     @staticmethod
-    def update_group(group: Group, name: str, avatar_url: str):
+    def update_group(group: Group, name: str):
         if group:
             group.name = name
-            group.avatar_url = avatar_url
             group.save()
         return group
 
@@ -112,3 +112,9 @@ class Query:
             queryset = queryset.order_by(order_by.get_order_by_expression())
 
         return queryset
+
+    @staticmethod
+    def add_attachment(group: Group, attachment: Attachment):
+        group.avatar_url = attachment
+        group.save()
+        return group

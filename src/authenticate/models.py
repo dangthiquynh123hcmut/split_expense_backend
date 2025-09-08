@@ -43,8 +43,18 @@ class User(AbstractUser):
     full_name_no_accent = models.TextField(blank=True, editable=False)
     email = models.EmailField(unique=True, max_length=255)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
-    avatar_url = models.URLField(max_length=500, blank=True, null=True)
+    avatar_url = models.ForeignKey(
+        to="attachment.Attachment",
+        on_delete=models.SET_NULL,
+        to_field="uid",
+        db_column="avatar_url_uid",
+        related_name="user_fk_avatar_url",
+        db_constraint=True,
+        null=True,
+        blank=True,
+    )
     uid = models.UUIDField(default=uuid4, unique=True, editable=False, primary_key=True)
+    is_deleted = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["full_name"]
