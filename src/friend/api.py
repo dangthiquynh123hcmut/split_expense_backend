@@ -3,7 +3,7 @@ from uuid import UUID
 
 from ninja import Query
 
-from exceptions.friends import FriendHasRelation
+from exceptions.friends import FriendHasRelation, FriendshipNotFound
 from exceptions.users import UserNotFound
 from friend.schemas.response import FriendResponse, RequestAddFriend
 from utils.router.authenticate import AuthBear
@@ -65,12 +65,11 @@ class FriendAPI(Controller):
             request_type=request_type,
         )
 
-    @put("/{friendship_uid}", response=bool)
+    @put("/{friendship_uid}", response=bool, exceptions=(FriendshipNotFound,))
     def accept_request_friend(self, friendship_uid: UUID):
         self.service.accept_request_friend(friendship_uid=friendship_uid)
         return True
 
-    @delete("/{friendship_uid}", response=bool)
-    def remove_or_reject_friend(self, friendship_uid: UUID) -> bool:
-        self.service.remove_or_reject_friend(friendship_uid=friendship_uid)
-        return True
+    @delete("/{friendship_uid}", response=bool, exceptions=(FriendshipNotFound,))
+    def remove_or_reject_friend(self, friendship_uid: UUID):
+        return self.service.remove_or_reject_friend(friendship_uid=friendship_uid)

@@ -3,6 +3,8 @@ from uuid import UUID
 from asgiref.sync import async_to_sync
 from ninja import Query
 
+from exceptions.group import GroupNotFound
+from utils.exceptions import GetIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.paginate import paginate
@@ -34,10 +36,22 @@ class MessageAPI(Controller):
             message=message,
         )
 
-    @get("/group/{group_uid}", response=MessageOut, paginate=True)
+    @get(
+        "/group/{group_uid}",
+        response=MessageOut,
+        paginate=True,
+        exceptions=(GroupNotFound, GetIsDenied),
+    )
     @paginate
-    def list_messages(self, group_uid: UUID, filters: MessageFilter = Query(...)):
-        return self.service.list_messages(group_uid=group_uid, filters=filters)
+    def list_messages(
+        self,
+        request: AuthenticatedRequest,
+        group_uid: UUID,
+        filters: MessageFilter = Query(...),
+    ):
+        return self.service.list_messages(
+            user=request.user, group_uid=group_uid, filters=filters
+        )
 
     @put("/{message_uid}", response=MessageUpdateOut)
     def update_message(

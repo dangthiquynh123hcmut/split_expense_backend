@@ -3,6 +3,7 @@ from uuid import UUID
 
 from django.db.models import Case, CharField, F, Q, When
 
+from attachment.schemas.responses import AttachmentResponse
 from authenticate.models import User
 from utils.enums import FriendStatusEnum
 from utils.types import TUser
@@ -28,7 +29,9 @@ class Query:
             receiver_uid=friend.uid,
             message=message,
             full_name=user.full_name,
-            avatar_url=user.avatar_url,
+            avatar_url=AttachmentResponse.from_orm(user.avatar_url)
+            if user.avatar_url
+            else None,
         )
 
     @staticmethod
@@ -61,19 +64,32 @@ class Query:
         ).first()
 
     @staticmethod
-    def accept_request_friend(friendship_uid: UUID):
-        rel = Friend.objects.filter(uid=friendship_uid).first()
+    def accept_request_friend(friendship_uid: UUID) -> Optional[Friend]:
+        try:
+            rel = Friend.objects.get(uid=friendship_uid)
+        except Friend.DoesNotExist:
+            return None
         if rel and rel.status == FriendStatusEnum.PENDING:
             rel.status = FriendStatusEnum.ACCEPTED
             rel.message_request = ""
             rel.save(update_fields=["status", "updated_at", "message_request"])
-            return True
-        return False
+            return rel
+        return None
 
     @staticmethod
-    def remove_or_reject_friend(friendship_uid: UUID) -> bool:
-        rel = Friend.objects.filter(uid=friendship_uid)
+    def remove_or_reject_friend(friendship_uid: UUID):
+        try:
+            rel = Friend.objects.get(uid=friendship_uid)
+        except Friend.DoesNotExist:
+            return None
         if rel:
             rel.delete()
             return True
         return False
+
+    @staticmethod
+    def get_friend_by_uid(uid: UUID) -> User | None:
+        try:
+            return User.objects.get(uid=uid)
+        except User.DoesNotExist:
+            return None

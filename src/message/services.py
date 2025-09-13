@@ -3,9 +3,11 @@ from uuid import UUID
 from channels.layers import get_channel_layer
 from django.utils import timezone
 
+from exceptions.group import GroupNotFound
 from group.queries import Query as GroupQuery
 from message.queries import Query
 from message.schemas.request import MessageFilter, MessageIn
+from utils.exceptions import GetIsDenied
 from utils.types import TUser
 
 
@@ -32,8 +34,13 @@ class Service:
             )
         return result
 
-    def list_messages(self, group_uid: UUID, filters: MessageFilter):
+    def list_messages(self, user: TUser, group_uid: UUID, filters: MessageFilter):
         group = self.group_query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        member = self.group_query.get_group_has_user(user=user, group=group)
+        if not member:
+            raise GetIsDenied
         return self.query.list_messages(group=group, filters=filters)
 
     async def update_message(self, user: TUser, message_uid: UUID, data: MessageIn):

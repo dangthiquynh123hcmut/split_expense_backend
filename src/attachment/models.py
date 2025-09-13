@@ -11,6 +11,7 @@ class AttachmentType(models.TextChoices):
     GROUP = "GROUP", "Group"
     USER = "USER", "User"
     EXPENSE = "EXPENSE", "Expense"
+    MESSAGE = "MESSAGE", "Message"
     OTHER = "OTHER", "Other"
 
 

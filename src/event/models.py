@@ -8,7 +8,7 @@ from utils.models import BaseModel
 
 class Event(BaseModel):
     name = models.CharField(max_length=255)
-    name_no_accent = models.TextField(blank=True, editable=False)
+    name_no_accent = models.TextField(max_length=255, blank=True, editable=False)
     creator = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -75,3 +75,6 @@ class EventMember(BaseModel):
         choices=StatusEnum.choices,
         default=StatusEnum.ACTIVE,
     )
+
+    class Meta:
+        unique_together = ("event", "user")

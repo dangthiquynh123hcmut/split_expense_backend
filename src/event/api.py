@@ -5,6 +5,14 @@ from ninja import Query
 
 from event.schemas.response import ListEventGroup
 from exceptions.event import EventNotFound
+from exceptions.group import GroupNotFound
+from exceptions.users import UserNotFound
+from utils.exceptions import (
+    CreateIsDenied,
+    DeleteIsDenied,
+    GetIsDenied,
+    UpdatedIsDenied,
+)
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.paginate import paginate
@@ -34,6 +42,7 @@ class EventAPI(Controller):
     @post(
         "",
         response=EventResponse,
+        exceptions=(GroupNotFound, UserNotFound, CreateIsDenied),
     )
     def create_event(self, request: AuthenticatedRequest, data: EventRequest):
         return self.service.create_event(user=request.user, data=data)
@@ -42,32 +51,47 @@ class EventAPI(Controller):
     def get_event(self, event_uid: UUID):
         return self.service.get_event(event_uid=event_uid)
 
-    @put("/{event_uid}", response=EventResponse, exceptions=(EventNotFound,))
-    def update_event(self, event_uid: UUID, data: EventUpdateRequest):
-        return self.service.update_event(event_uid=event_uid, data=data)
+    @put(
+        "/{event_uid}",
+        response=EventResponse,
+        exceptions=(EventNotFound, UpdatedIsDenied),
+    )
+    def update_event(
+        self, request: AuthenticatedRequest, event_uid: UUID, data: EventUpdateRequest
+    ):
+        return self.service.update_event(
+            user=request.user, event_uid=event_uid, data=data
+        )
 
-    @delete("/{event_uid}", response=bool, exceptions=(EventNotFound,))
+    @delete("/{event_uid}", response=bool, exceptions=(EventNotFound, DeleteIsDenied))
     def delete_event(self, request: AuthenticatedRequest, event_uid: UUID):
         return self.service.delete_event(user=request.user, event_uid=event_uid)
 
-    # @post("/{event_uid}/join", response=bool, exceptions=(EventNotFound,))
-    # def join_event(self, request: AuthenticatedRequest, event_uid: UUID):
-    #     return self.service.join_event(user = request.user, event_uid=event_uid)
+    @post("/{event_uid}/join", response=bool, exceptions=(EventNotFound,))
+    def join_event(self, request: AuthenticatedRequest, event_uid: UUID):
+        self.service.join_event(user=request.user, event_uid=event_uid)
+        return True
 
     # @post("/{event_uid}/leave", response=bool, exceptions=(EventNotFound,))
     # def leave_event(self, request: AuthenticatedRequest, event_uid: UUID):
     #     return self.service.leave_event(user = request.user, event_uid=event_uid)
 
-    @get("/{event_uid}/members", response=EventMemberResponse, paginate=True)
+    @get(
+        "/{event_uid}/members",
+        response=EventMemberResponse,
+        paginate=True,
+        exceptions=(EventNotFound, GetIsDenied),
+    )
     @paginate
     def list_event_members(
         self,
+        request: AuthenticatedRequest,
         event_uid: UUID,
         filter: FilterFullNameSchema = Query(...),
         order_by: OrderByFullNameAndUpdatedAtSchema = Query(...),
     ):
         return self.service.list_event_members(
-            event_uid=event_uid, filter=filter, order_by=order_by
+            user=request.user, event_uid=event_uid, filter=filter, order_by=order_by
         )
 
 

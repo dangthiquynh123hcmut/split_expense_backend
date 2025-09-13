@@ -1,9 +1,7 @@
 import logging
 import time
-from datetime import datetime
 
 from django.db import connection
-from django.http import JsonResponse
 
 
 LOGGER = logging.getLogger("django")
@@ -35,16 +33,5 @@ class APIMiddleware:
             f"> Number of queries: {ended_connection_queries - started_connection_queries}\n"
             "---------------------------------------------------------------"
         )
-
-        if response.status_code == 404 and response.reason_phrase == "Not Found":
-            return JsonResponse(
-                {
-                    "data": None,
-                    "error_code": response.status_code,
-                    "message_code": "PAGE_NOT_FOUND",
-                    "message": "Page not found",
-                    "current_time": datetime.now(),
-                }
-            )
 
         return response

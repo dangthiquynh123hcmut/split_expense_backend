@@ -1,6 +1,9 @@
 from exceptions.auth import InvalidOrExpiredToken
 from exceptions.users import (
     EmailAlreadyExists,
+    EmailOrPasswordIncorrect,
+    InvalidEmailFormat,
+    InvalidPhoneNumberFormat,
     PasswordIncorrect,
     PhoneNumberAlreadyExists,
     UserNotFound,
@@ -32,7 +35,13 @@ class AuthenticateAPI(Controller):
     @post(
         "/register",
         response=LoginResponseSchema,
-        exceptions=(EmailAlreadyExists, PhoneNumberAlreadyExists, WeakPasswordError),
+        exceptions=(
+            EmailAlreadyExists,
+            PhoneNumberAlreadyExists,
+            WeakPasswordError,
+            InvalidEmailFormat,
+            InvalidPhoneNumberFormat,
+        ),
     )
     def register(self, request: UnauthenticatedRequest, data: RegisterSchema):
         user, access_token, refresh_token = self.service.register(
@@ -44,7 +53,9 @@ class AuthenticateAPI(Controller):
             user=UserSchema.from_orm(user),
         )
 
-    @post("/login", response=LoginResponseSchema)
+    @post(
+        "/login", response=LoginResponseSchema, exceptions=(EmailOrPasswordIncorrect,)
+    )
     def login(self, request: UnauthenticatedRequest, data: LoginSchema):
         user, access_token, refresh_token = self.service.login(
             request=request, email=data.email, password=data.password
@@ -56,7 +67,7 @@ class AuthenticateAPI(Controller):
             user=UserSchema.from_orm(user),
         )
 
-    @post("/refresh", response=RefreshResponse)
+    @post("/refresh", response=RefreshResponse, exceptions=(InvalidOrExpiredToken,))
     def refresh(self, request: UnauthenticatedRequest, data: RefreshRequest):
         access_token, refresh_token = self.service.refresh(
             request=request, refresh_token=data.refresh_token
@@ -66,9 +77,10 @@ class AuthenticateAPI(Controller):
             refresh_token=refresh_token,
         )
 
-    @put("/logout", auth=True)
+    @put("/logout", auth=True, response=bool)
     def logout(self, request: AuthenticatedRequest):
-        return self.service.logout(request=request)
+        self.service.logout(request=request)
+        return True
 
     @put(
         "/me",

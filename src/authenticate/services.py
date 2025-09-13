@@ -21,6 +21,7 @@ from exceptions.users import (
     PhoneNumberAlreadyExists,
     UserNotFound,
 )
+from utils.exceptions import SecretKeyNotFound
 from utils.services.base import BaseService
 from utils.services.email.client import EmailClient
 from utils.services.email.template import EmailTemplate
@@ -48,6 +49,7 @@ class Service(BaseService):
             raise PhoneNumberAlreadyExists
 
         user = self.query.create_user(data=data)
+        self.auth.login(request=request, user=user)
         return (
             user,
             self.query.generate_access_token(user_uid=str(user.uid)),
@@ -70,6 +72,8 @@ class Service(BaseService):
 
     def refresh(self, request: HttpRequest, refresh_token: str) -> Tuple[str, str]:
         try:
+            if not settings.SECRET_KEY:
+                raise SecretKeyNotFound
             payload = jwt.decode(
                 refresh_token,
                 settings.SECRET_KEY,
@@ -113,10 +117,10 @@ class Service(BaseService):
 
     def update_me(self, user: TUser, data: UpdateMeSchema) -> TUser:
         is_user = self.query.get_user_by_email(email=data.email)
-        if is_user:
+        if is_user and is_user.email != user.email:
             raise EmailAlreadyExists
         is_user = self.query.get_user_by_phone_number(phone_number=data.phone_number)
-        if is_user:
+        if is_user and is_user.phone_number != user.phone_number:
             raise PhoneNumberAlreadyExists
         return self.query.update_me(user=user, data=data)
 
@@ -150,7 +154,7 @@ class Service(BaseService):
     def reset_password(self, payload: PasswordNewRequest):
         record = self.query.get_reset_password_token(token=payload.token)
 
-        if record.is_expired():
+        if not record or record.is_expired():
             raise InvalidOrExpiredToken
 
         return self.query.reset_password(record=record, payload=payload)

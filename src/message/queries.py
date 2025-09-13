@@ -3,11 +3,14 @@ from uuid import UUID
 from channels.db import database_sync_to_async
 from django.utils import timezone
 
+from attachment.models import Attachment
 from group.models import Group
 from message.models import Message
 from message.schemas.request import MessageFilter, MessageIn
 from utils.enums import StatusEnum, StatusMessageEnum
 from utils.types import TUser
+
+from .models import MessageAttachment
 
 
 class Query:
@@ -47,4 +50,10 @@ class Query:
         message.content = "message deleted"
         message.updated_at = timezone.now()
         message.save()
+        return
+
+    @staticmethod
+    @database_sync_to_async
+    def add_attachment(message: Message, attachment: Attachment):
+        MessageAttachment.objects.create(message=message, attachment=attachment)
         return

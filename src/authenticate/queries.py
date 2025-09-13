@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import List
 from uuid import UUID
 
 from django.conf import settings
@@ -8,7 +9,7 @@ from attachment.models import Attachment
 from authenticate.models import RefreshToken, ResetPassword, User
 from authenticate.schemas import PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
-from exceptions.users import EmailOrPasswordIncorrect, UserNotFound
+from exceptions.users import EmailOrPasswordIncorrect
 from utils.types import TUser
 
 from .models import AuthenticateToken
@@ -86,14 +87,18 @@ class Query:
         return User.objects.filter(phone_number=phone_number).first()
 
     @staticmethod
-    def get_user_by_uid(uid: UUID) -> TUser:
+    def get_user_by_uid(uid: UUID) -> TUser | None:
         try:
             return User.objects.get(
                 uid=uid,
-                is_deleted=False,
+                is_active=True,
             )
         except User.DoesNotExist:
-            raise UserNotFound
+            return None
+
+    @staticmethod
+    def get_user_by_uids(uids: List[UUID]):
+        return User.objects.filter(uid__in=uids, is_active=True)
 
     @staticmethod
     def inactive_reset_password_token(user: TUser):
@@ -108,7 +113,7 @@ class Query:
         try:
             return ResetPassword.objects.get(token=token, active=True)
         except ResetPassword.DoesNotExist:
-            raise InvalidOrExpiredToken
+            return None
 
     @staticmethod
     def reset_password(record: ResetPassword, payload: PasswordNewRequest):
@@ -145,7 +150,7 @@ class Query:
 
     @staticmethod
     def delete_user(user: TUser) -> None:
-        user.is_deleted = True
+        user.is_active = False
         user.save()
 
     @staticmethod

@@ -8,10 +8,12 @@ from django.db import transaction
 from attachment.models import AttachmentType
 from authenticate.queries import Query as UserQuery
 from exceptions.attachments import AttachmentAlreadyCompleted, AttachmentNotFound
+from exceptions.expense import ExpenseNotFound
 from exceptions.group import GroupNotFound
-
-# from expense.queries import Query as ExpenseQuery
+from exceptions.message import MessageNotFound
+from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
+from message.queries import Query as MessageQuery
 from utils.services import BaseService
 from utils.types import TUser
 
@@ -38,7 +40,8 @@ class AttachmentService(BaseService):
 
         self.user_query = UserQuery()
         self.group_query = GroupQuery()
-        # self.expense_query = ExpenseQuery()
+        self.expense_query = ExpenseQuery()
+        self.message_query = MessageQuery()
 
     def get_presigned_url(self, user: TUser, payload: GeneratePresignedUrlSchema):
         attachment = self.query.create_new_instance(
@@ -81,8 +84,6 @@ class AttachmentService(BaseService):
             raise AttachmentAlreadyCompleted
 
         if attachment.type == AttachmentType.USER:
-            user = self.user_query.get_user_by_uid(uid=instance_uid)
-
             if user.avatar_url:
                 # TODO: remove old attachment
                 pass
@@ -101,17 +102,20 @@ class AttachmentService(BaseService):
 
             self.group_query.add_attachment(group=group, attachment=attachment)
 
-        # if attachment.type == AttachmentType.EXPENSE:
-        #     expense = self.expense_query.get_expense(uid=instance_uid)
+        if attachment.type == AttachmentType.EXPENSE:
+            expense = self.expense_query.get_expense(expense_uid=instance_uid)
 
-        #     if not expense:
-        #         raise ExpenseNotFound
+            if not expense:
+                raise ExpenseNotFound
 
-        #     if expense.avatar_url:
-        #         # TODO: remove old attachment
-        #         pass
+            self.expense_query.add_attachment(expense=expense, attachment=attachment)
+        if attachment.type == AttachmentType.MESSAGE:
+            message = self.message_query.get_message(message_uid=instance_uid)
 
-        #     self.expense_query.add_attachment(expense=expense, attachment=attachment)
+            if not message:
+                raise MessageNotFound
+
+            self.message_query.add_attachment(message=message, attachment=attachment)
 
         self.query.mark_as_completed(attachment=attachment, user=user)
 

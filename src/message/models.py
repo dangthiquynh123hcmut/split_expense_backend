@@ -7,6 +7,14 @@ from utils.models import BaseModel
 
 class Message(BaseModel):
     content = models.CharField(null=True, blank=False)
+    attachment = models.ManyToManyField(
+        to="attachment.Attachment",
+        through="message.MessageAttachment",
+        related_name="message_fk_attachment",
+        db_constraint=True,
+        db_index=True,
+        blank=True,
+    )
     user = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -37,3 +45,33 @@ class Message(BaseModel):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class MessageAttachment(BaseModel):
+    message = models.ForeignKey(
+        to="message.Message",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="message_uid",
+        related_name="message_attachment_fk_message",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    attachment = models.ForeignKey(
+        to="attachment.Attachment",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="attachment_uid",
+        related_name="message_attachment_fk_attachment",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["message", "attachment"]),
+        ]

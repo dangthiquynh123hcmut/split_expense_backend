@@ -1,64 +1,59 @@
-# class Query:
+from typing import List
+from uuid import UUID
 
-#     @staticmethod
-#     def create_expense(leader: TUser, name: str, avatar_url: Optional[str]):
-#         return Expense.objects.create(leader=leader, name=name, avatar_url=avatar_url)
+from django.db.models import F
 
-#     @staticmethod
-#     def create_expense_members(expense: Expense, members: List[UUID]):
-#         members = [
-#             ExpenseMember(
-#                 expense=expense,
-#                 user=User.objects.get(uid=member_uid)
-#             )
-#             for member_uid in members
-#         ]
-#         ExpenseMember.objects.bulk_create(members)
-#         return
+from attachment.models import Attachment
+from authenticate.models import User
+from event.models import Event
+from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
+from expense.schemas.request import ExpenseUpdateRequest
+from utils.types import TUser
 
-#     @staticmethod
-#     def list_expenses(user_uid: UUID, filter: FilterExpenseSchema, order_by: OrderByExpenseSchema):
-#         queryset = Expense.objects.filter(
-#             expense_member_fk_expense__user__uid=user_uid,
-#             status="ACTIVE"
-#         ).distinct()
 
-#         if filter:
-#             queryset = queryset.filter(filter.get_filter_expression())
+class Query:
+    @staticmethod
+    def create_expense(creator: TUser, event: Event, paid_by: User, **kwargs):
+        return Expense.objects.create(
+            creator=creator, event=event, paid_by=paid_by, **kwargs
+        )
 
-#         if order_by:
-#             queryset = queryset.order_by(order_by.get_order_by_expression())
+    @staticmethod
+    def create_expense_members(expense_members: List[UserSharesInExpense]):
+        UserSharesInExpense.objects.bulk_create(expense_members)
+        return
 
-#         return queryset
+    @staticmethod
+    def list_expenses(user: TUser, event: Event):
+        queryset = (
+            UserSharesInExpense.objects.filter(
+                expense__event=event,
+                user=user,
+            )
+            .select_related("expense")
+            .annotate(
+                expense_name=F("expense__name"),
+                expense_currency=F("expense__currency"),
+            )
+            .order_by("expense__created_at")
+        )
 
-#     @staticmethod
-#     def get_expense(expense_id: UUID):
-#         return Expense.objects.filter(uid=expense_id, status="ACTIVE").first()
+        return queryset
 
-#     @staticmethod
-#     def update_expense(expense_id: UUID, data: ExpenseUpdateRequest):
-#         return Expense.objects.filter(uid=expense_id, status="ACTIVE").update(**data.dict())
+    @staticmethod
+    def get_expense(expense_uid: UUID):
+        return Expense.objects.filter(uid=expense_uid, status="ACTIVE").first()
 
-#     @staticmethod
-#     def leave_expense(user: TUser, expense_uid: UUID):
-#         return ExpenseMember.objects.filter(user_uid=user.uid, expense_uid=expense_uid).update(status="DELETED")
+    @staticmethod
+    def update_expense(expense_uid: UUID, payload: ExpenseUpdateRequest):
+        return Expense.objects.filter(uid=expense_uid, status="ACTIVE").update(
+            **payload.dict()
+        )
 
-#     @staticmethod
-#     def delete_expense(expense_id: UUID):
-#         return Expense.objects.filter(uid=expense_id).update(status="DELETED")
+    @staticmethod
+    def delete_expense(expense_uid: UUID):
+        return Expense.objects.filter(uid=expense_uid).update(status="DELETED")
 
-#     @staticmethod
-#     def list_expense_members(expense_uid: UUID):
-#         return ExpenseMember.objects.filter(expense_uid=expense_uid, status="ACTIVE")
-
-#     @staticmethod
-#     def get_detail_expense(expense_uid: UUID):
-#         return Expense.objects.filter(uid=expense_uid, status="ACTIVE").first()
-
-#     @staticmethod
-#     def join_expense(user: TUser, expense_uid: UUID):
-#         return ExpenseMember.objects.filter(user_uid=user.uid, expense_uid=expense_uid).update(status="ACTIVE")
-
-#     @staticmethod
-#     def get_detail_expense(expense_uid: UUID):
-#         return Expense.objects.filter(uid=expense_uid, status="ACTIVE").first()
+    @staticmethod
+    def add_attachment(expense: Expense, attachment: Attachment):
+        return ExpenseAttachment.objects.create(expense=expense, attachment=attachment)

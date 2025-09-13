@@ -72,3 +72,9 @@ class GroupMember(BaseModel):
         default=StatusEnum.ACTIVE,
     )
     joined_at = models.DateTimeField(auto_now=True, auto_now_add=False)
+
+    class Meta:
+        unique_together = (("user", "group"),)
+        indexes = [
+            models.Index(fields=["user", "group"]),
+        ]

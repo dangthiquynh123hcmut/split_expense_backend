@@ -54,7 +54,6 @@ class User(AbstractUser):
         blank=True,
     )
     uid = models.UUIDField(default=uuid4, unique=True, editable=False, primary_key=True)
-    is_deleted = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["full_name"]

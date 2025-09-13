@@ -25,11 +25,7 @@ class Query:
         return Group.objects.create(leader=leader, name=name)
 
     @staticmethod
-    def create_group_members(group: Group, member_uids: List[UUID]):
-        users = {u.uid: u for u in User.objects.filter(uid__in=member_uids)}
-        group_members = [
-            GroupMember(group=group, user=users[uid]) for uid in member_uids
-        ]
+    def create_group_members(group_members: List[GroupMember]):
         GroupMember.objects.bulk_create(group_members)
         return
 
@@ -56,7 +52,17 @@ class Query:
 
     @staticmethod
     def get_group_sync(group_uid: UUID):
-        return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
+        try:
+            return Group.objects.get(uid=group_uid, status="ACTIVE")
+        except Group.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_group_has_user(user: TUser, group: Group):
+        try:
+            return GroupMember.objects.get(user=user, group=group)
+        except GroupMember.DoesNotExist:
+            return None
 
     @staticmethod
     def update_group(group: Group, name: str):
@@ -99,11 +105,11 @@ class Query:
 
     @staticmethod
     def list_events_in_a_group(
-        group_uid: UUID,
+        group: Group,
         filter: FilterNameSchema,
         order_by: OrderByNameAndUpdatedAtSchema,
     ):
-        queryset = Event.objects.filter(group=group_uid, status="ACTIVE").distinct()
+        queryset = Event.objects.filter(group=group, status="ACTIVE").distinct()
 
         if filter:
             queryset = queryset.filter(filter.get_filter_expression())

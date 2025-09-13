@@ -2,9 +2,11 @@ from uuid import UUID
 
 from ninja import Query
 
+from attachment.services import AttachmentService
 from event.schemas.response import EventResponse
 from exceptions.group import GroupNotFound
-from user.schemas.response import UserResponse
+from exceptions.users import UserNotFound
+from utils.exceptions import GetIsDenied, UpdatedIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, get, post, put
 from utils.router.paginate import paginate
@@ -18,7 +20,7 @@ from utils.schemas.filter_and_order_by import (
 from utils.types import AuthenticatedRequest
 
 from .schemas.request import GroupRequest, GroupUpdateRequest
-from .schemas.response import GroupResponse
+from .schemas.response import CreateGroupResponse, GroupResponse, UserInGroup
 from .services import Service
 
 
@@ -31,13 +33,22 @@ from .services import Service
 class GroupAPI(Controller):
     def __init__(self, service: Service):
         self.service = service
+        self.attachment_service = AttachmentService()
 
     @post(
         "",
-        response=GroupResponse,
+        response=CreateGroupResponse,
+        exceptions=(UserNotFound,),
     )
     def create_group(self, request: AuthenticatedRequest, data: GroupRequest):
-        return self.service.create_group(leader=request.user, data=data)
+        attachment, presigned_url = self.attachment_service.get_presigned_url(
+            user=request.user,
+            payload=data.image_file,
+        )
+        group = self.service.create_group(
+            leader=request.user, name=data.name, list_user_uids=data.list_user_uids
+        )
+        return {"attachment_uid": attachment.uid, "url": presigned_url, "group": group}
 
     @get("", response=GroupResponse, paginate=True)
     @paginate
@@ -51,29 +62,39 @@ class GroupAPI(Controller):
             user=request.user, filter=filter, order_by=order_by
         )
 
-    @get("/{group_uid}/members", response=UserResponse, paginate=True)
+    @get(
+        "/{group_uid}/members",
+        response=UserInGroup,
+        paginate=True,
+        exceptions=(GroupNotFound, GetIsDenied),
+    )
     @paginate
     def list_group_members(
         self,
+        request: AuthenticatedRequest,
         group_uid: UUID,
         filter: FilterFullNameSchema = Query(...),
         order_by: OrderByFullNameAndUpdatedAtSchema = Query(...),
     ):
         return self.service.list_group_members(
-            group_uid=group_uid, filter=filter, order_by=order_by
+            user=request.user, group_uid=group_uid, filter=filter, order_by=order_by
         )
 
-    @put("/{group_uid}", response=GroupResponse, exceptions=(GroupNotFound,))
-    def update_group(self, group_uid: UUID, data: GroupUpdateRequest):
-        return self.service.update_group(group_uid=group_uid, data=data)
+    @put(
+        "/{group_uid}",
+        response=GroupResponse,
+        exceptions=(GroupNotFound, UserNotFound, UpdatedIsDenied),
+    )
+    def update_group(
+        self, request: AuthenticatedRequest, group_uid: UUID, data: GroupUpdateRequest
+    ):
+        return self.service.update_group(
+            user=request.user, group_uid=group_uid, data=data
+        )
 
         # @get("/{group_uid}", response=GroupResponse, exceptions=(GroupNotFound,))
         # def get_group(self, group_uid: UUID):
         #     return  self.service.get_group(group_uid=group_uid)
-
-        # @get("/{group_uid}", response=GroupDetailResponse, exceptions=(GroupNotFound,))
-        # def get_group(self, group_uid: UUID):
-        #     return  self.service.get_detail_group(group_uid=group_uid)
 
         # @put("/{group_uid}/leave", response=bool)
         # def leave_group(self, request: AuthenticatedRequest, group_uid: UUID):
@@ -84,14 +105,20 @@ class GroupAPI(Controller):
         # def delete_group(self,request:AuthenticatedRequest, group_uid: UUID):
         # return self.service.delete_group(user=request.user, group_uid=group_uid)
 
-    @get("/{group_uid}/events", response=EventResponse, paginate=True)
+    @get(
+        "/{group_uid}/events",
+        response=EventResponse,
+        paginate=True,
+        exceptions=(GroupNotFound, GetIsDenied),
+    )
     @paginate
     def list_events_in_a_group(
         self,
+        request: AuthenticatedRequest,
         group_uid: UUID,
         filter: FilterNameSchema = Query(...),
         order_by: OrderByNameAndUpdatedAtSchema = Query(...),
     ):
         return self.service.list_events_in_a_group(
-            group_uid=group_uid, filter=filter, order_by=order_by
+            user=request.user, group_uid=group_uid, filter=filter, order_by=order_by
         )

@@ -1,7 +1,16 @@
 from uuid import UUID
 
+from authenticate.queries import Query as UseQuery
 from exceptions.event import EventNotFound
-from utils.exceptions import DeleteIsDenied
+from exceptions.group import GroupNotFound
+from exceptions.users import UserNotFound
+from group.queries import Query as GroupQuery
+from utils.exceptions import (
+    CreateIsDenied,
+    DeleteIsDenied,
+    GetIsDenied,
+    UpdatedIsDenied,
+)
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
@@ -9,6 +18,7 @@ from utils.schemas.filter_and_order_by import (
 )
 from utils.types import TUser
 
+from .models import EventMember
 from .queries import Query
 from .schemas.request import EventRequest, EventUpdateRequest
 
@@ -16,26 +26,48 @@ from .schemas.request import EventRequest, EventUpdateRequest
 class Service:
     def __init__(self):
         self.query = Query()
+        self.group_query = GroupQuery()
+        self.user_query = UseQuery()
 
     def create_event(self, user: TUser, data: EventRequest):
-        event = self.query.create_event(user=user, data=data)
-        self.query.create_event_members(event=event, member_uids=data.list_user_uid)
+        group = self.group_query.get_group_sync(group_uid=data.group_id)
+        if not group:
+            raise GroupNotFound
+        event = self.query.create_event(
+            user=user, **data.dict(exclude={"list_user_uid"})
+        )
+        users = self.user_query.get_user_by_uids(uids=data.list_user_uid)
+        if data.list_user_uid and len(users) != len(data.list_user_uid):
+            raise UserNotFound
+        is_member_in_group = self.group_query.get_group_has_user(user=user, group=group)
+        if not is_member_in_group:
+            raise CreateIsDenied
+        event_members = [EventMember(event=event, user=user) for user in users]
+        member = EventMember(event=event, user=user)
+        event_members.append(member)
+        self.query.create_event_members(event_members=event_members)
         return event
 
     def get_event(self, event_uid: UUID):
-        return self.query.get_event(event_uid=event_uid)
-
-    def update_event(self, event_uid: UUID, data: EventUpdateRequest):
         event = self.query.get_event(event_uid=event_uid)
         if not event:
             raise EventNotFound
+        return event
+
+    def update_event(self, user: TUser, event_uid: UUID, data: EventUpdateRequest):
+        event = self.query.get_event(event_uid=event_uid)
+        if not event:
+            raise EventNotFound
+        is_member_in_event = self.query.get_event_has_user(user=user, event=event)
+        if not is_member_in_event:
+            raise UpdatedIsDenied
         return self.query.update_event(event=event, data=data)
 
-    def leave_event(self, user: TUser, event_uid: UUID):
-        event = self.query.get_event(event_uid=event_uid)
-        if not event:
-            raise EventNotFound
-        return self.query.leave_event(user=user, event=event)
+    # def leave_event(self, user: TUser, event_uid: UUID):
+    #     event = self.query.get_event(event_uid=event_uid)
+    #     if not event:
+    #         raise EventNotFound
+    #     return self.query.leave_event(user=user, event=event)
 
     def delete_event(self, user: TUser, event_uid: UUID):
         event = self.query.get_event(event_uid=event_uid)
@@ -47,11 +79,17 @@ class Service:
 
     def list_event_members(
         self,
+        user: TUser,
         event_uid: UUID,
         filter: FilterFullNameSchema,
         order_by: OrderByFullNameAndUpdatedAtSchema,
     ):
         event = self.query.get_event(event_uid=event_uid)
+        if not event:
+            raise EventNotFound
+        is_member_in_event = self.query.get_event_has_user(user=user, event=event)
+        if not is_member_in_event:
+            raise GetIsDenied
         return self.query.list_event_members(
             event=event, filter=filter, order_by=order_by
         )

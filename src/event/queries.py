@@ -4,9 +4,8 @@ from uuid import UUID
 
 from django.db.models import F
 
-from authenticate.models import User
 from event.models import Event, EventMember
-from event.schemas.request import EventRequest, EventUpdateRequest
+from event.schemas.request import EventUpdateRequest
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
@@ -17,22 +16,27 @@ from utils.types import TUser
 
 class Query:
     @staticmethod
-    def create_event(user: TUser, data: EventRequest):
-        data_dict = data.dict(exclude={"list_user_uid"})
-        return Event.objects.create(creator=user, **data_dict)
+    def create_event(user: TUser, **kwargs):
+        return Event.objects.create(creator=user, **kwargs)
 
     @staticmethod
-    def create_event_members(event: Event, member_uids: List[UUID]):
-        users = {u.uid: u for u in User.objects.filter(uid__in=member_uids)}
-        event_members = [
-            EventMember(event=event, user=users[uid]) for uid in member_uids
-        ]
+    def create_event_members(event_members: List[EventMember]):
         EventMember.objects.bulk_create(event_members)
         return
 
     @staticmethod
     def get_event(event_uid: UUID):
-        return Event.objects.filter(uid=event_uid, status="ACTIVE").first()
+        try:
+            return Event.objects.get(uid=event_uid, status="ACTIVE")
+        except Event.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_event_has_user(user: TUser, event: Event):
+        try:
+            return EventMember.objects.get(user=user, event=event, status="ACTIVE")
+        except EventMember.DoesNotExist:
+            return None
 
     @staticmethod
     def update_event(event: Event, data: EventUpdateRequest):

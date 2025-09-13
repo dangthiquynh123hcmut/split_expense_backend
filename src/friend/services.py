@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from authenticate.models import User
-from exceptions.friends import FriendHasRelation
+from exceptions.friends import FriendHasRelation, FriendshipNotFound
 from exceptions.users import UserNotFound
 from friend.schemas.response import FriendResponse, RequestAddFriend
 from utils.types import TUser
@@ -14,12 +14,11 @@ class FriendService:
     def __init__(self):
         self.query = Query()
 
-    @staticmethod
-    def get_friend_by_uid(uid: UUID) -> User:
-        try:
-            return User.objects.get(uid=uid)
-        except User.DoesNotExist:
+    def get_friend_by_uid(self, uid: UUID) -> User:
+        friend = self.query.get_friend_by_uid(uid=uid)
+        if not friend:
             raise UserNotFound
+        return friend
 
     def send_friend_request(self, user: TUser, data: AddFriendRequest):
         friend = self.get_friend_by_uid(uid=data.receiver_uid)
@@ -101,7 +100,11 @@ class FriendService:
             return list_sent
 
     def accept_request_friend(self, friendship_uid: UUID):
-        return self.query.accept_request_friend(friendship_uid=friendship_uid)
+        friendship = self.query.accept_request_friend(friendship_uid=friendship_uid)
+        if not friendship:
+            raise FriendshipNotFound
 
     def remove_or_reject_friend(self, friendship_uid: UUID):
-        return self.query.remove_or_reject_friend(friendship_uid=friendship_uid)
+        friendship = self.query.remove_or_reject_friend(friendship_uid=friendship_uid)
+        if not friendship:
+            raise FriendshipNotFound

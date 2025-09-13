@@ -2,13 +2,14 @@ from django.conf import settings
 from django.db import models
 
 from event.models import Event
-from utils.enums import CurrencyEnum, SplitTypeEnum, StatusEnum
+from utils.enums import CurrencyEnum, ExpenseStatusEnum, SplitTypeEnum, StatusEnum
+from utils.functions.remove_accents import remove_accents
 from utils.models import BaseModel
 
 
 class Expense(BaseModel):
     name = models.CharField(max_length=255)
-    ordinal = models.IntegerField(null=False, blank=False)
+    name_no_accent = models.CharField(max_length=255, blank=True, editable=False)
 
     event = models.ForeignKey(
         to=Event,
@@ -25,7 +26,7 @@ class Expense(BaseModel):
         choices=CurrencyEnum.choices,
         default=CurrencyEnum.USD,
     )
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.FloatField(null=False, blank=False)
 
     paid_by = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
@@ -54,47 +55,98 @@ class Expense(BaseModel):
         choices=SplitTypeEnum.choices,
         default=SplitTypeEnum.EQUAL,
     )
+    note = models.TextField(null=True, blank=True)
+    category = models.CharField(max_length=255, null=True, blank=True)
     expense_date = models.DateField(null=False, blank=False)
     remaind_at = models.DateTimeField(null=False, blank=False)
-    receipt_url = models.URLField(max_length=500, null=True, blank=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-
-class UserParticipatesInExpense(BaseModel):
-    event = models.ForeignKey(
-        to="event.Event",
-        on_delete=models.CASCADE,
-        to_field="uid",
-        db_column="event_uid",
-        related_name="expense_participant_fk_event",
+    receipt_url = models.ManyToManyField(
+        to="attachment.Attachment",
+        through="expense.ExpenseAttachment",
+        related_name="expense_fk_receipt_url",
         db_constraint=True,
         db_index=True,
-        null=False,
-        blank=False,
-    )
-    ordinal = models.IntegerField(null=False, blank=False, default=0)
-    user = models.ForeignKey(
-        to=settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        to_field="uid",
-        db_column="user_uid",
-        related_name="expense_participant_fk_user",
-        db_constraint=True,
-        db_index=True,
-        null=False,
-        blank=False,
+        blank=True,
     )
     status = models.CharField(
         max_length=20,
         choices=StatusEnum.choices,
         default=StatusEnum.ACTIVE,
     )
+
+    def save(self, *args, **kwargs):
+        if self.name:
+            self.name_no_accent = remove_accents(self.name)
+        return super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class ExpenseAttachment(BaseModel):
+    # relation 1:N
+    expense = models.ForeignKey(
+        to="expense.Expense",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="expense_uid",
+        related_name="expense_attachment_fk_expense",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    attachment = models.ForeignKey(
+        to="attachment.Attachment",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="attachment_uid",
+        related_name="expense_attachment_fk_attachment",
+        db_constraint=True,
+        db_index=True,
+        blank=False,
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["expense", "attachment"]),
+        ]
+        unique_together = (("expense", "attachment"),)
+
+
+class UserSharesInExpense(BaseModel):
+    expense = models.ForeignKey(
+        to="expense.Expense",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="expense_uid",
+        related_name="user_shares_in_expense_fk_expense",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="user_shares_in_expense_fk_user",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
     amount = models.DecimalField(
         max_digits=10, decimal_places=2, null=False, blank=False
     )
-    paid_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, null=False, blank=False
+    status = models.CharField(
+        max_length=20,
+        choices=ExpenseStatusEnum.choices,
+        default=ExpenseStatusEnum.NOTYET,
     )
-    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["expense", "user"]),
+        ]
+        unique_together = (("expense", "user"),)
