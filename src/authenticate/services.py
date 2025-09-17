@@ -12,9 +12,10 @@ from authenticate.schemas import (
     PasswordChangeRequest,
     PasswordNewRequest,
     RegisterSchema,
+    ResetPasswordOTPRequest,
     UpdateMeSchema,
 )
-from exceptions.auth import InvalidOrExpiredToken
+from exceptions.auth import InvalidOrExpiredOTP, InvalidOrExpiredToken
 from exceptions.users import (
     EmailAlreadyExists,
     PasswordIncorrect,
@@ -140,16 +141,28 @@ class Service(BaseService):
         if not user:
             raise UserNotFound
 
-        # Inactive all old tokens, create a new one
-        self.query.inactive_reset_password_token(user=user)
+        # Inactive all old otp, create a new one
+        self.query.inactive_otp(user=user)
 
-        token = self.query.create_reset_password_token(
-            user=user, raw_token=str(uuid4())
-        )
+        otp = self.query.create_otp(user=user)
 
         # Sending email to user
-        template = self.email_template.reset_password(user=user, token=token.token)
+        template = self.email_template.reset_password(user=user, otp=otp)
         self.email_client.send(messages=[template])
+
+    def creat_reset_password_token(self, payload: ResetPasswordOTPRequest):
+        user = self.query.get_user_by_email(email=payload.email)
+        if not user:
+            raise UserNotFound
+        otp = self.query.get_otp(user=user, otp=payload.otp)
+
+        if not otp:
+            raise InvalidOrExpiredOTP
+
+        # Inactive all old token, create a new one
+        self.query.inactive_reset_password_token(user=user)
+
+        return self.query.create_reset_password_token(user=user, raw_token=str(uuid4()))
 
     def reset_password(self, payload: PasswordNewRequest):
         record = self.query.get_reset_password_token(token=payload.token)

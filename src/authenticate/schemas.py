@@ -77,6 +77,15 @@ class PasswordForgetRequest(Schema):
     email: str
 
 
+class ResetPasswordOTPRequest(Schema):
+    otp: str
+    email: str
+
+
+class ResetPasswordToken(Schema):
+    token: str
+
+
 class PasswordNewRequest(Schema):
     token: str
     new_password: str = Field(..., min_length=8)

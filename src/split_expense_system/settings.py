@@ -201,7 +201,7 @@ REFRESH_TOKEN_REMAIN = int(os.getenv("REFRESH_TOKEN_REMAIN", "1"))
 RESET_PASSWORD_EXPIRES_IN_MINUTES = int(
     os.getenv("RESET_PASSWORD_EXPIRES_IN_MINUTES", "15")
 )
-
+OTP_LIFETIME = int(os.getenv("OTP_LIFETIME", 2))
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -213,8 +213,6 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS")
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_TIMEOUT = os.getenv("EMAIL_TIMEOUT")
-
-FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 # CRONJOBS = [("0 0 * * *", "authenticate.management.commands.cleanup_expired_tokens")]
 CRONJOBS = [

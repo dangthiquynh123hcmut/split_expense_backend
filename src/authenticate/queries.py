@@ -1,3 +1,4 @@
+import secrets
 from datetime import timedelta
 from typing import List
 from uuid import UUID
@@ -6,13 +7,17 @@ from django.conf import settings
 from django.utils.timezone import now
 
 from attachment.models import Attachment
-from authenticate.models import RefreshToken, ResetPassword, User
+from authenticate.models import (
+    AuthenticateToken,
+    Otp,
+    RefreshToken,
+    ResetPassword,
+    User,
+)
 from authenticate.schemas import PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
 from exceptions.users import EmailOrPasswordIncorrect
 from utils.types import TUser
-
-from .models import AuthenticateToken
 
 
 class Query:
@@ -99,6 +104,29 @@ class Query:
     @staticmethod
     def get_user_by_uids(uids: List[UUID]):
         return User.objects.filter(uid__in=uids, is_active=True)
+
+    @staticmethod
+    def inactive_otp(user: TUser):
+        return Otp.objects.filter(
+            user=user,
+            created_at__lt=now() - timedelta(minutes=settings.OTP_LIFETIME),
+        ).delete()
+
+    @staticmethod
+    def create_otp(user: TUser) -> Otp:
+        otp = "".join(str(secrets.randbelow(10)) for _ in range(6))
+        return Otp.objects.create(user=user, otp=otp)
+
+    @staticmethod
+    def get_otp(user: TUser, otp: str):
+        try:
+            return Otp.objects.get(
+                user=user,
+                otp=otp,
+                created_at__gt=now() - timedelta(minutes=settings.OTP_LIFETIME),
+            )
+        except Otp.DoesNotExist:
+            return None
 
     @staticmethod
     def inactive_reset_password_token(user: TUser):

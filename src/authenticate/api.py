@@ -1,4 +1,4 @@
-from exceptions.auth import InvalidOrExpiredToken
+from exceptions.auth import InvalidOrExpiredOTP, InvalidOrExpiredToken
 from exceptions.users import (
     EmailAlreadyExists,
     EmailOrPasswordIncorrect,
@@ -21,6 +21,8 @@ from .schemas import (
     RefreshRequest,
     RefreshResponse,
     RegisterSchema,
+    ResetPasswordOTPRequest,
+    ResetPasswordToken,
     UpdateMeSchema,
     UserSchema,
 )
@@ -102,6 +104,17 @@ class AuthenticateAPI(Controller):
     def forget_password(self, payload: PasswordForgetRequest):
         self.service.forget_password(email=payload.email)
         return True
+
+    @post(
+        "password/otp",
+        response=ResetPasswordToken,
+        exceptions=(
+            InvalidOrExpiredOTP,
+            UserNotFound,
+        ),
+    )
+    def creat_reset_password_token(self, payload: ResetPasswordOTPRequest):
+        return self.service.creat_reset_password_token(payload=payload)
 
     @put("password/reset", response=bool, exceptions=(InvalidOrExpiredToken,))
     def reset_password(self, payload: PasswordNewRequest):

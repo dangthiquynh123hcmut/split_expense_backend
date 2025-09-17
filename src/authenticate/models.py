@@ -153,6 +153,25 @@ class ResetPassword(models.Model):
         return now() > self.created_at + timedelta(minutes=expiration_minutes)
 
 
+class Otp(models.Model):
+    user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="otp_fk_user",
+        db_constraint=True,
+        null=False,
+        blank=False,
+    )
+    otp = models.CharField(
+        max_length=6,
+        null=False,
+        blank=False,
+    )
+    created_at = models.DateTimeField(auto_now_add=True, auto_now=False)
+
+
 class RefreshToken(models.Model):
     user = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
