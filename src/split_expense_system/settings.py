@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
+from typing import Optional
 
 import dj_database_url
 from dotenv import load_dotenv
@@ -205,20 +206,25 @@ OTP_LIFETIME = int(os.getenv("OTP_LIFETIME", 2))
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
+
+# not run cronjob in render
+# # CRONJOBS = [("0 0 * * *", "authenticate.management.commands.cleanup_expired_tokens")]
+# CRONJOBS = [
+#     ("0 0 * * *", "django.core.management.call_command", ["cleanup_expired_tokens"]),
+# ]
 # Sent email
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
-EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = os.getenv("EMAIL_PORT")
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS")
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-EMAIL_TIMEOUT = os.getenv("EMAIL_TIMEOUT")
+def str_to_bool(value: Optional[str]) -> bool:
+    return str(value).lower() in ("true", "1", "yes")
 
-# CRONJOBS = [("0 0 * * *", "authenticate.management.commands.cleanup_expired_tokens")]
-CRONJOBS = [
-    ("0 0 * * *", "django.core.management.call_command", ["cleanup_expired_tokens"]),
-]
 
+if os.getenv("SENDGRID_API_KEY"):
+    EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+    SENDGRID_SANDBOX_MODE_IN_DEBUG = str_to_bool(
+        os.getenv("SENDGRID_SANDBOX_MODE_IN_DEBUG")
+    )
+    SENDGRID_ECHO_TO_STDOUT = str_to_bool(os.getenv("SENDGRID_ECHO_TO_STDOUT"))
+    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@yourapp.com")
 
 # S3
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
