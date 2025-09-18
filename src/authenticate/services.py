@@ -81,6 +81,11 @@ class Service(BaseService):
                 algorithms=["HS256"],
                 options={"verify_exp": True},
             )
+            exp_time = datetime.fromtimestamp(
+                payload.get("exp"), tz=timezone.get_current_timezone()
+            )
+            if exp_time < timezone.now():
+                raise InvalidOrExpiredToken
 
             if payload.get("type") != "refresh":
                 raise InvalidOrExpiredToken
@@ -89,6 +94,9 @@ class Service(BaseService):
             if not user_uid:
                 raise InvalidOrExpiredToken
 
+            user = self.query.get_user_by_uid(uid=user_uid)
+            if not user:
+                raise InvalidOrExpiredToken
             try:
                 stored_token = self.query.get_refresh_token(
                     user_uid=user_uid, refresh_token=refresh_token
@@ -97,9 +105,6 @@ class Service(BaseService):
                 raise InvalidOrExpiredToken
 
             new_access_token = self.query.generate_access_token(user_uid=user_uid)
-            exp_time = datetime.fromtimestamp(
-                payload.get("exp"), tz=timezone.get_current_timezone()
-            )
             if exp_time < timezone.now() + timedelta(
                 seconds=settings.REFRESH_TOKEN_REMAIN
             ):

@@ -27,3 +27,4 @@ dj-database-url==2.1.0
 
 channels[daphne]
 channels-redis
+redis==5.0.1

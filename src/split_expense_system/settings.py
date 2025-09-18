@@ -97,7 +97,7 @@ if DEBUG:
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         }
     }
-else:
+if os.getenv("RENDER"):
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
