@@ -1,17 +1,15 @@
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from ninja import Schema
-
-from attachment.schemas.requests import GeneratePresignedUrlSchema
 
 
 class GroupRequest(Schema):
     name: str
     list_user_uids: List[UUID]
-    image_file: GeneratePresignedUrlSchema
 
 
 class GroupUpdateRequest(Schema):
     name: str
-    list_user_uids: List[UUID] = []
+    list_add_uids: Optional[List[UUID]] = []
+    list_delete_uids: Optional[List[UUID]] = []

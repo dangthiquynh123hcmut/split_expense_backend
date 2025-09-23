@@ -42,7 +42,7 @@ class User(AbstractUser):
     full_name = models.CharField(max_length=255, blank=False, null=False)
     full_name_no_accent = models.TextField(blank=True, editable=False)
     email = models.EmailField(unique=True, max_length=255)
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    phone_number = models.CharField(max_length=10, blank=False, null=False)
     avatar_url = models.ForeignKey(
         to="attachment.Attachment",
         on_delete=models.SET_NULL,

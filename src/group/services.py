@@ -6,7 +6,8 @@ from django.db import transaction
 from authenticate.queries import Query as UserQuery
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
-from utils.exceptions import GetIsDenied, UpdatedIsDenied
+from expense.queries import Query as ExpenseQuery
+from utils.exceptions import DeleteIsDenied, GetIsDenied
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
@@ -17,13 +18,13 @@ from utils.types import TUser
 
 from .models import GroupMember
 from .queries import Query
-from .schemas.request import GroupUpdateRequest
 
 
 class Service:
     def __init__(self):
         self.query = Query()
         self.user_query = UserQuery()
+        self.expense_query = ExpenseQuery()
 
     @transaction.atomic
     def create_group(self, leader: TUser, name: str, list_user_uids: List[UUID]):
@@ -47,33 +48,52 @@ class Service:
     def get_group(self, group_uid: UUID):
         return self.query.get_group_sync(group_uid=group_uid)
 
-    def update_group(self, user: TUser, group_uid: UUID, data: GroupUpdateRequest):
+    # @transaction.atomic
+    # def update_group(self, user: TUser, group_uid: UUID, data: GroupUpdateRequest):
+    #     group = self.query.get_group_sync(group_uid=group_uid)
+    #     if not group:
+    #         raise GroupNotFound
+    #     member = self.query.get_group_has_user(user=user, group=group)
+    #     if not member:
+    #         raise UpdatedIsDenied
+    #     group = self.query.update_group(group=group, name=data.name)
+
+    #     existing_members = self.query.get_members_by_uids(
+    #         group=group, uids=data.list_add_uids
+    #     )
+    #     existing_uids = {m.user_id for m in existing_members}
+    #     add_member_uids = [u for u in data.list_add_uids if u not in existing_uids]
+    #     add_members = self.user_query.get_user_by_uids(uids=add_member_uids)
+    #     if len(data.list_add_uids) != len(add_member_uids) + len(existing_uids):
+    #         raise UserNotFound
+    #     group_members = [
+    #         GroupMember(group=group, user=member) for member in add_members
+    #     ]
+    #     self.query.create_group_members(group_members=group_members)
+
+    #     deleted_members = self.query.get_members_by_uids(
+    #         group=group, uids=data.list_delete_uids
+    #     )
+    #     print("LLLLL", deleted_members)
+    #     if len(deleted_members) != len(data.list_delete_uids):
+    #         raise UserNotInGroup
+
+    #     return group
+
+    def leave_group(self, user: TUser, group_uid: UUID):
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
-        member = self.query.get_group_has_user(user=user, group=group)
-        if not member:
-            raise UpdatedIsDenied
-        group = self.query.update_group(group=group, name=data.name)
-        members = self.user_query.get_user_by_uids(uids=data.list_user_uids)
-        if len(members) != len(data.list_user_uids):
-            raise UserNotFound
-        group_members = [GroupMember(group=group, user=member) for member in members]
-        group_members.append(GroupMember(group=group, user=group.leader))
-        self.query.create_group_members(group_members=group_members)
-        return group
 
-    # def leave_group(self, user: TUser, group_uid: UUID):
-    #     group = self.query.get_group_sync(group_uid=group_uid)
-    #     if not group:
-    #         raise GroupNotFound
-    #     return self.query.leave_group(user=user, group=group)
+        return self.query.leave_group(user=user, group=group)
 
-    # def delete_group(self, user: TUser, group_uid: UUID):
-    #     group = self.query.get_group_sync(group_uid=group_uid)
-    #     if not group:
-    #         raise GroupNotFound
-    #     return self.query.delete_group(user=user, group=group)
+    def delete_group(self, user: TUser, group_uid: UUID):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        if group.leader != user:
+            raise DeleteIsDenied
+        return self.query.delete_group(group=group)
 
     def list_group_members(
         self,
@@ -92,11 +112,11 @@ class Service:
             group=group, filter=filter, order_by=order_by
         )
 
-    # def get_group(self, group_uid: UUID):
-    #     group = self.query.get_group_sync(group_uid=group_uid)
-    #     if not group:
-    #         raise GroupNotFound
-    #     return self.query.get_group(group_uid=group_uid)
+    def get_group_detail(self, group_uid: UUID):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        return self.query.get_group_detail(group_uid=group_uid)
 
     def list_events_in_a_group(
         self,
@@ -114,3 +134,18 @@ class Service:
         return self.query.list_events_in_a_group(
             group=group, filter=filter, order_by=order_by
         )
+
+    # def get_debt_simplification(self, user: TUser, group_uid: UUID):
+    #     group = self.query.get_group_sync(group_uid=group_uid)
+    #     if not group:
+    #         raise GroupNotFound
+    #     member = self.query.get_group_has_user(user=user, group=group)
+    #     if not member:
+    #         raise GetIsDenied
+    #     list_user_uids = self.query.list_uids_members(group=group)
+    #     list_expenses = self.query.get_expenses_in_group(group=group)
+    #     list_debts = self.expense_query.get_debts(list_expenses=list_expenses)
+    #     debt_members, balance_members = debt_simplification(list_user_uids, list_debts)
+    #     return DebtSimplification(
+    #         debt_members=debt_members, balance_members=balance_members
+    #     )

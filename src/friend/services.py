@@ -49,9 +49,9 @@ class FriendService:
                     friend_uid=other.uid,
                     full_name=other.full_name,
                     avatar_url=other.avatar_url,
+                    start=f.updated_at,
                 )
             )
-
         return friends
 
     def list_friend_request(
@@ -108,3 +108,16 @@ class FriendService:
         friendship = self.query.remove_or_reject_friend(friendship_uid=friendship_uid)
         if not friendship:
             raise FriendshipNotFound
+        return friendship
+
+    def list_mutual_friends(self, user: TUser, friend_uid: UUID):
+        friend = self.query.get_friend_by_uid(uid=friend_uid)
+        if not friend:
+            raise UserNotFound
+        return self.query.list_mutual_friends(user=user, friend_uid=friend_uid)
+
+    # def friends_profile(self, user: TUser, friend_uid: UUID):
+    #     friend = self.query.get_friend_by_uid(uid=friend_uid)
+    #     if not friend:
+    #         raise UserNotFound
+    #     return self.query.friends_profile(user=user, friend_uid=friend_uid)

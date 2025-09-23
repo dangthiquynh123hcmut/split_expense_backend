@@ -7,7 +7,7 @@ from django.db.models import F
 from attachment.models import Attachment
 from authenticate.models import User
 from event.models import Event
-from utils.exceptions import DeleteIsDenied
+from expense.models import Expense
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
@@ -78,10 +78,24 @@ class Query:
         )
 
     @staticmethod
-    def delete_group(user: TUser, group: Group):
-        if user != group.leader:
-            raise DeleteIsDenied
+    def delete_group(group: Group):
         return Group.objects.filter(uid=group.uid).update(status="DELETED")
+
+    @staticmethod
+    def list_members(group: Group):
+        return GroupMember.objects.filter(group=group, status="ACTIVE")
+
+    @staticmethod
+    def get_members_by_uids(group: Group, uids: List[UUID]):
+        return GroupMember.objects.filter(
+            user_id__in=uids, status="ACTIVE", group=group
+        )
+
+    @staticmethod
+    def list_uids_members(group: Group):
+        return GroupMember.objects.filter(group=group, status="ACTIVE").values_list(
+            "user__uid", flat=True
+        )
 
     @staticmethod
     def list_group_members(
@@ -100,7 +114,7 @@ class Query:
         return query
 
     @staticmethod
-    def get_detail_group(group_uid: UUID):
+    def get_group_detail(group_uid: UUID):
         return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
 
     @staticmethod
@@ -124,3 +138,7 @@ class Query:
         group.avatar_url = attachment
         group.save()
         return group
+
+    @staticmethod
+    def get_expenses_in_group(group: Group):
+        return Expense.objects.filter(event__group=group, status="ACTIVE").distinct()

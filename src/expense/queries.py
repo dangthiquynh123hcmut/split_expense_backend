@@ -57,3 +57,24 @@ class Query:
     @staticmethod
     def add_attachment(expense: Expense, attachment: Attachment):
         return ExpenseAttachment.objects.create(expense=expense, attachment=attachment)
+
+    # @staticmethod
+    # def get_debts(list_expenses: List[Expense]):
+    #     list_debts = []
+    #     for expense in list_expenses:
+    #         list_debtor = UserSharesInExpense.objects.filter(
+    #             expense=expense
+    #         ).values_list("user", "amount")
+    #         list_debtor = UserSharesInExpense.objects.filter(
+    #             expense=expense
+    #         ).values_list("user__uid", "amount")
+    #         list_debtor = [
+    #             (
+    #                 user,
+    #                 expense.paid_by.uid,
+    #                 amount,
+    #             )
+    #             for user, amount in list_debtor
+    #         ]
+    #         list_debts.extend(list_debtor)
+    #     return list_debts

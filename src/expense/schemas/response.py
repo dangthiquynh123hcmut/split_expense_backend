@@ -19,6 +19,7 @@ class ExpenseResponse(ModelSchema):
             "creator",
             "paid_by",
             "receipt_url",
+            "created_at",
         ]
 
 
@@ -35,28 +36,27 @@ class CreateExpense(ModelSchema):
         ]
 
 
-class List_attachment(Schema):
-    uid: UUID
-    url: str
-
-
-class CreateExpenseResponse(Schema):
-    list_attachment: List[List_attachment]
-    expense: CreateExpense
-
-
 class ExpenseMemberResponse(Schema):
-    uid: UUID
     user_uid: UUID
-    expense_uid: UUID
+    full_name: str
+    avatar_url: str
     status: str
+    amount: float
 
 
-class ExpenseDetailResponse(Schema):
-    uid: UUID
-    name: str
-    list_user_uid: List[UUID]
-    list_expense_member_uid: List[UUID]
+class ExpenseDetailResponse(ModelSchema):
+    expense_members: List[ExpenseMemberResponse]
+
+    class Meta:
+        model = Expense
+        exclude = [
+            "name_no_accent",
+            "status",
+            "event",
+            "creator",
+            "created_at",
+            "split_type",
+        ]
 
 
 class NameExpense(Schema):

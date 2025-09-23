@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from ninja import Schema
@@ -12,3 +13,4 @@ class UserResponse(Schema):
 
 class SearchUserResponse(UserResponse):
     status: str | None = None
+    date_joined: Optional[datetime] = None

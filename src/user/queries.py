@@ -10,8 +10,9 @@ from .schemas.request import UserFilterSchema
 class Query:
     @staticmethod
     def search_user(user: TUser, search: UserFilterSchema):
-        query = User.objects.filter(is_staff=False)
-        list_user = query.filter(search.get_filter_expression())
+        list_user = User.objects.filter(
+            Q(is_staff=False) & search.get_filter_expression()
+        ).exclude(uid=user.uid)
 
         accepted_qs = Friend.objects.filter(
             Q(user=user, friend=OuterRef("pk"), status="ACCEPTED")

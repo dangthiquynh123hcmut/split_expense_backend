@@ -9,7 +9,7 @@ from expense.models import UserSharesInExpense
 from expense.queries import Query
 from expense.schemas.request import ExpenseRequest, ExpenseUpdateRequest
 from group.queries import Query as GroupQuery
-from utils.exceptions import DeleteIsDenied, GetIsDenied
+from utils.exceptions import GetIsDenied
 from utils.types import TUser
 
 
@@ -65,13 +65,26 @@ class Service:
             raise GetIsDenied
         return self.query.list_expenses(user=user, event=event)
 
-    def get_expense(self, user: TUser, expense_uid: UUID):
-        expense = self.query.get_expense(expense_uid=expense_uid)
-        if not expense:
-            raise ExpenseNotFound
-        if not UserSharesInExpense.objects.filter(expense=expense, user=user).exists():
-            raise GetIsDenied
-        return expense
+    # def get_expense_detail(self, user: TUser, expense_uid: UUID):
+    #     expense = self.query.get_expense(expense_uid=expense_uid)
+    #     if not expense:
+    #         raise ExpenseNotFound
+    #     if not UserSharesInExpense.objects.filter(expense=expense, user=user).exists():
+    #         raise GetIsDenied
+    #     expense_members = UserSharesInExpense.objects.filter(
+    #         expense=expense
+    #     ).values_list("user__uid", "user__full_name", "user__avatar_url", "amount")
+    #     expense_members = [
+    #         UserSharesInExpense(
+    #             user_uid=m.user__uid,
+    #             full_name=m.user__full_name,
+    #             avatar_url=m.user__avatar_url,
+    #             amount=m.amount,
+    #         )
+    #         for m in expense_members
+    #     ]
+    #     setattr(expense, "expense_members", expense_members)
+    #     return expense
 
     def update_expense(
         self, user: TUser, expense_uid: UUID, payload: ExpenseUpdateRequest
@@ -85,6 +98,4 @@ class Service:
         expense = self.query.get_expense(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
-        if user != expense.creator:
-            raise DeleteIsDenied
         return self.query.delete_expense(expense_uid=expense_uid)

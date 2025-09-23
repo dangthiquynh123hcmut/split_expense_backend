@@ -103,7 +103,7 @@ class Query:
 
     @staticmethod
     def get_user_by_uids(uids: List[UUID]):
-        return User.objects.filter(uid__in=uids, is_active=True)
+        return User.objects.filter(uid__in=uids, is_active=True, is_staff=False)
 
     @staticmethod
     def inactive_otp(user: TUser):

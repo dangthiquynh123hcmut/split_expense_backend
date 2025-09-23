@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 
 from ninja import Field, ModelSchema, Schema
@@ -21,12 +22,18 @@ class CreateGroup(ModelSchema):
         exclude = ["created_at", "updated_at", "status", "name_no_accent", "avatar_url"]
 
 
-class CreateGroupResponse(Schema):
-    attachment_uid: UUID = Field(..., alias="uid")
-    url: str
-    group: CreateGroup
-
-
 class UserInGroup(Schema):
     group_members_uid: UUID = Field(..., alias="uid")
     user: UserResponse
+
+
+class DebtMember(Schema):
+    debtor: UserResponse
+    creditor: UserResponse
+    value: float
+
+
+class DebtSimplification(Schema):
+    user: UserResponse
+    total_amount: float
+    transactions: List[DebtMember]

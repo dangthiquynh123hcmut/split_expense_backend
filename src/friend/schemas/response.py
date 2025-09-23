@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -19,6 +20,7 @@ class FriendResponse(Schema):
     full_name: str
     avatar_url: Optional[AttachmentResponse] = None
     friendship_uid: UUID
+    start: Optional[datetime] = None
 
 
 class RequestAddFriend(FriendResponse):

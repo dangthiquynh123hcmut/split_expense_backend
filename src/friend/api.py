@@ -6,6 +6,7 @@ from ninja import Query
 from exceptions.friends import FriendHasRelation, FriendshipNotFound
 from exceptions.users import UserNotFound
 from friend.schemas.response import FriendResponse, RequestAddFriend
+from user.schemas.response import UserResponse
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.paginate import paginate
@@ -64,6 +65,17 @@ class FriendAPI(Controller):
             order_by=order_by,
             request_type=request_type,
         )
+
+    @get("/{friend_uid}/mutual", response=UserResponse, paginate=True)
+    @paginate
+    def list_mutual_friends(self, request: AuthenticatedRequest, friend_uid: UUID):
+        return self.service.list_mutual_friends(
+            user=request.user, friend_uid=friend_uid
+        )
+
+    # @get("/{friend_uid}", response=UserResponse)
+    # def friends_profile(self, request: AuthenticatedRequest, friend_uid: UUID):
+    #     return self.service.friends_profile(user=request.user, friend_uid=friend_uid)
 
     @put("/{friendship_uid}", response=bool, exceptions=(FriendshipNotFound,))
     def accept_request_friend(self, friendship_uid: UUID):
