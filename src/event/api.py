@@ -24,7 +24,7 @@ from utils.schemas.filter_and_order_by import (
 )
 from utils.types import AuthenticatedRequest
 
-from .schemas.request import EventRequest, EventUpdateRequest
+from .schemas.request import AddMember, EventRequest, EventUpdateRequest
 from .schemas.response import EventMemberResponse, EventResponse
 from .services import Service
 
@@ -70,6 +70,11 @@ class EventAPI(Controller):
     @post("/{event_uid}/join", response=bool, exceptions=(EventNotFound,))
     def join_event(self, request: AuthenticatedRequest, event_uid: UUID):
         self.service.join_event(user=request.user, event_uid=event_uid)
+        return True
+
+    @post("/{event_uid}/add", response=bool, exceptions=(EventNotFound, UserNotFound))
+    def add_member_to_event(self, event_uid: UUID, data: AddMember):
+        self.service.add_member_to_event(event_uid=event_uid, data=data)
         return True
 
     # @post("/{event_uid}/leave", response=bool, exceptions=(EventNotFound,))

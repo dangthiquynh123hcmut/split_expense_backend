@@ -1,12 +1,12 @@
 from typing import List
 from uuid import UUID
 
-from django.db.models import F
-
 from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
 from expense.schemas.request import ExpenseUpdateRequest
+from expense.schemas.response import ListExpenseResponse, NameExpense
+from group.schemas.response import GroupName
 from utils.types import TUser
 
 
@@ -23,21 +23,31 @@ class Query:
         return
 
     @staticmethod
-    def list_expenses(user: TUser, event: Event):
+    def list_expenses_in_event(user: TUser, event: Event):
         queryset = (
             UserSharesInExpense.objects.filter(
                 expense__event=event,
                 user=user,
             )
             .select_related("expense")
-            .annotate(
-                expense_name=F("expense__name"),
-                expense_currency=F("expense__currency"),
-            )
             .order_by("expense__created_at")
         )
-
-        return queryset
+        expenses: list[NameExpense] = [
+            NameExpense(
+                uid=share.expense.uid,
+                name=share.expense.name,
+                currency=share.expense.currency,
+                amount=float(share.amount),
+                status=share.status,
+                created_at=share.expense.created_at,
+            )
+            for share in queryset
+        ]
+        return ListExpenseResponse(
+            event=event.name,
+            expense=expenses,
+            group=GroupName.from_orm(event.group),
+        )
 
     @staticmethod
     def get_expense(expense_uid: UUID):

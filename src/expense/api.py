@@ -11,7 +11,6 @@ from expense.service import Service
 from utils.exceptions import GetIsDenied, UpdatedIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
-from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
 
 
@@ -76,13 +75,13 @@ class ListExpenseAPI(Controller):
     @get(
         "/{event_uid}/event",
         response=ListExpenseResponse,
-        paginate=True,
         exceptions=(EventNotFound, GetIsDenied),
     )
-    @paginate
-    def list_expenses(
+    def list_expenses_in_event(
         self,
         request: AuthenticatedRequest,
         event_uid: UUID,
     ):
-        return self.service.list_expenses(user=request.user, event_uid=event_uid)
+        return self.service.list_expenses_in_event(
+            user=request.user, event_uid=event_uid
+        )

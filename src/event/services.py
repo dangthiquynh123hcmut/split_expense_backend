@@ -20,7 +20,7 @@ from utils.types import TUser
 
 from .models import EventMember
 from .queries import Query
-from .schemas.request import EventRequest, EventUpdateRequest
+from .schemas.request import AddMember, EventRequest, EventUpdateRequest
 
 
 class Service:
@@ -106,3 +106,14 @@ class Service:
         filter: FilterNameSchema,
     ):
         return self.query.list_events_groups(user=user, filter=filter)
+
+    def add_member_to_event(self, event_uid: UUID, data: AddMember):
+        event = self.query.get_event(event_uid=event_uid)
+        if not event:
+            raise EventNotFound
+        users = self.user_query.get_user_by_uids(uids=data.user_uids)
+        if data.user_uids and len(users) != len(data.user_uids):
+            raise UserNotFound
+        event_members = [EventMember(event=event, user=user) for user in users]
+        self.query.create_event_members(event_members=event_members)
+        return

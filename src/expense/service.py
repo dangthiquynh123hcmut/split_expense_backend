@@ -63,14 +63,14 @@ class Service:
         )
         return expense
 
-    def list_expenses(self, user: TUser, event_uid: UUID):
+    def list_expenses_in_event(self, user: TUser, event_uid: UUID):
         event = self.event_query.get_event(event_uid=event_uid)
         if not event:
             raise EventNotFound
         is_member_event = self.event_query.get_event_has_user(user=user, event=event)
         if not is_member_event:
             raise GetIsDenied
-        return self.query.list_expenses(user=user, event=event)
+        return self.query.list_expenses_in_event(user=user, event=event)
 
     def get_expense_detail(self, user: TUser, expense_uid: UUID):
         expense = self.query.get_expense(expense_uid=expense_uid)

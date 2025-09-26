@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from attachment.models import Attachment
 from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, UserSharesInExpense
+from expense.schemas.response import ExpenseEvent, NameExpense
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
@@ -156,3 +158,34 @@ class Query:
             total_amount=Case(*whens, default=F("total_amount"))
         )
         return
+
+    @staticmethod
+    def list_expenses_in_a_group(
+        user: User,
+        group: Group,
+    ):
+        expense_members = (
+            UserSharesInExpense.objects.filter(
+                expense__event__group=group, expense__status="ACTIVE", user=user
+            )
+            .select_related("expense", "expense__event")
+            .order_by("expense__event__name", "expense__created_at")
+        )
+        grouped: dict[str, list[NameExpense]] = defaultdict(list)
+
+        for share in expense_members:
+            grouped[share.expense.event.name].append(
+                NameExpense(
+                    uid=share.expense.uid,
+                    name=share.expense.name,
+                    currency=share.expense.currency,
+                    amount=float(share.amount),
+                    status=share.status,
+                    created_at=share.expense.created_at,
+                )
+            )
+        result: list[ExpenseEvent] = [
+            ExpenseEvent(event=event_name, expense=expenses)
+            for event_name, expenses in grouped.items()
+        ]
+        return result

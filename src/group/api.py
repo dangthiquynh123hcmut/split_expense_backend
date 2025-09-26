@@ -5,6 +5,7 @@ from ninja import Query
 from event.schemas.response import EventResponse
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
+from expense.schemas.response import ExpenseEvent
 from utils.exceptions import DeleteIsDenied, GetIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
@@ -124,3 +125,19 @@ class GroupAPI(Controller):
     #     return self.service.get_debt_simplification(
     #         user=request.user, group_uid=group_uid
     #     )
+    @get(
+        "/{group_uid}/expenses",
+        response=ExpenseEvent,
+        paginate=True,
+        exceptions=(GroupNotFound, GetIsDenied),
+    )
+    @paginate
+    def list_expenses_in_a_group(
+        self,
+        request: AuthenticatedRequest,
+        group_uid: UUID,
+    ):
+        return self.service.list_expenses_in_a_group(
+            user=request.user,
+            group_uid=group_uid,
+        )

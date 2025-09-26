@@ -150,3 +150,19 @@ class Service:
     #         debt_members=debt_members,
     #         balance_members=balance_members,
     #     )
+
+    def list_expenses_in_a_group(
+        self,
+        user: TUser,
+        group_uid: UUID,
+    ):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        member = self.query.get_group_has_user(user=user, group=group)
+        if not member:
+            raise GetIsDenied
+        return self.query.list_expenses_in_a_group(
+            user=user,
+            group=group,
+        )

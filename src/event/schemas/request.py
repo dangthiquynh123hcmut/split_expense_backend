@@ -19,3 +19,7 @@ class EventUpdateRequest(Schema):
     description: Optional[str] = None
     event_start: Optional[date] = None
     event_end: Optional[date] = None
+
+
+class AddMember(Schema):
+    user_uids: List[UUID]

@@ -8,6 +8,14 @@ from group.models import Group
 from user.schemas.response import UserResponse
 
 
+class GroupName(ModelSchema):
+    avatar_url: Optional[AttachmentResponse] = None
+
+    class Meta:
+        model = Group
+        exclude = ["created_at", "updated_at", "status", "name_no_accent", "leader"]
+
+
 class GroupResponse(ModelSchema):
     avatar_url: Optional[AttachmentResponse] = None
 

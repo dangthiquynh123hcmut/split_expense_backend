@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from uuid import UUID
 
@@ -5,6 +6,7 @@ from ninja import Field, ModelSchema, Schema
 
 from attachment.schemas.responses import AttachmentResponse
 from expense.models import Expense
+from group.schemas.response import GroupName
 from user.schemas.response import UserResponse
 
 
@@ -65,12 +67,20 @@ class ExpenseDetailResponse(ModelSchema):
 
 
 class NameExpense(Schema):
-    expense_uid: UUID = Field(..., alias="uid")
+    uid: UUID
     name: str
     currency: str
+    amount: float
+    status: str
+    created_at: datetime
 
 
 class ListExpenseResponse(Schema):
-    name_expense: NameExpense
-    status: str
-    amount: float
+    expense: List[NameExpense]
+    group: GroupName
+    event: str
+
+
+class ExpenseEvent(Schema):
+    expense: List[NameExpense]
+    event: str
