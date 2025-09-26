@@ -3,7 +3,6 @@ from uuid import UUID
 
 from django.db.models import F
 
-from attachment.models import Attachment
 from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
@@ -55,16 +54,13 @@ class Query:
         return Expense.objects.filter(uid=expense_uid).update(status="DELETED")
 
     @staticmethod
-    def add_attachment(expense: Expense, attachment: Attachment):
-        return ExpenseAttachment.objects.create(expense=expense, attachment=attachment)
+    def add_attachment(expense_attachments: List[ExpenseAttachment]):
+        return ExpenseAttachment.objects.bulk_create(expense_attachments)
 
     # @staticmethod
     # def get_debts(list_expenses: List[Expense]):
     #     list_debts = []
     #     for expense in list_expenses:
-    #         list_debtor = UserSharesInExpense.objects.filter(
-    #             expense=expense
-    #         ).values_list("user", "amount")
     #         list_debtor = UserSharesInExpense.objects.filter(
     #             expense=expense
     #         ).values_list("user__uid", "amount")

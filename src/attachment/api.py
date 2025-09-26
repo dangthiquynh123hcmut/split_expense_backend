@@ -1,10 +1,11 @@
+from typing import List
 from uuid import UUID
 
 from utils.router.controller import Controller, api, post, put
 from utils.types import AuthenticatedRequest
 
-from .schemas.requests import GeneratePresignedUrlSchema
-from .schemas.responses import GeneratePresignedUrlResponse
+from .schemas.requests import CompletedUploadRequest, GeneratePresignedUrlRequest
+from .schemas.responses import GeneratePresignedUrl
 from .services import AttachmentService
 
 
@@ -13,21 +14,33 @@ class AttachmentController(Controller):
     def __init__(self, service: AttachmentService) -> None:
         self.service = service
 
-    @post("presigned-url", response=GeneratePresignedUrlResponse)
+    @post("presigned-url", response=List[GeneratePresignedUrl])
     def get_presigned_url(
-        self, request: AuthenticatedRequest, payload: GeneratePresignedUrlSchema
+        self, request: AuthenticatedRequest, payload: GeneratePresignedUrlRequest
     ):
-        attachment, presigned_url = self.service.get_presigned_url(
-            user=request.user,
-            payload=payload,
-        )
+        responses = []
+        for file in payload.files:
+            attachment, presigned_url = self.service.get_presigned_url(
+                user=request.user,
+                payload=file,
+            )
+            responses.append(
+                {
+                    "uid": attachment.uid,
+                    "url": presigned_url,
+                    "file_name": file.file_name,
+                }
+            )
 
-        return {"uid": attachment.uid, "url": presigned_url}
+        return responses
 
-    @put("/{uid}/completed/{instance_uid}", response=bool)
+    @put("/{instance_uid}/completed", response=bool)
     def completed_upload(
-        self, request: AuthenticatedRequest, uid: UUID, instance_uid: UUID
+        self,
+        request: AuthenticatedRequest,
+        instance_uid: UUID,
+        payload: CompletedUploadRequest,
     ):
         return self.service.completed_upload(
-            user=request.user, uid=uid, instance_uid=instance_uid
+            user=request.user, instance_uid=instance_uid, payload=payload
         )

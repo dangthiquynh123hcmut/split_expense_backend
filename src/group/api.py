@@ -5,7 +5,7 @@ from ninja import Query
 from event.schemas.response import EventResponse
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
-from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
+from utils.exceptions import DeleteIsDenied, GetIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.paginate import paginate
@@ -73,11 +73,11 @@ class GroupAPI(Controller):
             user=request.user, group_uid=group_uid, filter=filter, order_by=order_by
         )
 
-    @put(
-        "/{group_uid}",
-        response=GroupResponse,
-        exceptions=(GroupNotFound, UserNotFound, UpdatedIsDenied),
-    )
+    # @put(
+    #     "/{group_uid}",
+    #     response=GroupResponse,
+    #     exceptions=(GroupNotFound, UserNotFound, UpdatedIsDenied),
+    # )
     # def update_group(
     #     self, request: AuthenticatedRequest, group_uid: UUID, data: GroupUpdateRequest
     # ):
@@ -85,9 +85,9 @@ class GroupAPI(Controller):
     #         user=request.user, group_uid=group_uid, data=data
     #     )
 
-    @get("/{group_uid}", response=GroupResponse, exceptions=(GroupNotFound,))
-    def get_group_detail(self, group_uid: UUID):
-        return self.service.get_group_detail(group_uid=group_uid)
+    # @get("/{group_uid}", response=GroupResponse, exceptions=(GroupNotFound,))
+    # def get_group_detail(self, group_uid: UUID):
+    #     return self.service.get_group_detail(group_uid=group_uid)
 
     @put("/{group_uid}/leave", response=bool)
     def leave_group(self, request: AuthenticatedRequest, group_uid: UUID):

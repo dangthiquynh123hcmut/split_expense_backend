@@ -94,6 +94,13 @@ class EventAPI(Controller):
             user=request.user, event_uid=event_uid, filter=filter, order_by=order_by
         )
 
+    # @post("/{event_uid}/members/{user_uid}", response=bool, exceptions=(EventNotFound,))
+    # def remove_event_member(
+    #     self, request: AuthenticatedRequest, event_uid: UUID, user_uid: UUID
+    # ):
+    #     self.service.remove_event_member(user=request.user, event_uid=event_uid)
+    #     return True
+
 
 @api(
     prefix_or_class="events-groups",

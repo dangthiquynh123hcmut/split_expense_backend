@@ -2,12 +2,12 @@ from typing import List
 from uuid import UUID
 
 from channels.db import database_sync_to_async
-from django.db.models import F
+from django.db.models import Case, F, When
 
 from attachment.models import Attachment
 from authenticate.models import User
 from event.models import Event
-from expense.models import Expense
+from expense.models import Expense, UserSharesInExpense
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
@@ -142,3 +142,17 @@ class Query:
     @staticmethod
     def get_expenses_in_group(group: Group):
         return Expense.objects.filter(event__group=group, status="ACTIVE").distinct()
+
+    @staticmethod
+    def update_total_amount(group: Group, expense_members: List[UserSharesInExpense]):
+        whens = []
+        users = []
+
+        for em in expense_members:
+            users.append(em.user)
+            whens.append(When(user=em.user, then=F("total_amount") + em.amount))
+
+        GroupMember.objects.filter(group=group, user__in=users).update(
+            total_amount=Case(*whens, default=F("total_amount"))
+        )
+        return

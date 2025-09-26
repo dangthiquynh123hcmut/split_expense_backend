@@ -72,9 +72,54 @@ class GroupMember(BaseModel):
         default=StatusEnum.ACTIVE,
     )
     joined_at = models.DateTimeField(auto_now=True, auto_now_add=False)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         unique_together = (("user", "group"),)
         indexes = [
             models.Index(fields=["user", "group"]),
         ]
+
+
+class RestructureDebt(BaseModel):
+    group = models.ForeignKey(
+        to="group.Group",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="group_uid",
+        related_name="restructure_debt_fk_group",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    debtor = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="debtor_uid",
+        related_name="restructure_debt_fk_debtor",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    creditor = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="creditor_uid",
+        related_name="restructure_debt_fk_creditor",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status = models.CharField(
+        max_length=20,
+        choices=StatusEnum.choices,
+        default=StatusEnum.ACTIVE,
+    )

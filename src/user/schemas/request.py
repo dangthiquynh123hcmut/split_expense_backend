@@ -1,11 +1,12 @@
 from ninja import FilterSchema, Schema
 
+from attachment.schemas.responses import AttachmentResponse
 from utils.schemas.fields import FilterField
 
 
 class Request(Schema):
     name: str
-    avatar_url: str
+    avatar_url: AttachmentResponse
 
 
 class UserFilterSchema(FilterSchema):

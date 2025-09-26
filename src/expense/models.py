@@ -57,8 +57,8 @@ class Expense(BaseModel):
     )
     note = models.TextField(null=True, blank=True)
     category = models.CharField(max_length=255, null=True, blank=True)
-    expense_date = models.DateField(null=False, blank=False)
-    remaind_at = models.DateTimeField(null=False, blank=False)
+    expense_date = models.DateTimeField(null=False, blank=False)
+    end_date = models.DateTimeField(null=True, blank=True)
     receipt_url = models.ManyToManyField(
         to="attachment.Attachment",
         through="expense.ExpenseAttachment",

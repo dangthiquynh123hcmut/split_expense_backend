@@ -53,6 +53,7 @@ class AuthenticateAPI(Controller):
             access_token=access_token,
             refresh_token=refresh_token,
             user=UserSchema.from_orm(user),
+            uid=user.uid,
         )
 
     @post(
@@ -67,6 +68,7 @@ class AuthenticateAPI(Controller):
             access_token=access_token,
             refresh_token=refresh_token,
             user=UserSchema.from_orm(user),
+            uid=user.uid,
         )
 
     @post("/refresh", response=RefreshResponse, exceptions=(InvalidOrExpiredToken,))

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from ninja import Field, ModelSchema, Schema
@@ -9,7 +9,7 @@ from user.schemas.response import UserResponse
 
 
 class GroupResponse(ModelSchema):
-    avatar_url: AttachmentResponse | None = None
+    avatar_url: Optional[AttachmentResponse] = None
 
     class Meta:
         model = Group

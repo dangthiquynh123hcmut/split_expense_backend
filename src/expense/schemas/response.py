@@ -5,10 +5,16 @@ from ninja import Field, ModelSchema, Schema
 
 from attachment.schemas.responses import AttachmentResponse
 from expense.models import Expense
+from user.schemas.response import UserResponse
+
+
+class UserExpense(UserResponse):
+    amount: float
 
 
 class ExpenseResponse(ModelSchema):
     receipt_url: List[AttachmentResponse] = Field(default_factory=list)
+    list_user: List[UserExpense]
 
     class Meta:
         model = Expense
@@ -20,6 +26,7 @@ class ExpenseResponse(ModelSchema):
             "paid_by",
             "receipt_url",
             "created_at",
+            "split_type",
         ]
 
 
@@ -37,9 +44,7 @@ class CreateExpense(ModelSchema):
 
 
 class ExpenseMemberResponse(Schema):
-    user_uid: UUID
-    full_name: str
-    avatar_url: str
+    user: UserResponse
     status: str
     amount: float
 

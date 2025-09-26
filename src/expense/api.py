@@ -34,28 +34,14 @@ class ExpenseAPI(Controller):
         return self.service.create_expense(creator=request.user, payload=payload)
 
     @get(
-        "/{event_uid}",
-        response=ListExpenseResponse,
-        paginate=True,
-        exceptions=(EventNotFound, GetIsDenied),
-    )
-    @paginate
-    def list_expenses(
-        self,
-        request: AuthenticatedRequest,
-        event_uid: UUID,
-    ):
-        return self.service.list_expenses(user=request.user, event_uid=event_uid)
-
-    @get(
         "/{expense_uid}",
         response=ExpenseResponse,
         exceptions=(ExpenseNotFound, GetIsDenied),
     )
-    # def get_expense_detail(self, request: AuthenticatedRequest, expense_uid: UUID):
-    #     return self.service.get_expense_detail(
-    #         user=request.user, expense_uid=expense_uid
-    #     )
+    def get_expense_detail(self, request: AuthenticatedRequest, expense_uid: UUID):
+        return self.service.get_expense_detail(
+            user=request.user, expense_uid=expense_uid
+        )
 
     @put(
         "/{expense_uid}",
@@ -75,3 +61,28 @@ class ExpenseAPI(Controller):
     @delete("/{expense_uid}", response=bool, exceptions=(ExpenseNotFound,))
     def delete_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
         return self.service.delete_expense(user=request.user, expense_uid=expense_uid)
+
+
+@api(
+    prefix_or_class="list-expenses",
+    tags=["Expense"],
+    auth=AuthBear(),
+    permissions=[IsAuthenticated],
+)
+class ListExpenseAPI(Controller):
+    def __init__(self, service: Service):
+        self.service = service
+
+    @get(
+        "/{event_uid}/event",
+        response=ListExpenseResponse,
+        paginate=True,
+        exceptions=(EventNotFound, GetIsDenied),
+    )
+    @paginate
+    def list_expenses(
+        self,
+        request: AuthenticatedRequest,
+        event_uid: UUID,
+    ):
+        return self.service.list_expenses(user=request.user, event_uid=event_uid)

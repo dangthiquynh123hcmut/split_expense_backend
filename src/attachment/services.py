@@ -11,14 +11,16 @@ from exceptions.attachments import AttachmentAlreadyCompleted, AttachmentNotFoun
 from exceptions.expense import ExpenseNotFound
 from exceptions.group import GroupNotFound
 from exceptions.message import MessageNotFound
+from expense.models import ExpenseAttachment
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
+from message.models import MessageAttachment
 from message.queries import Query as MessageQuery
 from utils.services import BaseService
 from utils.types import TUser
 
 from .queries import Query
-from .schemas.requests import GeneratePresignedUrlSchema
+from .schemas.requests import CompletedUploadRequest, GeneratePresignedUrlSchema
 from .utils import Utils
 
 
@@ -74,15 +76,22 @@ class AttachmentService(BaseService):
         return attachment, presigned_url
 
     @transaction.atomic
-    def completed_upload(self, user: TUser, uid: UUID, instance_uid: UUID):
-        attachment = self.query.get_instance_by_uid(uid=uid)
+    def completed_upload(
+        self, user: TUser, instance_uid: UUID, payload: CompletedUploadRequest
+    ):
+        attachments = []
+        for uid in payload.list_uids:
+            attachment = self.query.get_instance_by_uid(uid=uid)
+            attachments.append(attachment)
 
-        if not attachment:
+        if not attachments:
             raise AttachmentNotFound
 
-        if attachment.is_completed:
-            raise AttachmentAlreadyCompleted
+        for attachment in attachments:
+            if attachment.is_completed:
+                raise AttachmentAlreadyCompleted
 
+        attachment = attachments[0]
         if attachment.type == AttachmentType.USER:
             if user.avatar_url:
                 # TODO: remove old attachment
@@ -104,20 +113,32 @@ class AttachmentService(BaseService):
 
         if attachment.type == AttachmentType.EXPENSE:
             expense = self.expense_query.get_expense(expense_uid=instance_uid)
-
             if not expense:
                 raise ExpenseNotFound
 
-            self.expense_query.add_attachment(expense=expense, attachment=attachment)
-        if attachment.type == AttachmentType.MESSAGE:
-            message = self.message_query.get_message(message_uid=instance_uid)
+            expense_attachments = []
+            for attachment in attachments:
+                expense_attachments.append(
+                    ExpenseAttachment(expense=expense, attachment=attachment)
+                )
+            self.expense_query.add_attachment(expense_attachments=expense_attachments)
 
-            if not message:
-                raise MessageNotFound
+            if attachment.type == AttachmentType.MESSAGE:
+                message = self.message_query.get_message(message_uid=instance_uid)
 
-            self.message_query.add_attachment(message=message, attachment=attachment)
+                if not message:
+                    raise MessageNotFound
 
-        self.query.mark_as_completed(attachment=attachment, user=user)
+                message_attachments = []
+                for attachment in attachments:
+                    message_attachments.append(
+                        MessageAttachment(message=message, attachment=attachment)
+                    )
+                self.message_query.add_attachment(
+                    message_attachments=message_attachments
+                )
+
+        self.query.mark_as_completed(attachments=attachments, user=user)
 
         return True
 

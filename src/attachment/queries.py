@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 
 from utils.types import TUser
@@ -11,7 +12,7 @@ class Query:
         type: AttachmentType,
         original_name: str,
         hashed_name: str,
-        size: int,
+        size: float,
         content_type: str,
         owner: TUser,
         bucket: str,
@@ -35,8 +36,9 @@ class Query:
         except Attachment.DoesNotExist:
             return None
 
-    def mark_as_completed(self, attachment: Attachment, user: TUser):
-        attachment.is_completed = True
-        attachment.updater = user
-        attachment.save()
-        return attachment
+    def mark_as_completed(self, attachments: List[Attachment], user: TUser):
+        for attachment in attachments:
+            attachment.is_completed = True
+            attachment.updater = user
+            attachment.save()
+        return attachments

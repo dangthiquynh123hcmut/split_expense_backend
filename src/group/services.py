@@ -74,7 +74,6 @@ class Service:
     #     deleted_members = self.query.get_members_by_uids(
     #         group=group, uids=data.list_delete_uids
     #     )
-    #     print("LLLLL", deleted_members)
     #     if len(deleted_members) != len(data.list_delete_uids):
     #         raise UserNotInGroup
 
@@ -135,7 +134,7 @@ class Service:
             group=group, filter=filter, order_by=order_by
         )
 
-    # def get_debt_simplification(self, user: TUser, group_uid: UUID):
+    # def debt_simplification(self, user: TUser, group_uid: UUID):
     #     group = self.query.get_group_sync(group_uid=group_uid)
     #     if not group:
     #         raise GroupNotFound
@@ -147,5 +146,7 @@ class Service:
     #     list_debts = self.expense_query.get_debts(list_expenses=list_expenses)
     #     debt_members, balance_members = debt_simplification(list_user_uids, list_debts)
     #     return DebtSimplification(
-    #         debt_members=debt_members, balance_members=balance_members
+    #         user=user,
+    #         debt_members=debt_members,
+    #         balance_members=balance_members,
     #     )

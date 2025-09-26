@@ -93,6 +93,9 @@ class Query:
             .annotate(
                 event_uid=F("event__uid"),
                 event_name=F("event__name"),
+                event_description=F("event__description"),
+                event_start=F("event__event_start"),
+                event_end=F("event__event_end"),
                 group_uid=F("event__group__uid"),
                 group_name=F("event__group__name"),
                 group_avatar_url=F("event__group__avatar_url"),
@@ -108,6 +111,12 @@ class Query:
             grouped[m.group_uid]["group_name"] = m.group_name
             grouped[m.group_uid]["group_avatar_url"] = m.group_avatar_url
             grouped[m.group_uid]["list_event"].append(
-                {"event_uid": m.event_uid, "event_name": m.event_name}
+                {
+                    "event_uid": m.event_uid,
+                    "event_name": m.event_name,
+                    "event_description": m.event_description,
+                    "event_start": m.event_start,
+                    "event_end": m.event_end,
+                }
             )
         return list(grouped.values())
