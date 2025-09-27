@@ -121,8 +121,8 @@ class GroupAPI(Controller):
     #     response=DebtSimplification,
     #     exceptions=(GroupNotFound, GetIsDenied),
     # )
-    # def get_debt_simplification(self, request: AuthenticatedRequest, group_uid: UUID):
-    #     return self.service.get_debt_simplification(
+    # def debt_simplification(self, request: AuthenticatedRequest, group_uid: UUID):
+    #     return self.service.debt_simplification(
     #         user=request.user, group_uid=group_uid
     #     )
     @get(

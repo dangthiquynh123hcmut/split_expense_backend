@@ -50,6 +50,17 @@ class Expense(BaseModel):
         null=False,
         blank=False,
     )
+    updated_by = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        to_field="uid",
+        db_column="updated_by_uid",
+        related_name="expense_fk_updated_by",
+        db_constraint=True,
+        db_index=True,
+        null=True,
+        blank=True,
+    )
     split_type = models.CharField(
         max_length=20,
         choices=SplitTypeEnum.choices,
@@ -139,10 +150,15 @@ class UserSharesInExpense(BaseModel):
     amount = models.DecimalField(
         max_digits=10, decimal_places=2, null=False, blank=False
     )
-    status = models.CharField(
+    status_paid = models.CharField(
         max_length=20,
         choices=ExpenseStatusEnum.choices,
         default=ExpenseStatusEnum.NOTYET,
+    )
+    deleted = models.CharField(
+        max_length=20,
+        choices=StatusEnum.choices,
+        default=StatusEnum.ACTIVE,
     )
 
     class Meta:

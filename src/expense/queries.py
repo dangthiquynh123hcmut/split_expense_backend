@@ -4,7 +4,7 @@ from uuid import UUID
 from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
-from expense.schemas.request import ExpenseUpdateRequest
+from expense.schemas.request import ExpenseRequest
 from expense.schemas.response import ListExpenseResponse, NameExpense
 from group.schemas.response import GroupName
 from utils.types import TUser
@@ -38,8 +38,9 @@ class Query:
                 name=share.expense.name,
                 currency=share.expense.currency,
                 amount=float(share.amount),
-                status=share.status,
+                status=share.status_paid,
                 created_at=share.expense.created_at,
+                deleted=share.deleted,
             )
             for share in queryset
         ]
@@ -51,17 +52,43 @@ class Query:
 
     @staticmethod
     def get_expense(expense_uid: UUID):
-        return Expense.objects.filter(uid=expense_uid, status="ACTIVE").first()
+        return Expense.objects.filter(uid=expense_uid).first()
 
     @staticmethod
-    def update_expense(expense_uid: UUID, payload: ExpenseUpdateRequest):
-        return Expense.objects.filter(uid=expense_uid, status="ACTIVE").update(
-            **payload.dict()
+    def update_expense(expense: Expense, payload: ExpenseRequest, updated_by: User):
+        for field, value in payload.dict(
+            exclude={"list_expense_member", "paid_by", "event_uid"}
+        ).items():
+            setattr(expense, field, value)
+        expense.updated_by = updated_by
+        expense.save()
+        return expense
+
+    @staticmethod
+    def list_user_share_in_expense(expense: Expense):
+        return UserSharesInExpense.objects.filter(expense=expense)
+
+    @staticmethod
+    def soft_delete_expense(expense_uid: UUID):
+        Expense.objects.filter(uid=expense_uid).update(status="DELETED")
+        return
+
+    @staticmethod
+    def soft_delete_expense_members(expense_uid: UUID):
+        UserSharesInExpense.objects.filter(expense=expense_uid).update(
+            deleted="DELETED"
         )
+        return
 
     @staticmethod
-    def delete_expense(expense_uid: UUID):
-        return Expense.objects.filter(uid=expense_uid).update(status="DELETED")
+    def hard_delete_expense(expense_uid: UUID):
+        Expense.objects.filter(uid=expense_uid).delete()
+        return
+
+    @staticmethod
+    def hard_delete_expense_members(expense_uid: UUID):
+        UserSharesInExpense.objects.filter(expense=expense_uid).delete()
+        return
 
     @staticmethod
     def add_attachment(expense_attachments: List[ExpenseAttachment]):

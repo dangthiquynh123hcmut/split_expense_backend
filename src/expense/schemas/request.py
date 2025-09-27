@@ -15,20 +15,7 @@ class AmountExpenseMember(Schema):
 
 
 class ExpenseRequest(Schema):
-    name: str
-    total_amount: Decimal = Field(..., gt=0)
-    currency: str
-    category: str
     event_uid: UUID
-    paid_by: Optional[UUID] = None
-    note: Optional[str] = None
-    expense_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    split_type: SplitTypeEnum
-    list_expense_member: List[AmountExpenseMember]
-
-
-class ExpenseUpdateRequest(Schema):
     name: str
     total_amount: Decimal = Field(..., gt=0)
     currency: str

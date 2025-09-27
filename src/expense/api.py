@@ -1,14 +1,14 @@
 from uuid import UUID
 
 from authenticate.api import AuthenticatedRequest
+from event.services import Service as EventService
 from exceptions.event import EventNotFound
 from exceptions.expense import ExpenseNotFound
-from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
-from expense.schemas.request import ExpenseRequest, ExpenseUpdateRequest
+from expense.schemas.request import ExpenseRequest
 from expense.schemas.response import CreateExpense, ExpenseResponse, ListExpenseResponse
 from expense.service import Service
-from utils.exceptions import GetIsDenied, UpdatedIsDenied
+from utils.exceptions import GetIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.permissions import IsAuthenticated
@@ -21,16 +21,24 @@ from utils.router.permissions import IsAuthenticated
     permissions=[IsAuthenticated],
 )
 class ExpenseAPI(Controller):
-    def __init__(self, service: Service):
+    def __init__(self, service: Service, event_service: EventService):
         self.service = service
+        self.event_service = event_service
 
     @post(
         "",
         response=CreateExpense,
-        exceptions=(GroupNotFound, EventNotFound, UserNotFound),
+        exceptions=(EventNotFound, UserNotFound),
     )
     def create_expense(self, request: AuthenticatedRequest, payload: ExpenseRequest):
-        return self.service.create_expense(creator=request.user, payload=payload)
+        event = self.event_service.query.get_event(event_uid=payload.event_uid)
+        if not event:
+            raise EventNotFound
+        expense = self.service.create_expense(
+            creator=request.user, payload=payload, event=event
+        )
+        self.service.calculate_debt(event=event)
+        return expense
 
     @get(
         "/{expense_uid}",
@@ -44,22 +52,30 @@ class ExpenseAPI(Controller):
 
     @put(
         "/{expense_uid}",
-        response=ExpenseResponse,
-        exceptions=(ExpenseNotFound, UpdatedIsDenied),
+        response=CreateExpense,
+        exceptions=(ExpenseNotFound,),
     )
     def update_expense(
         self,
         request: AuthenticatedRequest,
         expense_uid: UUID,
-        payload: ExpenseUpdateRequest,
+        payload: ExpenseRequest,
     ):
-        return self.service.update_expense(
+        expense = self.service.update_expense(
             user=request.user, expense_uid=expense_uid, payload=payload
         )
+        self.service.calculate_debt(event=expense.event)
+        return expense
 
-    @delete("/{expense_uid}", response=bool, exceptions=(ExpenseNotFound,))
-    def delete_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
-        return self.service.delete_expense(user=request.user, expense_uid=expense_uid)
+    @put("/{expense_uid}/soft", response=bool, exceptions=(ExpenseNotFound,))
+    def soft_delete_expense(self, expense_uid: UUID):
+        event = self.service.soft_delete_expense(expense_uid=expense_uid)
+        self.service.calculate_debt(event=event)
+        return True
+
+    @delete("/{expense_uid}/hard", response=bool, exceptions=(ExpenseNotFound,))
+    def hard_delete_expense(self, expense_uid: UUID):
+        return self.service.hard_delete_expense(expense_uid=expense_uid)
 
 
 @api(

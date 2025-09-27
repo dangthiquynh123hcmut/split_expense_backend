@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from ninja import Field, ModelSchema, Schema
@@ -22,7 +22,6 @@ class ExpenseResponse(ModelSchema):
         model = Expense
         exclude = [
             "name_no_accent",
-            "status",
             "event",
             "creator",
             "paid_by",
@@ -73,6 +72,7 @@ class NameExpense(Schema):
     amount: float
     status: str
     created_at: datetime
+    deleted: Optional[str] = None
 
 
 class ListExpenseResponse(Schema):

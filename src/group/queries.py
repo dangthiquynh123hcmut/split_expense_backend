@@ -18,7 +18,7 @@ from utils.schemas.filter_and_order_by import (
 )
 from utils.types import TUser
 
-from .models import Group, GroupMember
+from .models import Group, GroupMember, RestructureDebt
 
 
 class Query:
@@ -83,9 +83,9 @@ class Query:
     def delete_group(group: Group):
         return Group.objects.filter(uid=group.uid).update(status="DELETED")
 
-    @staticmethod
-    def list_members(group: Group):
-        return GroupMember.objects.filter(group=group, status="ACTIVE")
+    # @staticmethod
+    # def list_members(group: Group):
+    #     return GroupMember.objects.filter(group=group, status="ACTIVE")
 
     @staticmethod
     def get_members_by_uids(group: Group, uids: List[UUID]):
@@ -116,8 +116,12 @@ class Query:
         return query
 
     @staticmethod
-    def get_group_detail(group_uid: UUID):
-        return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
+    def list_group_members_not_filter(group: Group):
+        return GroupMember.objects.filter(group=group, status="ACTIVE")
+
+    # @staticmethod
+    # def get_group_detail(group_uid: UUID):
+    #     return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
 
     @staticmethod
     def list_events_in_a_group(
@@ -153,11 +157,9 @@ class Query:
         for em in expense_members:
             users.append(em.user)
             whens.append(When(user=em.user, then=F("total_amount") + em.amount))
-
-        GroupMember.objects.filter(group=group, user__in=users).update(
+        return GroupMember.objects.filter(group=group, user__in=users).update(
             total_amount=Case(*whens, default=F("total_amount"))
         )
-        return
 
     @staticmethod
     def list_expenses_in_a_group(
@@ -180,7 +182,7 @@ class Query:
                     name=share.expense.name,
                     currency=share.expense.currency,
                     amount=float(share.amount),
-                    status=share.status,
+                    status=share.status_paid,
                     created_at=share.expense.created_at,
                 )
             )
@@ -189,3 +191,17 @@ class Query:
             for event_name, expenses in grouped.items()
         ]
         return result
+
+    @staticmethod
+    def list_member_balances(group: Group):
+        return GroupMember.objects.filter(group=group, status="ACTIVE").values_list(
+            "user__uid", "total_amount"
+        )
+
+    @staticmethod
+    def delete_restructure_debt(group: Group):
+        return RestructureDebt.objects.filter(group=group).delete()
+
+    @staticmethod
+    def create_restructure_debt(restructure_debt: List[RestructureDebt]):
+        RestructureDebt.objects.bulk_create(restructure_debt)
