@@ -13,3 +13,7 @@ class GroupUpdateRequest(Schema):
     name: str
     list_add_uids: Optional[List[UUID]] = []
     list_delete_uids: Optional[List[UUID]] = []
+
+
+class UpdateGroupLeaderRequest(Schema):
+    new_leader: UUID

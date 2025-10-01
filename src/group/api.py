@@ -3,10 +3,10 @@ from uuid import UUID
 from ninja import Query
 
 from event.schemas.response import EventResponse
-from exceptions.group import GroupNotFound
+from exceptions.group import GroupNotFound, LeaveIsDenied, UserNotInGroup
 from exceptions.users import UserNotFound
 from expense.schemas.response import ExpenseEvent
-from utils.exceptions import DeleteIsDenied, GetIsDenied
+from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.paginate import paginate
@@ -19,7 +19,7 @@ from utils.schemas.filter_and_order_by import (
 )
 from utils.types import AuthenticatedRequest
 
-from .schemas.request import GroupRequest
+from .schemas.request import GroupRequest, GroupUpdateRequest, UpdateGroupLeaderRequest
 from .schemas.response import CreateGroup, GroupResponse, UserInGroup
 from .services import Service
 
@@ -56,6 +56,16 @@ class GroupAPI(Controller):
             user=request.user, filter=filter, order_by=order_by
         )
 
+    # @get(
+    #     "/balance-members",
+    #     response=BalanceGroupResponse,
+    #     nested_paginate=True,
+    #     exceptions=(GroupNotFound, GetIsDenied),
+    # )
+    # @nested_paginate
+    # def get_balances_by_group_and_member(self, request: AuthenticatedRequest):
+    #     return self.service.get_balances_by_group_and_member(user=request.user)
+
     @get(
         "/{group_uid}/members",
         response=UserInGroup,
@@ -74,25 +84,36 @@ class GroupAPI(Controller):
             user=request.user, group_uid=group_uid, filter=filter, order_by=order_by
         )
 
-    # @put(
-    #     "/{group_uid}",
-    #     response=GroupResponse,
-    #     exceptions=(GroupNotFound, UserNotFound, UpdatedIsDenied),
-    # )
-    # def update_group(
-    #     self, request: AuthenticatedRequest, group_uid: UUID, data: GroupUpdateRequest
-    # ):
-    #     return self.service.update_group(
-    #         user=request.user, group_uid=group_uid, data=data
-    #     )
+    @put(
+        "/{group_uid}",
+        response=GroupResponse,
+        exceptions=(
+            GroupNotFound,
+            UserNotFound,
+            UpdatedIsDenied,
+            UserNotInGroup,
+            DeleteIsDenied,
+        ),
+    )
+    def update_group(
+        self, request: AuthenticatedRequest, group_uid: UUID, data: GroupUpdateRequest
+    ):
+        return self.service.update_group(
+            user=request.user, group_uid=group_uid, data=data
+        )
 
     # @get("/{group_uid}", response=GroupResponse, exceptions=(GroupNotFound,))
     # def get_group_detail(self, group_uid: UUID):
     #     return self.service.get_group_detail(group_uid=group_uid)
 
-    @put("/{group_uid}/leave", response=bool)
+    @put(
+        "/{group_uid}/leave",
+        response=bool,
+        exceptions=(GroupNotFound, LeaveIsDenied, UserNotInGroup),
+    )
     def leave_group(self, request: AuthenticatedRequest, group_uid: UUID):
-        return self.service.leave_group(user=request.user, group_uid=group_uid)
+        self.service.leave_group(user=request.user, group_uid=group_uid)
+        return True
 
     @delete("/{group_uid}", response=bool, exceptions=(GroupNotFound, DeleteIsDenied))
     def delete_group(self, request: AuthenticatedRequest, group_uid: UUID):
@@ -141,3 +162,19 @@ class GroupAPI(Controller):
             user=request.user,
             group_uid=group_uid,
         )
+
+    @put(
+        "/{group_uid}/leader",
+        response=bool,
+        exceptions=(GroupNotFound, UpdatedIsDenied),
+    )
+    def update_group_leader(
+        self,
+        request: AuthenticatedRequest,
+        group_uid: UUID,
+        payload: UpdateGroupLeaderRequest,
+    ):
+        self.service.update_group_leader(
+            user=request.user, group_uid=group_uid, new_leader=payload.new_leader
+        )
+        return True

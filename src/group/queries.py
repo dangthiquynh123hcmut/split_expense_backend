@@ -38,7 +38,6 @@ class Query:
         queryset = Group.objects.filter(
             group_member_fk_group__user__uid=user.uid, status="ACTIVE"
         ).distinct()
-
         if filter:
             queryset = queryset.filter(filter.get_filter_expression())
 
@@ -75,17 +74,11 @@ class Query:
 
     @staticmethod
     def leave_group(user: TUser, group: Group):
-        return GroupMember.objects.filter(user=user, group=group).update(
-            status="DELETED"
-        )
+        return GroupMember.objects.filter(user=user, group=group).delete()
 
     @staticmethod
     def delete_group(group: Group):
-        return Group.objects.filter(uid=group.uid).update(status="DELETED")
-
-    # @staticmethod
-    # def list_members(group: Group):
-    #     return GroupMember.objects.filter(group=group, status="ACTIVE")
+        return Group.objects.filter(uid=group.uid).delete()
 
     @staticmethod
     def get_members_by_uids(group: Group, uids: List[UUID]):
@@ -130,7 +123,6 @@ class Query:
         order_by: OrderByNameAndUpdatedAtSchema,
     ):
         queryset = Event.objects.filter(group=group, status="ACTIVE").distinct()
-
         if filter:
             queryset = queryset.filter(filter.get_filter_expression())
 
@@ -205,3 +197,27 @@ class Query:
     @staticmethod
     def create_restructure_debt(restructure_debt: List[RestructureDebt]):
         RestructureDebt.objects.bulk_create(restructure_debt)
+
+    @staticmethod
+    def delete_group_members(group_members: List[GroupMember]):
+        return GroupMember.objects.filter(
+            uid__in=[gm.uid for gm in group_members]
+        ).delete()
+
+    @staticmethod
+    def update_group_leader(group: Group, new_leader: TUser):
+        group.leader = new_leader
+        group.save()
+        return
+
+    @staticmethod
+    def list_members_for_balance(group: Group):
+        return GroupMember.objects.filter(group=group, status="ACTIVE").order_by(
+            "user__full_name"
+        )
+
+    @staticmethod
+    def get_groups_by_member(user: TUser):
+        return Group.objects.filter(
+            group_member_fk_group__user__uid=user.uid, status="ACTIVE"
+        ).distinct()

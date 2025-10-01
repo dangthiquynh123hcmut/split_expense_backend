@@ -4,10 +4,10 @@ from uuid import UUID
 from django.db import transaction
 
 from authenticate.queries import Query as UserQuery
-from exceptions.group import GroupNotFound
+from exceptions.group import GroupNotFound, LeaveIsDenied, UserNotInGroup
 from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
-from utils.exceptions import DeleteIsDenied, GetIsDenied
+from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
@@ -18,6 +18,7 @@ from utils.types import TUser
 
 from .models import GroupMember
 from .queries import Query
+from .schemas.request import GroupUpdateRequest
 
 
 class Service:
@@ -48,42 +49,52 @@ class Service:
     def get_group(self, group_uid: UUID):
         return self.query.get_group_sync(group_uid=group_uid)
 
-    # @transaction.atomic
-    # def update_group(self, user: TUser, group_uid: UUID, data: GroupUpdateRequest):
-    #     group = self.query.get_group_sync(group_uid=group_uid)
-    #     if not group:
-    #         raise GroupNotFound
-    #     member = self.query.get_group_has_user(user=user, group=group)
-    #     if not member:
-    #         raise UpdatedIsDenied
-    #     group = self.query.update_group(group=group, name=data.name)
+    @transaction.atomic
+    def update_group(self, user: TUser, group_uid: UUID, data: GroupUpdateRequest):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        member = self.query.get_group_has_user(user=user, group=group)
+        if not member:
+            raise UpdatedIsDenied
+        group = self.query.update_group(group=group, name=data.name)
 
-    #     existing_members = self.query.get_members_by_uids(
-    #         group=group, uids=data.list_add_uids
-    #     )
-    #     existing_uids = {m.user_id for m in existing_members}
-    #     add_member_uids = [u for u in data.list_add_uids if u not in existing_uids]
-    #     add_members = self.user_query.get_user_by_uids(uids=add_member_uids)
-    #     if len(data.list_add_uids) != len(add_member_uids) + len(existing_uids):
-    #         raise UserNotFound
-    #     group_members = [
-    #         GroupMember(group=group, user=member) for member in add_members
-    #     ]
-    #     self.query.create_group_members(group_members=group_members)
+        existing_members = self.query.get_members_by_uids(
+            group=group, uids=data.list_add_uids
+        )
+        existing_uids = {m.user_id for m in existing_members}
+        list_add_uids = data.list_add_uids or []
+        add_member_uids = [u for u in list_add_uids if u not in existing_uids]
+        add_members = self.user_query.get_user_by_uids(uids=add_member_uids)
+        if len(list_add_uids) != len(add_member_uids) + len(existing_uids):
+            raise UserNotFound
+        group_members = [
+            GroupMember(group=group, user=member) for member in add_members
+        ]
+        self.query.create_group_members(group_members=group_members)
 
-    #     deleted_members = self.query.get_members_by_uids(
-    #         group=group, uids=data.list_delete_uids
-    #     )
-    #     if len(deleted_members) != len(data.list_delete_uids):
-    #         raise UserNotInGroup
-
-    #     return group
+        if data.list_delete_uids:
+            deleted_members = self.query.get_members_by_uids(
+                group=group, uids=data.list_delete_uids
+            )
+            if len(deleted_members) != len(data.list_delete_uids):
+                raise UserNotInGroup
+            for deleted_member in deleted_members:
+                if deleted_member.total_amount != 0:
+                    raise DeleteIsDenied
+            self.query.delete_group_members(group_members=deleted_members)
+        return group
 
     def leave_group(self, user: TUser, group_uid: UUID):
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
 
+        member = self.query.get_group_has_user(user=user, group=group)
+        if not member:
+            raise UserNotInGroup
+        if member.total_amount != 0:
+            raise LeaveIsDenied
         return self.query.leave_group(user=user, group=group)
 
     def delete_group(self, user: TUser, group_uid: UUID):
@@ -92,7 +103,8 @@ class Service:
             raise GroupNotFound
         if group.leader != user:
             raise DeleteIsDenied
-        return self.query.delete_group(group=group)
+        self.query.delete_group(group=group)
+        return True
 
     def list_group_members(
         self,
@@ -111,11 +123,11 @@ class Service:
             group=group, filter=filter, order_by=order_by
         )
 
-    def get_group_detail(self, group_uid: UUID):
-        group = self.query.get_group_sync(group_uid=group_uid)
-        if not group:
-            raise GroupNotFound
-        return self.query.get_group_detail(group_uid=group_uid)
+    # def get_group_detail(self, group_uid: UUID):
+    #     group = self.query.get_group_sync(group_uid=group_uid)
+    #     if not group:
+    #         raise GroupNotFound
+    #     return self.query.get_group_detail(group_uid=group_uid)
 
     def list_events_in_a_group(
         self,
@@ -166,3 +178,40 @@ class Service:
             user=user,
             group=group,
         )
+
+    def update_group_leader(self, user: TUser, group_uid: UUID, new_leader: UUID):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        member = self.query.get_group_has_user(user=user, group=group)
+        if not member or group.leader != user:
+            raise UpdatedIsDenied
+        new_leader = self.user_query.get_user_by_uid(uid=new_leader)
+        self.query.update_group_leader(group=group, new_leader=new_leader)
+
+    # def get_balances_by_group_and_member(self, user: TUser):
+    #     groups = self.query.get_groups_by_member(user=user)
+    #     result = []
+    #     for group in groups:
+    #         group_members = self.query.list_group_members_not_filter(group=group)
+    #         list_balance = [
+    #             BalanceMembersResponse(
+    #                 user=UserResponse.from_orm(member.user),
+    #                 total_amount=float(member.total_amount),
+    #             )
+    #             for member in group_members
+    #         ]
+
+    #         result.append(
+    #             BalanceGroupResponse(
+    #                 group=GroupName.from_orm(group),
+    #                 items=InnerPaginatedResponse[BalanceMembersResponse](
+    #                     content=list_balance,
+    #                     inner_current_page=1,
+    #                     inner_page_size=len(list_balance),
+    #                     inner_total_rows=len(list_balance),
+    #                     inner_total_pages=1,
+    #                 ).model_dump(),
+    #             )
+    #         )
+    #     return result
