@@ -3,7 +3,18 @@ from typing import List
 from uuid import UUID
 
 from channels.db import database_sync_to_async
-from django.db.models import Case, F, When
+from django.db.models import (
+    Case,
+    DecimalField,
+    F,
+    IntegerField,
+    Prefetch,
+    Q,
+    Sum,
+    Value,
+    When,
+)
+from django.db.models.functions import Abs, Coalesce
 
 from attachment.models import Attachment
 from authenticate.models import User
@@ -221,3 +232,50 @@ class Query:
         return Group.objects.filter(
             group_member_fk_group__user__uid=user.uid, status="ACTIVE"
         ).distinct()
+
+    @staticmethod
+    def get_balances_by_group_and_member(user: TUser):
+        members_qs = (
+            GroupMember.objects.filter(status="ACTIVE")
+            .annotate(
+                balance=Coalesce(
+                    Sum(
+                        Case(
+                            # member là creditor, user hiện tại là debtor
+                            When(
+                                Q(group__restructure_debt_fk_group__creditor=F("user"))
+                                & Q(group__restructure_debt_fk_group__debtor=user),
+                                then=F("group__restructure_debt_fk_group__value"),
+                            ),
+                            # member là debtor, user hiện tại là creditor
+                            When(
+                                Q(group__restructure_debt_fk_group__debtor=F("user"))
+                                & Q(group__restructure_debt_fk_group__creditor=user),
+                                then=-F("group__restructure_debt_fk_group__value"),
+                            ),
+                            default=Value(0, output_field=DecimalField()),
+                            output_field=DecimalField(),
+                        )
+                    ),
+                    Value(0, output_field=DecimalField()),
+                ),
+                has_debt=Case(
+                    When(~Q(balance=0), then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                ),
+                abs_balance=Abs(F("balance"), output_field=DecimalField()),
+            )
+            .order_by("-has_debt", "-abs_balance")[:10]
+        )
+        return (
+            Group.objects.filter(group_member_fk_group__user=user)
+            .exclude(status="DELETED")
+            .prefetch_related(
+                Prefetch(
+                    "group_member_fk_group",
+                    queryset=members_qs,
+                    to_attr="group_members",
+                )
+            )
+        )

@@ -189,29 +189,5 @@ class Service:
         new_leader = self.user_query.get_user_by_uid(uid=new_leader)
         self.query.update_group_leader(group=group, new_leader=new_leader)
 
-    # def get_balances_by_group_and_member(self, user: TUser):
-    #     groups = self.query.get_groups_by_member(user=user)
-    #     result = []
-    #     for group in groups:
-    #         group_members = self.query.list_group_members_not_filter(group=group)
-    #         list_balance = [
-    #             BalanceMembersResponse(
-    #                 user=UserResponse.from_orm(member.user),
-    #                 total_amount=float(member.total_amount),
-    #             )
-    #             for member in group_members
-    #         ]
-
-    #         result.append(
-    #             BalanceGroupResponse(
-    #                 group=GroupName.from_orm(group),
-    #                 items=InnerPaginatedResponse[BalanceMembersResponse](
-    #                     content=list_balance,
-    #                     inner_current_page=1,
-    #                     inner_page_size=len(list_balance),
-    #                     inner_total_rows=len(list_balance),
-    #                     inner_total_pages=1,
-    #                 ).model_dump(),
-    #             )
-    #         )
-    #     return result
+    def get_balances_by_group_and_member(self, user: TUser):
+        return self.query.get_balances_by_group_and_member(user=user)

@@ -20,7 +20,12 @@ from utils.schemas.filter_and_order_by import (
 from utils.types import AuthenticatedRequest
 
 from .schemas.request import GroupRequest, GroupUpdateRequest, UpdateGroupLeaderRequest
-from .schemas.response import CreateGroup, GroupResponse, UserInGroup
+from .schemas.response import (
+    BalanceGroupResponse,
+    CreateGroup,
+    GroupResponse,
+    UserInGroup,
+)
 from .services import Service
 
 
@@ -56,15 +61,15 @@ class GroupAPI(Controller):
             user=request.user, filter=filter, order_by=order_by
         )
 
-    # @get(
-    #     "/balance-members",
-    #     response=BalanceGroupResponse,
-    #     nested_paginate=True,
-    #     exceptions=(GroupNotFound, GetIsDenied),
-    # )
-    # @nested_paginate
-    # def get_balances_by_group_and_member(self, request: AuthenticatedRequest):
-    #     return self.service.get_balances_by_group_and_member(user=request.user)
+    @get(
+        "/balance-members",
+        response=BalanceGroupResponse,
+        paginate=True,
+        exceptions=(GroupNotFound, GetIsDenied),
+    )
+    @paginate
+    def get_balances_by_group_and_member(self, request: AuthenticatedRequest):
+        return self.service.get_balances_by_group_and_member(user=request.user)
 
     @get(
         "/{group_uid}/members",

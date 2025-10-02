@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
@@ -7,7 +8,6 @@ from ninja import Field, ModelSchema, Schema
 from attachment.schemas.responses import AttachmentResponse
 from group.models import Group
 from user.schemas.response import UserResponse
-from utils.router.paginate import InnerPaginatedResponse
 
 
 class GroupName(ModelSchema):
@@ -38,24 +38,26 @@ class UserInGroup(Schema):
     joined_at: datetime
 
 
-class DebtMember(Schema):
-    debtor: UserResponse
-    creditor: UserResponse
-    value: float
+# class DebtMember(Schema):
+#     debtor: UserResponse
+#     creditor: UserResponse
+#     value: float
 
 
-class DebtSimplification(Schema):
-    user: UserResponse
-    total_amount: float
-    transactions: List[DebtMember]
+# class DebtSimplification(Schema):
+#     user: UserResponse
+#     total_amount: float
+#     transactions: List[DebtMember]
 
 
 class BalanceMembersResponse(Schema):
     user: Optional[UserResponse] = None
-    total_amount: Optional[float] = None
+    balance: Optional[Decimal] = None
 
 
-class BalanceGroupResponse(Schema):
-    group: GroupName
-    items: InnerPaginatedResponse[BalanceMembersResponse]
-    # items: List[BalanceMembersResponse]
+class BalanceGroupResponse(ModelSchema):
+    group_members: List[BalanceMembersResponse] = []
+
+    class Meta:
+        model = Group
+        exclude = ["created_at", "updated_at", "status", "name_no_accent", "leader"]
