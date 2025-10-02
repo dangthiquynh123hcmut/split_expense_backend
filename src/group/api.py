@@ -68,8 +68,15 @@ class GroupAPI(Controller):
         exceptions=(GroupNotFound, GetIsDenied),
     )
     @paginate
-    def get_balances_by_group_and_member(self, request: AuthenticatedRequest):
-        return self.service.get_balances_by_group_and_member(user=request.user)
+    def get_balances_by_group_and_member(
+        self,
+        request: AuthenticatedRequest,
+        filter: FilterNameSchema = Query(...),
+        order_by: OrderByNameAndUpdatedAtSchema = Query(...),
+    ):
+        return self.service.get_balances_by_group_and_member(
+            user=request.user, filter=filter, order_by=order_by
+        )
 
     @get(
         "/{group_uid}/members",

@@ -4,8 +4,6 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
-import authenticate.models
-
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -13,17 +11,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="resetpassword",
-            name="token",
-            field=models.CharField(
-                db_index=True,
-                default=authenticate.models.generate_token,
-                max_length=255,
-                null=True,
-                unique=True,
-            ),
-        ),
         migrations.CreateModel(
             name="Otp",
             fields=[

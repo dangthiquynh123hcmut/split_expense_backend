@@ -189,5 +189,12 @@ class Service:
         new_leader = self.user_query.get_user_by_uid(uid=new_leader)
         self.query.update_group_leader(group=group, new_leader=new_leader)
 
-    def get_balances_by_group_and_member(self, user: TUser):
-        return self.query.get_balances_by_group_and_member(user=user)
+    def get_balances_by_group_and_member(
+        self,
+        user: TUser,
+        filter: FilterNameSchema,
+        order_by: OrderByNameAndUpdatedAtSchema,
+    ):
+        return self.query.get_balances_by_group_and_member(
+            user=user, filter=filter, order_by=order_by
+        )

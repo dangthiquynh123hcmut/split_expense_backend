@@ -234,7 +234,9 @@ class Query:
         ).distinct()
 
     @staticmethod
-    def get_balances_by_group_and_member(user: TUser):
+    def get_balances_by_group_and_member(
+        user: TUser, filter: FilterNameSchema, order_by: OrderByNameAndUpdatedAtSchema
+    ):
         members_qs = (
             GroupMember.objects.filter(status="ACTIVE")
             .annotate(
@@ -268,7 +270,7 @@ class Query:
             )
             .order_by("-has_debt", "-abs_balance")[:10]
         )
-        return (
+        query = (
             Group.objects.filter(group_member_fk_group__user=user)
             .exclude(status="DELETED")
             .prefetch_related(
@@ -279,3 +281,9 @@ class Query:
                 )
             )
         )
+        if filter:
+            query = query.filter(filter.get_filter_expression())
+
+        if order_by:
+            query = query.order_by(order_by.get_order_by_expression())
+        return query
