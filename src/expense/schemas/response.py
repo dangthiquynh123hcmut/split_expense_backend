@@ -6,7 +6,6 @@ from ninja import Field, ModelSchema, Schema
 
 from attachment.schemas.responses import AttachmentResponse
 from expense.models import Expense
-from group.schemas.response import GroupName
 from user.schemas.response import UserResponse
 
 
@@ -73,12 +72,6 @@ class NameExpense(Schema):
     status: str
     created_at: datetime
     deleted: Optional[str] = None
-
-
-class ListExpenseResponse(Schema):
-    expense: List[NameExpense]
-    group: GroupName
-    event: str
 
 
 class ExpenseEvent(Schema):

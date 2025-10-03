@@ -6,7 +6,7 @@ from exceptions.event import EventNotFound
 from exceptions.expense import ExpenseNotFound
 from exceptions.users import UserNotFound
 from expense.schemas.request import ExpenseRequest
-from expense.schemas.response import CreateExpense, ExpenseResponse, ListExpenseResponse
+from expense.schemas.response import CreateExpense, ExpenseResponse, NameExpense
 from expense.service import Service
 from utils.exceptions import GetIsDenied
 from utils.router.authenticate import AuthBear
@@ -91,7 +91,7 @@ class ListExpenseAPI(Controller):
 
     @get(
         "/{event_uid}/event",
-        response=ListExpenseResponse,
+        response=NameExpense,
         paginate=True,
         exceptions=(EventNotFound, GetIsDenied),
     )

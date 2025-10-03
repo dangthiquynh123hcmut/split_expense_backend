@@ -7,9 +7,8 @@ from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
 from expense.schemas.request import ExpenseRequest
-from expense.schemas.response import ListExpenseResponse, NameExpense
+from expense.schemas.response import NameExpense
 from group.models import Group
-from group.schemas.response import GroupName
 from utils.types import TUser
 
 
@@ -31,6 +30,7 @@ class Query:
             UserSharesInExpense.objects.filter(
                 expense__event=event,
                 user=user,
+                expense__status="ACTIVE",
             )
             .select_related("expense")
             .order_by("expense__created_at")
@@ -47,11 +47,7 @@ class Query:
             )
             for share in queryset
         ]
-        return ListExpenseResponse(
-            event=event.name,
-            expense=expenses,
-            group=GroupName.from_orm(event.group),
-        )
+        return expenses
 
     @staticmethod
     def get_expense(expense_uid: UUID):

@@ -75,6 +75,7 @@ class Service:
 
     def calculate_debt(self, event: Event):
         balances = self.group_query.list_member_balances(group=event.group)
+        print("balances", balances)
         transactions = simplify_minflow(balances)
         user_map = {
             group_member.user.uid: group_member.user

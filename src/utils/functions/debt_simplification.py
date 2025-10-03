@@ -2,6 +2,9 @@ def simplify_minflow(balances):
     transactions = []
     debtors = {p: b for (p, b) in balances if b < 0}
     creditors = {p: b for (p, b) in balances if b > 0}
+    if not debtors or not creditors:
+        print("KO co khoan chi tieu")
+        return transactions
     while debtors:
         max_creditor = max(creditors, key=creditors.get)
         min_debtor = min(debtors, key=debtors.get)
