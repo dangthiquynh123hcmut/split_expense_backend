@@ -4,6 +4,7 @@ from uuid import UUID
 from django.db import transaction
 
 from authenticate.queries import Query as UserQuery
+from event.queries import Query as EventQuery
 from exceptions.group import GroupNotFound, LeaveIsDenied, UserNotInGroup
 from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
@@ -19,6 +20,7 @@ from utils.types import TUser
 from .models import GroupMember
 from .queries import Query
 from .schemas.request import GroupUpdateRequest
+from .schemas.response import DebtMember, DetailGroup, GroupResponse
 
 
 class Service:
@@ -26,6 +28,7 @@ class Service:
         self.query = Query()
         self.user_query = UserQuery()
         self.expense_query = ExpenseQuery()
+        self.event_query = EventQuery()
 
     @transaction.atomic
     def create_group(self, leader: TUser, name: str, list_user_uids: List[UUID]):
@@ -123,11 +126,38 @@ class Service:
             group=group, filter=filter, order_by=order_by
         )
 
-    # def get_group_detail(self, group_uid: UUID):
-    #     group = self.query.get_group_sync(group_uid=group_uid)
-    #     if not group:
-    #         raise GroupNotFound
-    #     return self.query.get_group_detail(group_uid=group_uid)
+    def get_group_detail(self, user: TUser, group_uid: UUID):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        member = self.query.get_group_has_user(user=user, group=group)
+        if not member:
+            raise GetIsDenied
+        event_attended = self.event_query.events_attended_in_group(
+            user=user, group=group
+        )
+        event_total = self.event_query.total_events_in_group(group=group)
+        agg = self.expense_query.total_expenses_in_group(group=group)
+        total_amount = float(agg["total_amount"] or 0.0)
+        expense_total = agg["expense_total"] or 0
+        agg = self.expense_query.expense_attended_in_group(user=user, group=group)
+        user_spent = float(agg["user_spent"] or 0.0)
+        expense_attended = agg["expense_attended"] or 0
+        restructured_debt = self.query.restructured_debt(user=user, group=group)
+
+        return DetailGroup(
+            group=GroupResponse.from_orm(group),
+            event_attended=f"{event_attended}/{event_total}",
+            shared_expenses=f"{expense_attended}/{expense_total}",
+            total_amount=total_amount,
+            user_spent=user_spent,
+            restructured_debt=[
+                DebtMember(
+                    debtor=rd.debtor, creditor=rd.creditor, value=float(rd.value)
+                )
+                for rd in restructured_debt
+            ],
+        )
 
     def list_events_in_a_group(
         self,

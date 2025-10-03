@@ -59,6 +59,14 @@ class Service:
             )
             for m in payload.list_expense_member
         ]
+        if not user_map.get(paid_by.uid):
+            expense_members.append(
+                UserSharesInExpense(
+                    expense=expense,
+                    user=paid_by,
+                    amount=payload.total_amount,
+                )
+            )
         self.query.create_expense_members(expense_members=expense_members)
         self.group_query.update_total_amount(
             group=expense.event.group, expense_members=expense_members

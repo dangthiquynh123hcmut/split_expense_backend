@@ -1,5 +1,4 @@
 import re
-from uuid import UUID
 
 from ninja import Schema
 from pydantic import Field, field_validator
@@ -58,7 +57,6 @@ class LoginResponseSchema(Schema):
     access_token: str
     refresh_token: str
     user: UserSchema
-    uid: UUID
 
 
 class RefreshResponse(Schema):

@@ -6,6 +6,7 @@ from django.db.models import F
 
 from event.models import Event, EventMember
 from event.schemas.request import EventUpdateRequest
+from group.models import Group
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
@@ -120,3 +121,13 @@ class Query:
                 }
             )
         return list(grouped.values())
+
+    @staticmethod
+    def events_attended_in_group(user: TUser, group: Group):
+        return EventMember.objects.filter(
+            user=user, event__group=group, status="ACTIVE"
+        ).count()
+
+    @staticmethod
+    def total_events_in_group(group: Group):
+        return Event.objects.filter(group=group, status="ACTIVE").count()

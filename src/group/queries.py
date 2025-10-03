@@ -123,9 +123,9 @@ class Query:
     def list_group_members_not_filter(group: Group):
         return GroupMember.objects.filter(group=group, status="ACTIVE")
 
-    # @staticmethod
-    # def get_group_detail(group_uid: UUID):
-    #     return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
+    @staticmethod
+    def get_group_detail(group_uid: UUID):
+        return Group.objects.filter(uid=group_uid, status="ACTIVE").first()
 
     @staticmethod
     def list_events_in_a_group(
@@ -287,3 +287,9 @@ class Query:
         if order_by:
             query = query.order_by(order_by.get_order_by_expression())
         return query
+
+    @staticmethod
+    def restructured_debt(user: TUser, group: Group):
+        return RestructureDebt.objects.filter(
+            (Q(creditor=user) | Q(debtor=user)) & Q(group=group)
+        ).select_related("debtor", "creditor")

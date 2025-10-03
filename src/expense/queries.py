@@ -1,11 +1,14 @@
 from typing import List
 from uuid import UUID
 
+from django.db.models import Count, Sum
+
 from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
 from expense.schemas.request import ExpenseRequest
 from expense.schemas.response import ListExpenseResponse, NameExpense
+from group.models import Group
 from group.schemas.response import GroupName
 from utils.types import TUser
 
@@ -111,3 +114,19 @@ class Query:
     #         ]
     #         list_debts.extend(list_debtor)
     #     return list_debts
+
+    @staticmethod
+    def total_expenses_in_group(group: Group):
+        return Expense.objects.filter(event__group=group, status="ACTIVE").aggregate(
+            total_amount=Sum("total_amount"),
+            expense_total=Count("uid", distinct=True),
+        )
+
+    @staticmethod
+    def expense_attended_in_group(user: TUser, group: Group):
+        return UserSharesInExpense.objects.filter(
+            expense__event__group=group, user=user, deleted="ACTIVE"
+        ).aggregate(
+            user_spent=Sum("amount"),
+            expense_attended=Count("uid", distinct=True),
+        )

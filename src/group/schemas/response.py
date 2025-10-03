@@ -20,6 +20,7 @@ class GroupName(ModelSchema):
 
 class GroupResponse(ModelSchema):
     avatar_url: Optional[AttachmentResponse] = None
+    leader: UserResponse
 
     class Meta:
         model = Group
@@ -38,10 +39,10 @@ class UserInGroup(Schema):
     joined_at: datetime
 
 
-# class DebtMember(Schema):
-#     debtor: UserResponse
-#     creditor: UserResponse
-#     value: float
+class DebtMember(Schema):
+    debtor: UserResponse
+    creditor: UserResponse
+    value: float
 
 
 # class DebtSimplification(Schema):
@@ -56,8 +57,17 @@ class BalanceMembersResponse(Schema):
 
 
 class BalanceGroupResponse(ModelSchema):
-    group_members: List[BalanceMembersResponse] = []
+    group_members: Optional[List[BalanceMembersResponse]] = None
 
     class Meta:
         model = Group
         exclude = ["created_at", "updated_at", "status", "name_no_accent", "leader"]
+
+
+class DetailGroup(Schema):
+    group: GroupResponse
+    event_attended: str = "0/0"
+    shared_expenses: str = "0/0"
+    total_amount: float = 0.0
+    user_spent: float = 0.0
+    restructured_debt: Optional[List[DebtMember]] = None

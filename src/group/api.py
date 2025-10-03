@@ -23,6 +23,7 @@ from .schemas.request import GroupRequest, GroupUpdateRequest, UpdateGroupLeader
 from .schemas.response import (
     BalanceGroupResponse,
     CreateGroup,
+    DetailGroup,
     GroupResponse,
     UserInGroup,
 )
@@ -114,9 +115,9 @@ class GroupAPI(Controller):
             user=request.user, group_uid=group_uid, data=data
         )
 
-    # @get("/{group_uid}", response=GroupResponse, exceptions=(GroupNotFound,))
-    # def get_group_detail(self, group_uid: UUID):
-    #     return self.service.get_group_detail(group_uid=group_uid)
+    @get("/{group_uid}", response=DetailGroup, exceptions=(GroupNotFound,))
+    def get_group_detail(self, request: AuthenticatedRequest, group_uid: UUID):
+        return self.service.get_group_detail(user=request.user, group_uid=group_uid)
 
     @put(
         "/{group_uid}/leave",

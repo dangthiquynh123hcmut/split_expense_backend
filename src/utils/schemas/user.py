@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from ninja import Schema
 
@@ -10,3 +11,4 @@ class UserSchema(Schema):
     email: str
     full_name: Optional[str]
     phone_number: Optional[str]
+    uid: UUID
