@@ -168,10 +168,11 @@ class Query:
     def list_expenses_in_a_group(
         user: User,
         group: Group,
+        status: str,
     ):
         expense_members = (
             UserSharesInExpense.objects.filter(
-                expense__event__group=group, expense__status="ACTIVE", user=user
+                expense__event__group=group, expense__status=status, user=user
             )
             .select_related("expense", "expense__event")
             .order_by("expense__event__name", "expense__created_at")
@@ -187,6 +188,7 @@ class Query:
                     amount=float(share.amount),
                     status=share.status_paid,
                     created_at=share.expense.created_at,
+                    deleted=share.deleted,
                 )
             )
         result: list[ExpenseEvent] = [

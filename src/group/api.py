@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from ninja import Query
@@ -150,15 +151,6 @@ class GroupAPI(Controller):
             user=request.user, group_uid=group_uid, filter=filter, order_by=order_by
         )
 
-    # @get(
-    #     "/{group_uid}/debt-simplification",
-    #     response=DebtSimplification,
-    #     exceptions=(GroupNotFound, GetIsDenied),
-    # )
-    # def debt_simplification(self, request: AuthenticatedRequest, group_uid: UUID):
-    #     return self.service.debt_simplification(
-    #         user=request.user, group_uid=group_uid
-    #     )
     @get(
         "/{group_uid}/expenses",
         response=ExpenseEvent,
@@ -170,10 +162,12 @@ class GroupAPI(Controller):
         self,
         request: AuthenticatedRequest,
         group_uid: UUID,
+        status: Literal["DELETED", "ACTIVE"] = "ACTIVE",
     ):
         return self.service.list_expenses_in_a_group(
             user=request.user,
             group_uid=group_uid,
+            status=status,
         )
 
     @put(

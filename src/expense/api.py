@@ -68,6 +68,12 @@ class ExpenseAPI(Controller):
         self.service.calculate_debt(event=expense.event)
         return expense
 
+    @put("/{expense_uid}/restore", response=bool, exceptions=(ExpenseNotFound,))
+    def restore_expense(self, expense_uid: UUID):
+        expense = self.service.restore_expense(expense_uid=expense_uid)
+        self.service.calculate_debt(event=expense.event)
+        return True
+
     @put("/{expense_uid}/soft", response=bool, exceptions=(ExpenseNotFound,))
     def soft_delete_expense(self, expense_uid: UUID):
         event = self.service.soft_delete_expense(expense_uid=expense_uid)

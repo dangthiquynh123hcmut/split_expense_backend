@@ -176,27 +176,11 @@ class Service:
             group=group, filter=filter, order_by=order_by
         )
 
-    # def debt_simplification(self, user: TUser, group_uid: UUID):
-    #     group = self.query.get_group_sync(group_uid=group_uid)
-    #     if not group:
-    #         raise GroupNotFound
-    #     member = self.query.get_group_has_user(user=user, group=group)
-    #     if not member:
-    #         raise GetIsDenied
-    #     list_user_uids = self.query.list_uids_members(group=group)
-    #     list_expenses = self.query.get_expenses_in_group(group=group)
-    #     list_debts = self.expense_query.get_debts(list_expenses=list_expenses)
-    #     debt_members, balance_members = debt_simplification(list_user_uids, list_debts)
-    #     return DebtSimplification(
-    #         user=user,
-    #         debt_members=debt_members,
-    #         balance_members=balance_members,
-    #     )
-
     def list_expenses_in_a_group(
         self,
         user: TUser,
         group_uid: UUID,
+        status: str,
     ):
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
@@ -207,6 +191,7 @@ class Service:
         return self.query.list_expenses_in_a_group(
             user=user,
             group=group,
+            status=status,
         )
 
     def update_group_leader(self, user: TUser, group_uid: UUID, new_leader: UUID):

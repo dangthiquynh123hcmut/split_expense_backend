@@ -73,10 +73,8 @@ class Query:
         return
 
     @staticmethod
-    def soft_delete_expense_members(expense_uid: UUID):
-        UserSharesInExpense.objects.filter(expense=expense_uid).update(
-            deleted="DELETED"
-        )
+    def soft_delete_expense_members(expense: Expense):
+        UserSharesInExpense.objects.filter(expense=expense).update(deleted="DELETED")
         return
 
     @staticmethod
@@ -93,24 +91,6 @@ class Query:
     def add_attachment(expense_attachments: List[ExpenseAttachment]):
         return ExpenseAttachment.objects.bulk_create(expense_attachments)
 
-    # @staticmethod
-    # def get_debts(list_expenses: List[Expense]):
-    #     list_debts = []
-    #     for expense in list_expenses:
-    #         list_debtor = UserSharesInExpense.objects.filter(
-    #             expense=expense
-    #         ).values_list("user__uid", "amount")
-    #         list_debtor = [
-    #             (
-    #                 user,
-    #                 expense.paid_by.uid,
-    #                 amount,
-    #             )
-    #             for user, amount in list_debtor
-    #         ]
-    #         list_debts.extend(list_debtor)
-    #     return list_debts
-
     @staticmethod
     def total_expenses_in_group(group: Group):
         return Expense.objects.filter(event__group=group, status="ACTIVE").aggregate(
@@ -126,3 +106,13 @@ class Query:
             user_spent=Sum("amount"),
             expense_attended=Count("uid", distinct=True),
         )
+
+    @staticmethod
+    def restore_expense(expense_uid: UUID):
+        Expense.objects.filter(uid=expense_uid).update(status="ACTIVE")
+        return
+
+    @staticmethod
+    def restore_user_shares_in_expense(expense: Expense):
+        UserSharesInExpense.objects.filter(expense=expense).update(deleted="ACTIVE")
+        return

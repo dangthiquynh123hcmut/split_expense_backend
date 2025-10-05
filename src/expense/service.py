@@ -75,7 +75,7 @@ class Service:
 
     def calculate_debt(self, event: Event):
         balances = self.group_query.list_member_balances(group=event.group)
-        print("balances", balances)
+        balances = list(balances)
         transactions = simplify_minflow(balances)
         user_map = {
             group_member.user.uid: group_member.user
@@ -198,3 +198,15 @@ class Service:
         self.query.hard_delete_expense_members(expense_uid=expense_uid)
         self.query.hard_delete_expense(expense_uid=expense_uid)
         return True
+
+    def restore_expense(self, expense_uid: UUID):
+        expense = self.query.get_expense(expense_uid=expense_uid)
+        if not expense:
+            raise ExpenseNotFound
+        self.query.restore_expense(expense_uid=expense_uid)
+        self.query.restore_user_shares_in_expense(expense=expense)
+        expense_members = self.query.list_user_share_in_expense(expense=expense)
+        self.group_query.update_total_amount(
+            group=expense.event.group, expense_members=expense_members
+        )
+        return expense
