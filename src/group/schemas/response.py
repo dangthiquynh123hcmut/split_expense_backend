@@ -58,6 +58,7 @@ class BalanceMembersResponse(Schema):
 
 class BalanceGroupResponse(ModelSchema):
     group_members: Optional[List[BalanceMembersResponse]] = None
+    avatar_url: Optional[AttachmentResponse] = None
 
     class Meta:
         model = Group
