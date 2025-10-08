@@ -1,4 +1,5 @@
 from collections import defaultdict
+from decimal import Decimal
 from typing import List
 from uuid import UUID
 
@@ -6,6 +7,7 @@ from channels.db import database_sync_to_async
 from django.db.models import (
     Case,
     DecimalField,
+    ExpressionWrapper,
     F,
     IntegerField,
     Prefetch,
@@ -14,7 +16,7 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.functions import Abs, Coalesce
+from django.db.models.functions import Abs, Coalesce, Round
 
 from attachment.models import Attachment
 from authenticate.models import User
@@ -23,6 +25,7 @@ from expense.models import Expense, UserSharesInExpense
 from expense.schemas.response import ExpenseEvent, NameExpense
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
+    FilterMonthSchema,
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
@@ -169,6 +172,7 @@ class Query:
         user: User,
         group: Group,
         status: str,
+        filter: FilterMonthSchema,
     ):
         expense_members = (
             UserSharesInExpense.objects.filter(
@@ -177,6 +181,9 @@ class Query:
             .select_related("expense", "expense__event")
             .order_by("expense__event__name", "expense__created_at")
         )
+        if filter:
+            expense_members = expense_members.filter(filter.get_filter_expression())
+
         grouped: dict[str, list[NameExpense]] = defaultdict(list)
 
         for share in expense_members:
@@ -295,3 +302,40 @@ class Query:
         return RestructureDebt.objects.filter(
             (Q(creditor=user) | Q(debtor=user)) & Q(group=group)
         ).select_related("debtor", "creditor")
+
+    @staticmethod
+    def group_report(group: Group):
+        return GroupMember.objects.filter(group=group, status="ACTIVE").values_list(
+            "user__uid", "total_amount"
+        )
+
+    @staticmethod
+    def get_member_spending(group: Group, total_amount: Decimal):
+        return (
+            UserSharesInExpense.objects.filter(
+                expense__event__group=group, deleted="ACTIVE"
+            )
+            .values(full_name=F("user__full_name"))
+            .annotate(
+                spending_amount=Sum(
+                    Case(
+                        When(amount__lt=0, then=F("amount")),
+                        default=F("payer_amount"),
+                        output_field=DecimalField(),
+                    )
+                ),
+            )
+            .annotate(
+                percent=ExpressionWrapper(
+                    Round(-(F("spending_amount") / total_amount) * 100, 2),
+                    output_field=DecimalField(max_digits=5, decimal_places=2),
+                )
+            )
+            .values("full_name", "percent")
+        )
+
+    @staticmethod
+    def get_member_count(
+        group: Group,
+    ):
+        return GroupMember.objects.filter(group=group, status="ACTIVE").count()

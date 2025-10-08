@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import List, Literal
 from uuid import UUID
 
 from ninja import Query
@@ -14,6 +14,7 @@ from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
+    FilterMonthSchema,
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
@@ -25,6 +26,8 @@ from .schemas.response import (
     BalanceGroupResponse,
     CreateGroup,
     DetailGroup,
+    GroupMembersReport,
+    GroupReport,
     GroupResponse,
     UserInGroup,
 )
@@ -163,11 +166,13 @@ class GroupAPI(Controller):
         request: AuthenticatedRequest,
         group_uid: UUID,
         status: Literal["DELETED", "ACTIVE"] = "ACTIVE",
+        filter: FilterMonthSchema = Query(...),
     ):
         return self.service.list_expenses_in_a_group(
             user=request.user,
             group_uid=group_uid,
             status=status,
+            filter=filter,
         )
 
     @put(
@@ -185,3 +190,27 @@ class GroupAPI(Controller):
             user=request.user, group_uid=group_uid, new_leader=payload.new_leader
         )
         return True
+
+    @get(
+        "/{group_uid}/report",
+        response=GroupReport,
+        exceptions=(GroupNotFound, GetIsDenied),
+    )
+    def group_report(
+        self,
+        request: AuthenticatedRequest,
+        group_uid: UUID,
+    ):
+        return self.service.group_report(user=request.user, group_uid=group_uid)
+
+    @get(
+        "/{group_uid}/members-report",
+        response=List[GroupMembersReport],
+        exceptions=(GroupNotFound, GetIsDenied),
+    )
+    def get_member_spending(
+        self,
+        request: AuthenticatedRequest,
+        group_uid: UUID,
+    ):
+        return self.service.get_member_spending(user=request.user, group_uid=group_uid)

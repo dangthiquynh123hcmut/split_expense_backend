@@ -160,6 +160,9 @@ class UserSharesInExpense(BaseModel):
         choices=StatusEnum.choices,
         default=StatusEnum.ACTIVE,
     )
+    payer_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True, default=0
+    )  # always <0
 
     class Meta:
         indexes = [

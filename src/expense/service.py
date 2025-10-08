@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import UUID
 
 from django.db import transaction
@@ -53,9 +54,14 @@ class Service:
             UserSharesInExpense(
                 expense=expense,
                 user=user_map.get(m.user_uid),
-                amount=-m.amount
-                if m.user_uid != paid_by.uid
-                else payload.total_amount - m.amount,
+                amount=(
+                    -Decimal(m.amount)
+                    if m.user_uid != paid_by.uid
+                    else Decimal(payload.total_amount) - Decimal(m.amount)
+                ),
+                payer_amount=(
+                    Decimal(m.amount) if m.user_uid == paid_by.uid else Decimal("0.0")
+                ),
             )
             for m in payload.list_expense_member
         ]
@@ -65,6 +71,7 @@ class Service:
                     expense=expense,
                     user=paid_by,
                     amount=payload.total_amount,
+                    payer_amount=Decimal("0.0"),
                 )
             )
         self.query.create_expense_members(expense_members=expense_members)
@@ -163,12 +170,26 @@ class Service:
             UserSharesInExpense(
                 expense=expense,
                 user=user_map.get(m.user_uid),
-                amount=-m.amount
-                if m.user_uid != paid_by.uid
-                else payload.total_amount - m.amount,
+                amount=(
+                    -Decimal(m.amount)
+                    if m.user_uid != paid_by.uid
+                    else Decimal(payload.total_amount) - Decimal(m.amount)
+                ),
+                payer_amount=(
+                    Decimal(m.amount) if m.user_uid == paid_by.uid else Decimal("0.0")
+                ),
             )
             for m in payload.list_expense_member
         ]
+        if not user_map.get(paid_by.uid):
+            expense_members.append(
+                UserSharesInExpense(
+                    expense=expense,
+                    user=paid_by,
+                    amount=payload.total_amount,
+                    payer_amount=Decimal("0.0"),
+                )
+            )
         self.query.create_expense_members(expense_members=expense_members)
 
         for member in expense_members:

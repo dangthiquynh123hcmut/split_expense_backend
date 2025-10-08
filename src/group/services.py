@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import List
 from uuid import UUID
 
@@ -11,6 +12,7 @@ from expense.queries import Query as ExpenseQuery
 from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
+    FilterMonthSchema,
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
@@ -20,7 +22,7 @@ from utils.types import TUser
 from .models import GroupMember
 from .queries import Query
 from .schemas.request import GroupUpdateRequest
-from .schemas.response import DebtMember, DetailGroup, GroupResponse
+from .schemas.response import DebtMember, DetailGroup, GroupReport, GroupResponse
 
 
 class Service:
@@ -181,6 +183,7 @@ class Service:
         user: TUser,
         group_uid: UUID,
         status: str,
+        filter: FilterMonthSchema,
     ):
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
@@ -192,6 +195,7 @@ class Service:
             user=user,
             group=group,
             status=status,
+            filter=filter,
         )
 
     def update_group_leader(self, user: TUser, group_uid: UUID, new_leader: UUID):
@@ -213,3 +217,35 @@ class Service:
         return self.query.get_balances_by_group_and_member(
             user=user, filter=filter, order_by=order_by
         )
+
+    def group_report(self, user: TUser, group_uid: UUID):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        member = self.query.get_group_has_user(user=user, group=group)
+        if not member:
+            raise GetIsDenied
+        events = self.event_query.total_events_in_group(group=group)
+        agg = self.expense_query.total_expenses_in_group(group=group)
+        total_amount = float(agg["total_amount"] or 0.0)
+        shared_expenses = agg["expense_total"] or 0
+        members = self.query.get_member_count(group=group)
+
+        return GroupReport(
+            group=GroupResponse.from_orm(group),
+            events=events,
+            shared_expenses=shared_expenses,
+            total_amount=total_amount,
+            members=members,
+        )
+
+    def get_member_spending(self, user: TUser, group_uid: UUID):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        member = self.query.get_group_has_user(user=user, group=group)
+        if not member:
+            raise GetIsDenied
+        agg = self.expense_query.total_expenses_in_group(group=group)
+        total_amount = Decimal(agg["total_amount"] or 0.0)
+        return self.query.get_member_spending(group=group, total_amount=total_amount)

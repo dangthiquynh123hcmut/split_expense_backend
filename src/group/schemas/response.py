@@ -45,12 +45,6 @@ class DebtMember(Schema):
     value: float
 
 
-# class DebtSimplification(Schema):
-#     user: UserResponse
-#     total_amount: float
-#     transactions: List[DebtMember]
-
-
 class BalanceMembersResponse(Schema):
     user: Optional[UserResponse] = None
     balance: Optional[Decimal] = None
@@ -72,3 +66,16 @@ class DetailGroup(Schema):
     total_amount: float = 0.0
     user_spent: float = 0.0
     restructured_debt: Optional[List[DebtMember]] = None
+
+
+class GroupMembersReport(Schema):
+    full_name: str
+    percent: Decimal
+
+
+class GroupReport(Schema):
+    group: GroupResponse
+    events: int = 0
+    shared_expenses: int = 0
+    total_amount: float = 0.0
+    members: int

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal, Optional
 
 from django.db.models import Q
@@ -23,6 +24,21 @@ class FilterNameSchema(FilterSchema):
         if value is None:
             return Q()
         return Q(name_no_accent__icontains=remove_accents(value))
+
+
+class FilterMonthSchema(FilterSchema):
+    start: datetime = FilterField(
+        default=None, description="Filter by created at, between start and end"
+    )
+    end: datetime = FilterField(
+        default=None, description="Filter by created at, between start and end"
+    )
+
+    def get_filter_expression(self):
+        q = Q()
+        if self.start and self.end:
+            q &= Q(created_at__gte=self.start, created_at__lte=self.end)
+        return q
 
 
 class OrderByNameAndUpdatedAtSchema(OrderBySchema):
