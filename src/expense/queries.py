@@ -83,8 +83,8 @@ class Query:
         return
 
     @staticmethod
-    def hard_delete_expense_members(expense_uid: UUID):
-        UserSharesInExpense.objects.filter(expense=expense_uid).delete()
+    def hard_delete_expense_members(expense: Expense):
+        UserSharesInExpense.objects.filter(expense=expense).delete()
         return
 
     @staticmethod
