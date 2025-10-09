@@ -320,7 +320,7 @@ class Query:
                 spending_amount=Sum(
                     Case(
                         When(amount__lt=0, then=F("amount")),
-                        default=F("payer_amount"),
+                        default=-F("payer_amount"),
                         output_field=DecimalField(),
                     )
                 ),

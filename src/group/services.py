@@ -152,7 +152,7 @@ class Service:
             event_attended=f"{event_attended}/{event_total}",
             shared_expenses=f"{expense_attended}/{expense_total}",
             total_amount=total_amount,
-            user_spent=user_spent,
+            user_spent=user_spent if user_spent > 0 else -user_spent,
             restructured_debt=[
                 DebtMember(
                     debtor=rd.debtor, creditor=rd.creditor, value=float(rd.value)

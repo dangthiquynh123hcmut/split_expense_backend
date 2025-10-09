@@ -3,7 +3,7 @@ from uuid import UUID
 
 from exceptions.attachments import AttachmentNotFound
 from expense.schemas.request import UpdateImageExpense
-from utils.router.controller import Controller, api, post, put
+from utils.router.controller import Controller, api, delete, post, put
 from utils.types import AuthenticatedRequest
 
 from .schemas.requests import GeneratePresignedUrlRequest, UidsRequest
@@ -47,17 +47,15 @@ class AttachmentController(Controller):
             user=request.user, instance_uid=instance_uid, payload=payload
         )
 
-    # TODO: wait for connect api with socket
-    # @delete("/{instance_uid}", response=bool)
-    # def delete_attachments(
-    #     self,
-    #     request: AuthenticatedRequest,
-    #     instance_uid: UUID,
-    #     payload: UidsRequest
-    # ):
-    #     return self.service.delete_attachments(
-    #         user=request.user, instance_uid=instance_uid, payload=payload
-    #     )
+    # TODO: delete attachments
+    @delete("", response=bool, exceptions=(AttachmentNotFound,))
+    def delete_attachments(
+        self,
+        request: AuthenticatedRequest,
+        payload: UidsRequest,
+    ):
+        return self.service.delete_attachments(list_deleted_uids=payload.list_uids)
+
     @put(
         "/image", response=List[GeneratePresignedUrl], exceptions=(AttachmentNotFound,)
     )
