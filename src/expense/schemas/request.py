@@ -6,6 +6,7 @@ from uuid import UUID
 from ninja import Schema
 from pydantic import Field
 
+from attachment.schemas.requests import GeneratePresignedUrlSchema
 from utils.enums import SplitTypeEnum
 
 
@@ -26,3 +27,8 @@ class ExpenseRequest(Schema):
     end_date: Optional[datetime] = None
     split_type: SplitTypeEnum
     list_expense_member: List[AmountExpenseMember]
+
+
+class UpdateImageExpense(Schema):
+    files: Optional[List[GeneratePresignedUrlSchema]] = None
+    list_deleted_uids: Optional[List[UUID]] = None

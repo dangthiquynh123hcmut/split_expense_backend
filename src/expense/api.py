@@ -22,9 +22,9 @@ from utils.router.permissions import IsAuthenticated
     permissions=[IsAuthenticated],
 )
 class ExpenseAPI(Controller):
-    def __init__(self, service: Service, event_service: EventService):
-        self.service = service
-        self.event_service = event_service
+    def __init__(self):
+        self.service = Service()
+        self.event_service = EventService()
 
     @post(
         "",
@@ -92,8 +92,8 @@ class ExpenseAPI(Controller):
     permissions=[IsAuthenticated],
 )
 class ListExpenseAPI(Controller):
-    def __init__(self, service: Service):
-        self.service = service
+    def __init__(self):
+        self.service = Service()
 
     @get(
         "/{event_uid}/event",

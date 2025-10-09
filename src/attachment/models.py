@@ -41,11 +41,6 @@ class Attachment(models.Model):
     public_url = models.URLField()
 
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    is_file_deleted = models.BooleanField(default=False)
-    is_deleted = models.BooleanField(default=False)
-    deleted_at = models.DateTimeField(null=True)
 
     is_completed = models.BooleanField(default=False)
 
@@ -55,17 +50,6 @@ class Attachment(models.Model):
         to_field="uid",
         db_column="owner_uid",
         related_name="attachment_fk_owner",
-        db_constraint=True,
-        null=True,
-        blank=True,
-    )
-
-    updater = models.ForeignKey(
-        to=User,
-        on_delete=models.SET_NULL,
-        to_field="uid",
-        db_column="updater_uid",
-        related_name="attachment_fk_updater",
         db_constraint=True,
         null=True,
         blank=True,

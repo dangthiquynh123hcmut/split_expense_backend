@@ -30,15 +30,24 @@ class Query:
 
     def get_instance_by_uid(self, uid: UUID):
         try:
-            return Attachment.objects.get(
-                uid=uid, is_deleted=False, is_file_deleted=False
-            )
+            return Attachment.objects.get(uid=uid)
         except Attachment.DoesNotExist:
             return None
+
+    @staticmethod
+    def get_instance_by_uids(uids: List[UUID]):
+        return Attachment.objects.filter(uid__in=uids)
+
+    @staticmethod
+    def get_public_url_by_uids(uids: List[UUID]):
+        return Attachment.objects.filter(uid__in=uids).values_list("public_url")
 
     def mark_as_completed(self, attachments: List[Attachment], user: TUser):
         for attachment in attachments:
             attachment.is_completed = True
-            attachment.updater = user
             attachment.save()
         return attachments
+
+    @staticmethod
+    def remove_attachments(list_uids: List[UUID]):
+        Attachment.objects.filter(uid__in=list_uids).delete()

@@ -1,10 +1,12 @@
 from typing import List
 from uuid import UUID
 
+from exceptions.attachments import AttachmentNotFound
+from expense.schemas.request import UpdateImageExpense
 from utils.router.controller import Controller, api, post, put
 from utils.types import AuthenticatedRequest
 
-from .schemas.requests import CompletedUploadRequest, GeneratePresignedUrlRequest
+from .schemas.requests import GeneratePresignedUrlRequest, UidsRequest
 from .schemas.responses import GeneratePresignedUrl
 from .services import AttachmentService
 
@@ -39,8 +41,45 @@ class AttachmentController(Controller):
         self,
         request: AuthenticatedRequest,
         instance_uid: UUID,
-        payload: CompletedUploadRequest,
+        payload: UidsRequest,
     ):
         return self.service.completed_upload(
             user=request.user, instance_uid=instance_uid, payload=payload
         )
+
+    # TODO: wait for connect api with socket
+    # @delete("/{instance_uid}", response=bool)
+    # def delete_attachments(
+    #     self,
+    #     request: AuthenticatedRequest,
+    #     instance_uid: UUID,
+    #     payload: UidsRequest
+    # ):
+    #     return self.service.delete_attachments(
+    #         user=request.user, instance_uid=instance_uid, payload=payload
+    #     )
+    @put(
+        "/image", response=List[GeneratePresignedUrl], exceptions=(AttachmentNotFound,)
+    )
+    def update_image_expense(
+        self, request: AuthenticatedRequest, payload: UpdateImageExpense
+    ):
+        if payload.list_deleted_uids:
+            self.service.delete_attachments(list_deleted_uids=payload.list_deleted_uids)
+
+        if payload.files:
+            responses = []
+            for file in payload.files:
+                attachment, presigned_url = self.service.get_presigned_url(
+                    user=request.user,
+                    payload=file,
+                )
+            responses.append(
+                {
+                    "uid": attachment.uid,
+                    "url": presigned_url,
+                    "file_name": file.file_name,
+                }
+            )
+
+        return responses

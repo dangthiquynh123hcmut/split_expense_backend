@@ -17,5 +17,5 @@ class GeneratePresignedUrlRequest(Schema):
     files: List[GeneratePresignedUrlSchema]
 
 
-class CompletedUploadRequest(Schema):
+class UidsRequest(Schema):
     list_uids: List[UUID]

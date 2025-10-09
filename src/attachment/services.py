@@ -1,8 +1,8 @@
+from typing import List
 from uuid import UUID
 
 import boto3
 from django.conf import settings
-from django.core.files import File
 from django.db import transaction
 
 from attachment.models import AttachmentType
@@ -20,7 +20,7 @@ from utils.services import BaseService
 from utils.types import TUser
 
 from .queries import Query
-from .schemas.requests import CompletedUploadRequest, GeneratePresignedUrlSchema
+from .schemas.requests import GeneratePresignedUrlSchema, UidsRequest
 from .utils import Utils
 
 
@@ -76,13 +76,8 @@ class AttachmentService(BaseService):
         return attachment, presigned_url
 
     @transaction.atomic
-    def completed_upload(
-        self, user: TUser, instance_uid: UUID, payload: CompletedUploadRequest
-    ):
-        attachments = []
-        for uid in payload.list_uids:
-            attachment = self.query.get_instance_by_uid(uid=uid)
-            attachments.append(attachment)
+    def completed_upload(self, user: TUser, instance_uid: UUID, payload: UidsRequest):
+        attachments = self.query.get_instance_by_uids(uids=payload.list_uids)
 
         if not attachments:
             raise AttachmentNotFound
@@ -95,7 +90,8 @@ class AttachmentService(BaseService):
         if attachment.type == AttachmentType.USER:
             if user.avatar_url:
                 # TODO: remove old attachment
-                pass
+                self.delete_attachment_s3(public_url=user.avatar_url.public_url)
+                self.query.remove_attachments(list_uids=payload.list_uids)
 
             self.user_query.add_attachment(user=user, attachment=attachment)
 
@@ -107,7 +103,8 @@ class AttachmentService(BaseService):
 
             if group.avatar_url:
                 # TODO: remove old attachment
-                pass
+                self.delete_attachment_s3(public_url=group.avatar_url.public_url)
+                self.query.remove_attachments(list_uids=payload.list_uids)
 
             self.group_query.add_attachment(group=group, attachment=attachment)
 
@@ -123,47 +120,62 @@ class AttachmentService(BaseService):
                 )
             self.expense_query.add_attachment(expense_attachments=expense_attachments)
 
-            if attachment.type == AttachmentType.MESSAGE:
-                message = self.message_query.get_message(message_uid=instance_uid)
+        if attachment.type == AttachmentType.MESSAGE:
+            message = self.message_query.get_message(message_uid=instance_uid)
 
-                if not message:
-                    raise MessageNotFound
+            if not message:
+                raise MessageNotFound
 
-                message_attachments = []
-                for attachment in attachments:
-                    message_attachments.append(
-                        MessageAttachment(message=message, attachment=attachment)
-                    )
-                self.message_query.add_attachment(
-                    message_attachments=message_attachments
+            message_attachments = []
+            for attachment in attachments:
+                message_attachments.append(
+                    MessageAttachment(message=message, attachment=attachment)
                 )
+            self.message_query.add_attachment(message_attachments=message_attachments)
 
         self.query.mark_as_completed(attachments=attachments, user=user)
 
         return True
 
-    def post_file(self, user: TUser, file: File, type: AttachmentType):
-        file_name = file.name or ""
-        attachment = self.query.create_new_instance(
-            type=type,
-            original_name=file_name,
-            hashed_name=self.utils.generate_hashed_name(file_name),
-            size=file.size,
-            content_type=self.utils.get_content_type(file_name) or "",
-            owner=user,
-            bucket=self.bucket_name,
-        )
-        attachment.is_public = True
-        attachment.public_url = (
-            f"{self.public_url}/{attachment.directory}/{attachment.hashed_name}"
-        )
-        attachment.save()
+    @transaction.atomic
+    def delete_attachments(self, list_deleted_uids: List[UUID]):
+        list_attachments_urls = [
+            url[0] for url in self.query.get_public_url_by_uids(uids=list_deleted_uids)
+        ]
 
-        self.s3_client.put_object(
-            Bucket=self.bucket_name,
-            Key=f"{attachment.directory}/{attachment.hashed_name}",
-            Body=file,
-            ContentType=attachment.content_type,
+        if not list_attachments_urls:
+            raise AttachmentNotFound
+        if len(list_attachments_urls) == 1:
+            self.delete_attachment_s3(public_url=list_attachments_urls[0])
+        else:
+            self.delete_multiple_from_s3(file_keys=list_attachments_urls)
+
+        # TODO: remove attachment => ExpenseAttachment, MessageAttachment will been deleted
+        self.query.remove_attachments(list_uids=list_deleted_uids)
+        return True
+
+    # ------------- Helper functions -------------
+    def delete_attachment_s3(self, public_url: str):
+        s3 = boto3.client(
+            "s3",
+            aws_access_key_id=settings.S3_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
+            region_name=settings.S3_REGION,
+        )
+        key = self.utils.extract_file_key_from_s3_url(public_url)
+        s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
+
+    def delete_multiple_from_s3(self, file_keys: list[str]):
+        s3 = boto3.client(
+            "s3",
+            aws_access_key_id=settings.S3_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
+            region_name=settings.S3_REGION,
         )
 
-        return attachment
+        objects_to_delete = self.utils.extract_file_key_from_s3_url(file_keys)
+
+        return s3.delete_objects(
+            Bucket=settings.S3_BUCKET_NAME,
+            Delete={"Objects": objects_to_delete, "Quiet": True},
+        )
