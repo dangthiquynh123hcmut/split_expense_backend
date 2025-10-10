@@ -16,6 +16,7 @@ class UserExpense(UserResponse):
 class ExpenseResponse(ModelSchema):
     receipt_url: List[AttachmentResponse] = Field(default_factory=list)
     list_user: List[UserExpense]
+    paid_by: UserResponse
 
     class Meta:
         model = Expense
@@ -23,7 +24,6 @@ class ExpenseResponse(ModelSchema):
             "name_no_accent",
             "event",
             "creator",
-            "paid_by",
             "receipt_url",
             "created_at",
             "split_type",

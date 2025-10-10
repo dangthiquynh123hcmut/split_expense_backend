@@ -49,11 +49,7 @@ class AttachmentController(Controller):
 
     # TODO: delete attachments
     @delete("", response=bool, exceptions=(AttachmentNotFound,))
-    def delete_attachments(
-        self,
-        request: AuthenticatedRequest,
-        payload: UidsRequest,
-    ):
+    def delete_attachments(self, payload: UidsRequest):
         return self.service.delete_attachments(list_deleted_uids=payload.list_uids)
 
     @put(
