@@ -4,6 +4,7 @@ from uuid import UUID
 
 from django.db.models import F
 
+from attachment.schemas.responses import AttachmentResponse
 from event.models import Event, EventMember
 from event.schemas.request import EventUpdateRequest
 from group.models import Group
@@ -90,7 +91,7 @@ class Query:
     def list_events_groups(user: TUser, filter: FilterNameSchema):
         queryset = (
             EventMember.objects.filter(user=user, status="ACTIVE")
-            .select_related("event__group")
+            .select_related("event__group__avatar_url")
             .annotate(
                 event_uid=F("event__uid"),
                 event_name=F("event__name"),
@@ -110,7 +111,10 @@ class Query:
 
         for m in queryset:
             grouped[m.group_uid]["group_name"] = m.group_name
-            grouped[m.group_uid]["group_avatar_url"] = m.group_avatar_url
+            avatar = m.event.group.avatar_url
+            grouped[m.group_uid]["group_avatar_url"] = (
+                AttachmentResponse.from_orm(avatar) if avatar else None
+            )
             grouped[m.group_uid]["list_event"].append(
                 {
                     "event_uid": m.event_uid,

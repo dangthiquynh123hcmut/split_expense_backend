@@ -16,13 +16,6 @@ class EventResponse(ModelSchema):
         exclude = ["created_at", "updated_at", "status", "name_no_accent"]
 
 
-class ListEvent(EventResponse):
-    group_id: UUID
-    group_name: str
-    group_avatar_url: Optional[AttachmentResponse]
-    group_uid: UUID
-
-
 class EventGroup(Schema):
     event_uid: UUID
     event_name: str
