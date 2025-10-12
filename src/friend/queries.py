@@ -95,14 +95,10 @@ class Query:
             return None
 
     @staticmethod
-    def list_mutual_friends(user: TUser, friend_uid: UUID):
-        def friend_q(uid):
+    def list_mutual_friends(user: TUser, friend: TUser):
+        def friend_q(User: TUser):
             return Q(
-                friend_fk_user__friend__uid=uid, friend_fk_user__status="ACCEPTED"
-            ) | Q(friend_fk_friend__user__uid=uid, friend_fk_friend__status="ACCEPTED")
+                friend_fk_user__friend=User, friend_fk_user__status="ACCEPTED"
+            ) | Q(friend_fk_friend__user=User, friend_fk_friend__status="ACCEPTED")
 
-        return User.objects.filter(friend_q(user.uid) & friend_q(friend_uid)).distinct()
-
-    # @staticmethod
-    # def friends_profile(user: TUser, friend_uid: UUID):
-    #     return
+        return User.objects.filter(friend_q(user) & friend_q(friend)).distinct()

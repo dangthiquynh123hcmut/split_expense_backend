@@ -14,7 +14,7 @@ from utils.router.permissions import IsAuthenticated
 from utils.types import AuthenticatedRequest
 
 from .schemas.request import AddFriendRequest, FilterFriendSchema, OrderByUserSchema
-from .schemas.response import AddFriendResponse
+from .schemas.response import AddFriendResponse, FriendDebt, FriendOverview
 from .services import FriendService
 
 
@@ -73,9 +73,9 @@ class FriendAPI(Controller):
             user=request.user, friend_uid=friend_uid
         )
 
-    # @get("/{friend_uid}", response=UserResponse)
-    # def friends_profile(self, request: AuthenticatedRequest, friend_uid: UUID):
-    #     return self.service.friends_profile(user=request.user, friend_uid=friend_uid)
+    @get("/{friend_uid}", response=FriendOverview)
+    def friends_overview(self, request: AuthenticatedRequest, friend_uid: UUID):
+        return self.service.friends_overview(user=request.user, friend_uid=friend_uid)
 
     @put("/{friendship_uid}", response=bool, exceptions=(FriendshipNotFound,))
     def accept_request_friend(self, friendship_uid: UUID):
@@ -85,3 +85,8 @@ class FriendAPI(Controller):
     @delete("/{friendship_uid}", response=bool, exceptions=(FriendshipNotFound,))
     def remove_or_reject_friend(self, friendship_uid: UUID):
         return self.service.remove_or_reject_friend(friendship_uid=friendship_uid)
+
+    @get("/{friend_uid}/debt", response=FriendDebt, paginate=True)
+    @paginate
+    def friend_debt(self, request: AuthenticatedRequest, friend_uid: UUID):
+        return self.service.friend_debt(user=request.user, friend_uid=friend_uid)

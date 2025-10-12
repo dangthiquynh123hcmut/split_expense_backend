@@ -135,3 +135,12 @@ class Query:
     @staticmethod
     def total_events_in_group(group: Group):
         return Event.objects.filter(group=group, status="ACTIVE").count()
+
+    @staticmethod
+    def total_mutual_events(user: TUser, friend: TUser):
+        return EventMember.objects.filter(
+            user=user,
+            event__event_member_fk_event__user=friend,
+            event__event_member_fk_event__status="ACTIVE",
+            status="ACTIVE",
+        ).count()

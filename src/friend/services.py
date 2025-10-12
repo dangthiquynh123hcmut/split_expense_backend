@@ -1,18 +1,25 @@
 from uuid import UUID
 
 from authenticate.models import User
+from event.queries import Query as EventQuery
 from exceptions.friends import FriendHasRelation, FriendshipNotFound
 from exceptions.users import UserNotFound
+from expense.queries import Query as ExpenseQuery
 from friend.schemas.response import FriendResponse, RequestAddFriend
+from group.queries import Query as GroupQuery
 from utils.types import TUser
 
 from .queries import Query
 from .schemas.request import AddFriendRequest, FilterFriendSchema, OrderByUserSchema
+from .schemas.response import FriendOverview
 
 
 class FriendService:
     def __init__(self):
         self.query = Query()
+        self.group_query = GroupQuery()
+        self.event_query = EventQuery()
+        self.expense_query = ExpenseQuery()
 
     def get_friend_by_uid(self, uid: UUID) -> User:
         friend = self.query.get_friend_by_uid(uid=uid)
@@ -114,10 +121,29 @@ class FriendService:
         friend = self.query.get_friend_by_uid(uid=friend_uid)
         if not friend:
             raise UserNotFound
-        return self.query.list_mutual_friends(user=user, friend_uid=friend_uid)
+        return self.query.list_mutual_friends(user=user, friend=friend)
 
-    # def friends_profile(self, user: TUser, friend_uid: UUID):
-    #     friend = self.query.get_friend_by_uid(uid=friend_uid)
-    #     if not friend:
-    #         raise UserNotFound
-    #     return self.query.friends_profile(user=user, friend_uid=friend_uid)
+    def friends_overview(self, user: TUser, friend_uid: UUID):
+        friend = self.query.get_friend_by_uid(uid=friend_uid)
+        if not friend:
+            raise UserNotFound
+        mutual_groups = self.group_query.total_mutual_groups(user=user, friend=friend)
+        shared_events = self.event_query.total_mutual_events(user=user, friend=friend)
+        shared_expenses = self.expense_query.total_mutual_expenses(
+            user=user, friend=friend
+        )
+        total_debt = self.group_query.total_debt_between_two_people(
+            user=user, friend=friend
+        )
+        return FriendOverview(
+            mutual_groups=mutual_groups,
+            shared_events=shared_events,
+            shared_expenses=shared_expenses,
+            total_debt=total_debt,
+        )
+
+    def friend_debt(self, user: TUser, friend_uid: UUID):
+        friend = self.query.get_friend_by_uid(uid=friend_uid)
+        if not friend:
+            raise UserNotFound
+        return self.group_query.friend_debt(user=user, friend=friend)

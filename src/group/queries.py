@@ -339,3 +339,43 @@ class Query:
         group: Group,
     ):
         return GroupMember.objects.filter(group=group, status="ACTIVE").count()
+
+    @staticmethod
+    def total_mutual_groups(user: TUser, friend: TUser):
+        return GroupMember.objects.filter(
+            user=user,
+            group__group_member_fk_group__user=friend,
+            group__group_member_fk_group__status="ACTIVE",
+            status="ACTIVE",
+        ).count()
+
+    @staticmethod
+    def total_debt_between_two_people(user: TUser, friend: TUser):
+        return (
+            RestructureDebt.objects.filter(
+                Q(creditor=user, debtor=friend) | Q(debtor=user, creditor=friend),
+                status="ACTIVE",
+            )
+            .annotate(
+                signed_value=Case(
+                    When(creditor=user, then=F("value")),
+                    When(debtor=user, then=-F("value")),
+                    default=Value(0),
+                    output_field=DecimalField(),
+                )
+            )
+            .aggregate(total_debt=Sum("signed_value"))
+            .get("total_debt")
+            or 0
+        )
+
+    @staticmethod
+    def friend_debt(user: TUser, friend: TUser):
+        return (
+            RestructureDebt.objects.filter(
+                Q(creditor=user, debtor=friend) | Q(debtor=user, creditor=friend),
+                status="ACTIVE",
+            )
+            .select_related("debtor", "creditor", "group")
+            .order_by("-value")
+        )

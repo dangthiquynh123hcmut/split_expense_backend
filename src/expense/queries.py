@@ -116,3 +116,12 @@ class Query:
     def restore_user_shares_in_expense(expense: Expense):
         UserSharesInExpense.objects.filter(expense=expense).update(deleted="ACTIVE")
         return
+
+    @staticmethod
+    def total_mutual_expenses(user: TUser, friend: TUser):
+        return UserSharesInExpense.objects.filter(
+            user=user,
+            expense__user_shares_in_expense_fk_expense__user=friend,
+            expense__user_shares_in_expense_fk_expense__deleted="ACTIVE",
+            deleted="ACTIVE",
+        ).count()
