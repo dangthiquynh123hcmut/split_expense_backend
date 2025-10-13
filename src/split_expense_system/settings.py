@@ -60,7 +60,9 @@ INSTALLED_APPS = [
     "whitenoise",
     "ninja_extra",
     # Local apps
+    "attachment",
     "authenticate",
+    "bank_account",
     "event",
     "expense",
     "group",
@@ -69,7 +71,6 @@ INSTALLED_APPS = [
     "friend",
     "my_admin",
     "user",
-    "attachment",
 ]
 
 # Custom user model
