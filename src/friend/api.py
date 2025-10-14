@@ -77,12 +77,12 @@ class FriendAPI(Controller):
     def friends_overview(self, request: AuthenticatedRequest, friend_uid: UUID):
         return self.service.friends_overview(user=request.user, friend_uid=friend_uid)
 
-    @put("/{friendship_uid}", response=bool, exceptions=(FriendshipNotFound,))
+    @put("/{friendship_uid}/accept", response=bool, exceptions=(FriendshipNotFound,))
     def accept_request_friend(self, friendship_uid: UUID):
         self.service.accept_request_friend(friendship_uid=friendship_uid)
         return True
 
-    @delete("/{friendship_uid}", response=bool, exceptions=(FriendshipNotFound,))
+    @delete("/{friendship_uid}/remove", response=bool, exceptions=(FriendshipNotFound,))
     def remove_or_reject_friend(self, friendship_uid: UUID):
         return self.service.remove_or_reject_friend(friendship_uid=friendship_uid)
 
