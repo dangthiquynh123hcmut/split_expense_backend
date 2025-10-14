@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from utils.enums import StatusEnum
+from utils.enums import CurrencyEnum, StatusEnum
 from utils.functions.remove_accents import remove_accents
 from utils.models import BaseModel
 
@@ -72,13 +72,43 @@ class GroupMember(BaseModel):
         default=StatusEnum.ACTIVE,
     )
     joined_at = models.DateTimeField(auto_now=True, auto_now_add=False)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         unique_together = (("user", "group"),)
         indexes = [
             models.Index(fields=["user", "group"]),
         ]
+
+
+class GroupMemberBalance(BaseModel):
+    group = models.ForeignKey(
+        to="group.Group",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="group_uid",
+        related_name="group_member_balance_fk_group",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="group_member_balance_fk_user",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    currency = models.CharField(
+        max_length=20,
+        choices=CurrencyEnum.choices,
+        default=CurrencyEnum.VND,
+    )
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
 
 class RestructureDebt(BaseModel):
