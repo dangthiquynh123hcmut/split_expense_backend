@@ -238,13 +238,6 @@ class BankEnum(TextChoices):
 
 
 @unique
-class TransactionTypeEnum(TextChoices):
-    DEPOSIT = "DEPOSIT", "deposit"
-    WITHDRAWAL = "WITHDRAWAL", "withdrawal"
-    TRANSFER = "TRANSFER", "transfer"
-
-
-@unique
 class SplitTypeEnum(TextChoices):
     EQUAL = "EQUAL", "equal"
     PERCENTAGE = "PERCENTAGE", "percentage"
