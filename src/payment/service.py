@@ -47,10 +47,10 @@ class Service:
         return {"payment_url": payment_url}
 
     @transaction.atomic
-    def process_ipn(self, user_uid: UUID, amount: float, code: str, currency: str):
+    def process_ipn(self, user_uid: UUID, amount: float, currency: str):
         user = self.auth_query.get_user_by_uid(uid=user_uid)
         self.user_query.update_balance(user=user, amount=amount)
         self.wallet_query.add_deposit_history(
-            amount=amount, user=user, code=code, currency=currency
+            amount=amount, user=user, currency=currency
         )
         return

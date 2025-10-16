@@ -27,13 +27,9 @@ class PaymentAPI(Controller):
     @get("/ipn", response=UrlResponse)
     def vnpay_ipn(self, request):
         params = request.GET.dict()
-        print("VNPay return params:", params)
 
         user_uid = UUID(params.get("vnp_OrderInfo", 0))
         amount = float(params.get("vnp_Amount", 0)) / 100
-        code = params.get("vnp_ResponseCode")
         currency = params.get("vnp_TxnRef")[-3:]
-        self.service.process_ipn(
-            user_uid=user_uid, amount=amount, code=code, currency=currency
-        )
+        self.service.process_ipn(user_uid=user_uid, amount=amount, currency=currency)
         return {"url": settings.RESPONSE_URL}

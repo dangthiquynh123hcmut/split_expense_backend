@@ -21,10 +21,9 @@ class Query:
     #     return Transaction.objects.filter(user=user).order_by(order_by.order_by)
 
     @staticmethod
-    def add_deposit_history(amount: float, user: User, code: str, currency: str):
+    def add_deposit_history(amount: float, user: User, currency: str):
         WalletDeposit.objects.create(
             user=user,
             amount=amount,
             currency=currency,
-            code=code,
         )
