@@ -31,6 +31,10 @@ class RequestAddFriend(FriendResponse):
 
 
 class FriendOverview(Schema):
+    friend: UserResponse
+    message: Optional[str] = None
+    status: str
+    friendship_uid: Optional[UUID] = None
     mutual_groups: int = 0
     shared_events: int = 0
     shared_expenses: int = 0

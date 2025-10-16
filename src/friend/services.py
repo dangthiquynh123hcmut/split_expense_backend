@@ -7,6 +7,7 @@ from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
 from friend.schemas.response import FriendResponse, RequestAddFriend
 from group.queries import Query as GroupQuery
+from user.schemas.response import UserResponse
 from utils.types import TUser
 
 from .queries import Query
@@ -135,7 +136,25 @@ class FriendService:
         total_debt = self.group_query.total_debt_between_two_people(
             user=user, friend=friend
         )
+        friendship = self.query.find_relationship(user=user, friend=friend)
+        if not friendship:
+            status = "NOTYET"
+            friendship_uid = None
+            message_request = None
+        else:
+            if friendship.status == "PENDING" and friendship.user == user:
+                status = "SENT"
+            elif friendship.status == "PENDING" and friendship.friend == user:
+                status = "RECEIVED"
+            else:
+                status = friendship.status
+            friendship_uid = friendship.uid
+            message_request = friendship.message_request
         return FriendOverview(
+            friend=UserResponse.from_orm(friend),
+            message=message_request,
+            status=status,
+            friendship_uid=friendship_uid,
             mutual_groups=mutual_groups,
             shared_events=shared_events,
             shared_expenses=shared_expenses,
