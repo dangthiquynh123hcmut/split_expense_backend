@@ -38,3 +38,9 @@ class Query:
         )
 
         return list_user
+
+    @staticmethod
+    def update_balance(user: User, amount: float):
+        user.balance += amount
+        user.save()
+        return

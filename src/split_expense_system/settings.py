@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "friend",
     "my_admin",
     "user",
+    "payment",
 ]
 
 # Custom user model
@@ -234,3 +235,16 @@ S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")
 S3_REGION = os.getenv("S3_REGION")
 S3_PUBLIC_URL = os.getenv("S3_PUBLIC_URL")
 S3_EXPIRES_IN = int(os.getenv("S3_EXPIRES_IN", "3600"))
+
+VNPAY_CONFIG = {
+    "vnp_HashSecret": os.getenv("vnp_HashSecret"),  # Your VNPay hash secret
+    "vnp_TmnCode": os.getenv("vnp_TmnCode"),  # Your VNPay terminal code
+    "vnp_Url": os.getenv("vnp_Url"),  # VNPay payment URL
+    "vnp_ReturnUrl": os.getenv("vnp_ReturnUrl"),
+}
+
+RESPONSE_URL = os.getenv("RESPONSE_URL")
+VNPAY_VERSION = os.getenv("vnp_Version")
+VNPAY_COMMAND = os.getenv("vnp_Command")
+ORDER_TYPE = os.getenv("vnp_OrderType")
+VNPAY_LIFETIME = os.getenv("vnp_TimeLifetime")

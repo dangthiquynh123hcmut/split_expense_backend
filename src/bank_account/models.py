@@ -43,12 +43,12 @@ class BankAccountWithDraw(models.Model):
         null=False,
         blank=False,
     )
-    wallet = models.ForeignKey(
-        to="wallet.Wallet",
+    user = models.ForeignKey(
+        to="authenticate.User",
         on_delete=models.CASCADE,
         to_field="uid",
-        db_column="wallet_uid",
-        related_name="bank_account_withdraw_fk_wallet",
+        db_column="user_uid",
+        related_name="bank_account_withdraw_fk_user",
         db_constraint=True,
         db_index=True,
         null=False,
@@ -72,5 +72,5 @@ class BankAccountWithDraw(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            self.code = generate_code_transfer(user=self.bank_account.user)
+            self.code = generate_code_transfer(user=self.user)
         return super().save(*args, **kwargs)

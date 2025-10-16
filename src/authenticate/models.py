@@ -11,6 +11,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
+from utils.enums import CurrencyEnum
 from utils.functions.remove_accents import remove_accents
 
 
@@ -52,6 +53,16 @@ class User(AbstractUser):
         db_constraint=True,
         null=True,
         blank=True,
+    )
+    balance = models.FloatField(
+        default=0.00,
+        null=False,
+        blank=False,
+    )
+    currency = models.CharField(
+        max_length=20,
+        choices=CurrencyEnum.choices,
+        default=CurrencyEnum.VND,
     )
     uid = models.UUIDField(default=uuid4, unique=True, editable=False, primary_key=True)
 
