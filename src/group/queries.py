@@ -32,7 +32,7 @@ from utils.schemas.filter_and_order_by import (
 )
 from utils.types import TUser
 
-from .models import Group, GroupMember, RestructureDebt
+from .models import Group, GroupMember, GroupMemberBalance, RestructureDebt
 
 
 class Query:
@@ -162,9 +162,11 @@ class Query:
 
         for em in expense_members:
             users.append(em.user)
-            whens.append(When(user=em.user, then=F("total_amount") + em.amount))
-        return GroupMember.objects.filter(group=group, user__in=users).update(
-            total_amount=Case(*whens, default=F("total_amount"))
+            whens.append(When(user=em.user, then=F("balance") + em.amount))
+
+        print("kkkkkk")
+        return GroupMemberBalance.objects.filter(group=group, user__in=users).update(
+            balance=Case(*whens, default=F("balance"))
         )
 
     @staticmethod
@@ -206,8 +208,8 @@ class Query:
 
     @staticmethod
     def list_member_balances(group: Group):
-        return GroupMember.objects.filter(group=group, status="ACTIVE").values_list(
-            "user__uid", "total_amount"
+        return GroupMemberBalance.objects.filter(group=group).values_list(
+            "user__uid", "balance"
         )
 
     @staticmethod
@@ -305,8 +307,8 @@ class Query:
 
     @staticmethod
     def group_report(group: Group):
-        return GroupMember.objects.filter(group=group, status="ACTIVE").values_list(
-            "user__uid", "total_amount"
+        return GroupMemberBalance.objects.filter(group=group).values_list(
+            "user__uid", "balance"
         )
 
     @staticmethod
