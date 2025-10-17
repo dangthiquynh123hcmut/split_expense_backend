@@ -1,13 +1,11 @@
 # from utils.schemas.filter_and_order_by import FilterNameSchema, OrderByNameAndUpdatedAtSchema
 # from uuid import UUID
-from utils.types import User
-from wallet.models import WalletDeposit
-
 
 # from .schemas.request import TransactionRequest
 
 
-class Query:
+class TransactionORM:
+    pass
     # @staticmethod
     # def create_transaction(user: User, data: TransactionRequest):
     #     return Transaction.objects.create(user=user, **data.dict())
@@ -19,11 +17,3 @@ class Query:
     # @staticmethod
     # def list_transactions(user: User, filter: FilterNameSchema, order_by: OrderByNameAndUpdatedAtSchema):
     #     return Transaction.objects.filter(user=user).order_by(order_by.order_by)
-
-    @staticmethod
-    def add_deposit_history(amount: float, user: User, currency: str):
-        WalletDeposit.objects.create(
-            user=user,
-            amount=amount,
-            currency=currency,
-        )

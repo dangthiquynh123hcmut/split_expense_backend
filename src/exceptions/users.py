@@ -49,3 +49,9 @@ class WeakPasswordError(APIException):
     error_code = HTTPStatus.BAD_REQUEST
     message_code = "WEAK_PASSWORD"
     message = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+
+
+class BalanceNotEnough(APIException):
+    error_code = HTTPStatus.BAD_REQUEST
+    message_code = "BALANCE_NOT_ENOUGH"
+    message = "Balance not enough"

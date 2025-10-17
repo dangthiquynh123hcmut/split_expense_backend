@@ -1,42 +1,74 @@
-# from utils.types import AuthenticatedRequest
-# from .services import Service
-# from .schemas.response import WalletResponse
-# from utils.router.authenticate import AuthBear
-# from utils.router.permissions import IsAuthenticated
-# from utils.router.controller import Controller, api, get, post
-# from .schemas.response import TransactionResponse
-# from .schemas.request import TransactionRequest
-# from utils.router.paginate import paginate
-# from uuid import UUID
-# from ninja import Query
-# from utils.schemas.filter_and_order_by import FilterNameSchema, OrderByNameAndUpdatedAtSchema
-# @api(
-#     prefix_or_class="wallet",
-#     tags=["Wallet"],
-#     auth=AuthBear(),
-#     permissions=[IsAuthenticated],
-# )
-# class WalletAPI(Controller):
-#     def __init__(self):
-#         self.service = Service()
+from uuid import UUID
 
-#     @get("/wallet", response=WalletResponse)
-#     def get_wallet(self, request: AuthenticatedRequest):
-#         return self.service.get_wallet(user=request.user)
+from exceptions.wallet import BankAccountNotFound, DepositNotFound
+from user.schemas.response import WalletResponse
+from user.services import UserService
+from utils.router.authenticate import AuthBear
+from utils.router.controller import Controller, api, get, post
+from utils.router.paginate import paginate
+from utils.router.permissions import IsAuthenticated
+from utils.types import AuthenticatedRequest
+from wallet.schemas.response import WalletDepositResponse, WalletWithdrawResponse
+from wallet.service.deposits import DepositService
+from wallet.service.transactions import TransactionService
+from wallet.service.withdraw import WithdrawService
 
-# @api(
-#     prefix_or_class="transaction",
-#     tags=["Transaction"],
-#     auth=AuthBear(),
-#     permissions=[IsAuthenticated],
-# )
-# class TransactionAPI(Controller):
-#     def __init__(self):
-#         self.service = Service()
+from .schemas.request import WithdrawRequest
 
-#     @post("", response=TransactionResponse)
-#     def create_transaction(self, request: AuthenticatedRequest, data: TransactionRequest):
-#         return self.service.create_transaction(user=request.user, data=data)
+
+@api(
+    prefix_or_class="wallet",
+    tags=["Wallet"],
+    auth=AuthBear(),
+    permissions=[IsAuthenticated],
+)
+class WalletAPI(Controller):
+    def __init__(self):
+        self.user_service = UserService()
+        self.deposit_service = DepositService()
+        self.transaction_service = TransactionService()
+        self.withdraw_service = WithdrawService()
+
+    @get("", response=WalletResponse)
+    def get_wallet(self, request: AuthenticatedRequest):
+        return self.user_service.get_wallet(user=request.user)
+
+    @get("/deposit", response=WalletDepositResponse, paginate=True)
+    @paginate
+    def deposit_history(self, request: AuthenticatedRequest):
+        return self.deposit_service.deposit_history(user=request.user)
+
+    @get(
+        "/{deposit_uid}/deposit",
+        response=WalletDepositResponse,
+        exceptions=(DepositNotFound,),
+    )
+    def deposit_detail(self, request: AuthenticatedRequest, deposit_uid: UUID):
+        return self.deposit_service.deposit_detail(
+            user=request.user, deposit_uid=deposit_uid
+        )
+
+    @post(
+        "/withdraw", response=WalletWithdrawResponse, exceptions=(BankAccountNotFound,)
+    )
+    def withdraw(self, request: AuthenticatedRequest, payload: WithdrawRequest):
+        return self.withdraw_service.withdraw(user=request.user, payload=payload)
+
+    @get("/withdraw", response=WalletWithdrawResponse, paginate=True)
+    @paginate
+    def withdraw_history(self, request: AuthenticatedRequest):
+        return self.withdraw_service.withdraw_history(user=request.user)
+
+    @get("/{withdraw_uid}/withdraw", response=WalletWithdrawResponse)
+    def withdraw_detail(self, request: AuthenticatedRequest, withdraw_uid: UUID):
+        return self.withdraw_service.withdraw_detail(
+            user=request.user, withdraw_uid=withdraw_uid
+        )
+
+    # @post("", response=TransactionResponse)
+    # def create_transaction(self, request: AuthenticatedRequest, data: TransactionRequest):
+    #     return self.transaction_service.create_transaction(user=request.user, data=data)
+
 
 #     @get("", response=TransactionResponse, paginate=True)
 #     @paginate

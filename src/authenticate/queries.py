@@ -70,6 +70,7 @@ class Query:
         user.full_name = data.full_name
         user.email = data.email
         user.phone_number = data.phone_number
+        user.currency = data.currency
         user.save()
         return user
 

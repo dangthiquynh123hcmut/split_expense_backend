@@ -16,3 +16,9 @@ class UserResponse(Schema):
 class SearchUserResponse(UserResponse):
     status: str | None = None
     date_joined: Optional[datetime] = None
+
+
+class WalletResponse(Schema):
+    balance: float
+    user: UserResponse
+    currency: str

@@ -6,7 +6,7 @@ from django.db import transaction
 from authenticate.queries import Query as Auth_Query
 from user.queries import Query as User_Query
 from utils.types import AuthenticatedRequest
-from wallet.queries import Query as Wallet_Query
+from wallet.orm.deposit import DepositORM
 
 from .config import VNPayConfig
 from .schemas import PaymentRequest
@@ -18,7 +18,7 @@ class Service:
         self.vn_pay_config = VNPayConfig()
         self.user_query = User_Query()
         self.auth_query = Auth_Query()
-        self.wallet_query = Wallet_Query()
+        self.deposit_query = DepositORM()
 
     def create_payment_url(
         self, request: AuthenticatedRequest, payload: PaymentRequest
@@ -50,7 +50,7 @@ class Service:
     def process_ipn(self, user_uid: UUID, amount: float, currency: str):
         user = self.auth_query.get_user_by_uid(uid=user_uid)
         self.user_query.update_balance(user=user, amount=amount)
-        self.wallet_query.add_deposit_history(
+        self.deposit_query.add_deposit_history(
             amount=amount, user=user, currency=currency
         )
         return

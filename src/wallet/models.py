@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 from utils.enums import CurrencyEnum
@@ -88,6 +90,56 @@ class WalletDeposit(BaseModel):
         max_length=30,
         unique=True,
         editable=False,
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = generate_code_transfer(user=self.user)
+        return super().save(*args, **kwargs)
+
+
+class Withdraw(models.Model):
+    uid = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    bank_account = models.ForeignKey(
+        to="bank_account.BankAccount",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="bank_account_uid",
+        related_name="bank_account_withdraw_fk_bank_account",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    user = models.ForeignKey(
+        to="authenticate.User",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="bank_account_withdraw_fk_user",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        null=False,
+        blank=False,
+    )
+    code = models.CharField(
+        max_length=30,
+        unique=True,
+        editable=False,
+    )
+    date = models.DateTimeField(
+        auto_now_add=True,
     )
 
     def save(self, *args, **kwargs):

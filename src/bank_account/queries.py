@@ -39,3 +39,11 @@ class Query:
     def delete_bank_account(bank_account: BankAccount):
         bank_account.delete()
         return True
+
+    @staticmethod
+    def get_bank_account_by_account_number(
+        account_number: str, user: User, bank_name: str
+    ):
+        return BankAccount.objects.filter(
+            user=user, account_number=account_number, bank_name=bank_name
+        )

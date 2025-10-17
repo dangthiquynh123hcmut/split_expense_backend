@@ -11,6 +11,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
+from exceptions.users import BalanceNotEnough
 from utils.enums import CurrencyEnum
 from utils.functions.remove_accents import remove_accents
 
@@ -75,6 +76,8 @@ class User(AbstractUser):
         return self.full_name or super().get_full_name()
 
     def save(self, *args, **kwargs):
+        if self.balance < 0:
+            raise BalanceNotEnough
         if self.full_name:
             self.full_name_no_accent = remove_accents(self.full_name)
         return super().save(*args, **kwargs)
