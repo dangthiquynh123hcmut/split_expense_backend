@@ -12,7 +12,7 @@ from exceptions.expense import ExpenseNotFound
 from exceptions.users import UserNotFound
 from expense.models import UserSharesInExpense
 from expense.queries import Query
-from expense.schemas.request import ExpenseRequest
+from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
 from expense.schemas.response import UserExpense
 from group.models import RestructureDebt
 from group.queries import Query as GroupQuery
@@ -148,7 +148,9 @@ class Service:
         return expense
 
     @transaction.atomic
-    def update_expense(self, user: TUser, expense_uid: UUID, payload: ExpenseRequest):
+    def update_expense(
+        self, user: TUser, expense_uid: UUID, payload: UpdateExpenseRequest
+    ):
         expense = self.query.get_expense(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound

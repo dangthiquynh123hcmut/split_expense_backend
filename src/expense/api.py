@@ -5,7 +5,7 @@ from event.services import Service as EventService
 from exceptions.event import EventNotFound
 from exceptions.expense import ExpenseNotFound
 from exceptions.users import UserNotFound
-from expense.schemas.request import ExpenseRequest
+from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
 from expense.schemas.response import CreateExpense, ExpenseResponse, NameExpense
 from expense.service import Service
 from utils.exceptions import GetIsDenied
@@ -60,7 +60,7 @@ class ExpenseAPI(Controller):
         self,
         request: AuthenticatedRequest,
         expense_uid: UUID,
-        payload: ExpenseRequest,
+        payload: UpdateExpenseRequest,
     ):
         expense = self.service.update_expense(
             user=request.user, expense_uid=expense_uid, payload=payload

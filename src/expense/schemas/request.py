@@ -15,8 +15,7 @@ class AmountExpenseMember(Schema):
     amount: Decimal
 
 
-class ExpenseRequest(Schema):
-    event_uid: UUID
+class UpdateExpenseRequest(Schema):
     name: str
     total_amount: Decimal = Field(..., gt=0)
     currency: str
@@ -27,6 +26,10 @@ class ExpenseRequest(Schema):
     end_date: Optional[datetime] = None
     split_type: SplitTypeEnum
     list_expense_member: List[AmountExpenseMember]
+
+
+class ExpenseRequest(UpdateExpenseRequest):
+    event_uid: UUID
 
 
 class UpdateImageExpense(Schema):

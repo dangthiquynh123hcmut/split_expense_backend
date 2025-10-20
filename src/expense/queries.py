@@ -6,7 +6,7 @@ from django.db.models import Count, Sum
 from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
-from expense.schemas.request import ExpenseRequest
+from expense.schemas.request import UpdateExpenseRequest
 from expense.schemas.response import NameExpense
 from group.models import Group
 from utils.types import TUser
@@ -54,9 +54,11 @@ class Query:
         return Expense.objects.filter(uid=expense_uid).first()
 
     @staticmethod
-    def update_expense(expense: Expense, payload: ExpenseRequest, updated_by: User):
+    def update_expense(
+        expense: Expense, payload: UpdateExpenseRequest, updated_by: User
+    ):
         for field, value in payload.dict(
-            exclude={"list_expense_member", "paid_by", "event_uid"}
+            exclude={"list_expense_member", "paid_by"}
         ).items():
             setattr(expense, field, value)
         expense.updated_by = updated_by

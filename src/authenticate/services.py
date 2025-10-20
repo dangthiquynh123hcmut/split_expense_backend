@@ -121,6 +121,9 @@ class Service(BaseService):
         self.auth.logout(request=request)
         return True
 
+    def get_me(self, user: TUser) -> TUser:
+        return user
+
     def update_me(self, user: TUser, data: UpdateMeSchema) -> TUser:
         is_user = self.query.get_user_by_email(email=data.email)
         if is_user and is_user.email != user.email:

@@ -60,6 +60,10 @@ class LoginResponseSchema(Schema):
     user: UserSchema
 
 
+class MeResponseSchema(UserSchema):
+    currency: str
+
+
 class RefreshResponse(Schema):
     access_token: str
     refresh_token: str
