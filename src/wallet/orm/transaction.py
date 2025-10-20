@@ -1,19 +1,25 @@
-# from utils.schemas.filter_and_order_by import FilterNameSchema, OrderByNameAndUpdatedAtSchema
-# from uuid import UUID
+from django.db.models import CharField, Value
 
-# from .schemas.request import TransactionRequest
+from authenticate.models import User
+from wallet.models import WalletDeposit, Withdraw
 
 
 class TransactionORM:
-    pass
-    # @staticmethod
-    # def create_transaction(user: User, data: TransactionRequest):
-    #     return Transaction.objects.create(user=user, **data.dict())
+    @staticmethod
+    def get_external_transaction_history(user: User):
+        deposits = (
+            WalletDeposit.objects.filter(user=user)
+            .annotate(type=Value("deposit", output_field=CharField()))
+            .values("uid", "type", "amount", "currency", "code", "date")
+        )
 
-    # @staticmethod
-    # def get_transaction_detail(user: User, transaction_uid: UUID):
-    #     return Transaction.objects.get(user=user, uid=transaction_uid)
+        withdraws = (
+            Withdraw.objects.filter(user=user)
+            .annotate(
+                type=Value("withdraw", output_field=CharField()),
+                currency=Value(user.currency, output_field=CharField()),
+            )
+            .values("uid", "type", "amount", "currency", "code", "date")
+        )
 
-    # @staticmethod
-    # def list_transactions(user: User, filter: FilterNameSchema, order_by: OrderByNameAndUpdatedAtSchema):
-    #     return Transaction.objects.filter(user=user).order_by(order_by.order_by)
+        return deposits.union(withdraws).order_by("-date")

@@ -14,9 +14,5 @@ class DepositORM:
         )
 
     @staticmethod
-    def deposit_history(user: User):
-        return WalletDeposit.objects.filter(user=user).order_by("-created_at")
-
-    @staticmethod
     def deposit_detail(user: User, deposit_uid: UUID):
         return WalletDeposit.objects.get(user=user, uid=deposit_uid)

@@ -8,7 +8,11 @@ from utils.router.controller import Controller, api, get, post
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
 from utils.types import AuthenticatedRequest
-from wallet.schemas.response import WalletDepositResponse, WalletWithdrawResponse
+from wallet.schemas.response import (
+    TransactionHistoryResponse,
+    WalletDepositResponse,
+    WalletWithdrawResponse,
+)
 from wallet.service.deposits import DepositService
 from wallet.service.transactions import TransactionService
 from wallet.service.withdraw import WithdrawService
@@ -33,10 +37,12 @@ class WalletAPI(Controller):
     def get_wallet(self, request: AuthenticatedRequest):
         return self.user_service.get_wallet(user=request.user)
 
-    @get("/deposit", response=WalletDepositResponse, paginate=True)
+    @get("/external", response=TransactionHistoryResponse, paginate=True)
     @paginate
-    def deposit_history(self, request: AuthenticatedRequest):
-        return self.deposit_service.deposit_history(user=request.user)
+    def get_external_transaction_history(self, request: AuthenticatedRequest):
+        return self.transaction_service.get_external_transaction_history(
+            user=request.user
+        )
 
     @get(
         "/{deposit_uid}/deposit",
@@ -53,11 +59,6 @@ class WalletAPI(Controller):
     )
     def withdraw(self, request: AuthenticatedRequest, payload: WithdrawRequest):
         return self.withdraw_service.withdraw(user=request.user, payload=payload)
-
-    @get("/withdraw", response=WalletWithdrawResponse, paginate=True)
-    @paginate
-    def withdraw_history(self, request: AuthenticatedRequest):
-        return self.withdraw_service.withdraw_history(user=request.user)
 
     @get("/{withdraw_uid}/withdraw", response=WalletWithdrawResponse)
     def withdraw_detail(self, request: AuthenticatedRequest, withdraw_uid: UUID):

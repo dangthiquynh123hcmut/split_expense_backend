@@ -13,9 +13,5 @@ class WithdrawORM:
         )
 
     @staticmethod
-    def withdraw_history(user: User):
-        return Withdraw.objects.filter(user=user).order_by("-date")
-
-    @staticmethod
     def withdraw_detail(user: User, withdraw_uid: UUID):
         return Withdraw.objects.get(user=user, uid=withdraw_uid)

@@ -1,9 +1,14 @@
+from authenticate.models import User
+from wallet.orm.transaction import TransactionORM
+
+
 class TransactionService:
-    pass
+    def __init__(self):
+        self.query = TransactionORM()
 
+    def get_external_transaction_history(self, user: User):
+        return self.query.get_external_transaction_history(user=user)
 
-# def __init__(self):
-#     self.query = TransactionORM()
 
 # def create_transaction(self, user: User, data: TransactionRequest):
 #     return self.query.create_transaction(user=user, data=data)
