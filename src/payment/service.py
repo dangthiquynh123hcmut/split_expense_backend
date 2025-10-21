@@ -1,5 +1,4 @@
 import random
-from uuid import UUID
 
 from django.db import transaction
 
@@ -47,8 +46,7 @@ class Service:
         return {"payment_url": payment_url}
 
     @transaction.atomic
-    def process_ipn(self, user_uid: UUID, amount: float, currency: str):
-        user = self.auth_query.get_user_by_uid(uid=user_uid)
+    def create_deposit(self, user: AuthenticatedRequest, amount: float, currency: str):
         self.user_query.update_balance(user=user, amount=amount)
         self.deposit_query.add_deposit_history(
             amount=amount, user=user, currency=currency

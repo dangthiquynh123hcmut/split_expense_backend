@@ -12,7 +12,3 @@ class PaymentRequest(Schema):
 
 class PaymentResponse(Schema):
     payment_url: str
-
-
-class UrlResponse(Schema):
-    url: str

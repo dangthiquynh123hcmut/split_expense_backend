@@ -1,9 +1,5 @@
-from uuid import UUID
-
-from django.conf import settings
-
-from payment.schemas import PaymentRequest, PaymentResponse, UrlResponse
-from utils.router.controller import Controller, api, get
+from payment.schemas import PaymentRequest, PaymentResponse
+from utils.router.controller import Controller, api, get, post
 from utils.router.permissions import IsAuthenticated
 from utils.types import AuthenticatedRequest
 
@@ -24,12 +20,9 @@ class PaymentAPI(Controller):
     def payment(self, request: AuthenticatedRequest, payload: PaymentRequest):
         return self.service.create_payment_url(request=request, payload=payload)
 
-    @get("/ipn", response=UrlResponse)
-    def vnpay_ipn(self, request):
-        params = request.GET.dict()
-
-        user_uid = UUID(params.get("vnp_OrderInfo", 0))
-        amount = float(params.get("vnp_Amount", 0)) / 100
-        currency = params.get("vnp_TxnRef")[-3:]
-        self.service.process_ipn(user_uid=user_uid, amount=amount, currency=currency)
-        return {"url": settings.RESPONSE_URL}
+    @post("/deposit", response=bool)
+    def create_deposit(self, request: AuthenticatedRequest, payload: PaymentRequest):
+        self.service.create_deposit(
+            user=request.user, amount=payload.amount, currency=payload.currency
+        )
+        return True
