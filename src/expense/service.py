@@ -8,7 +8,7 @@ from authenticate.queries import Query as UserQuery
 from event.models import Event
 from event.queries import Query as EventQuery
 from exceptions.event import EventNotFound
-from exceptions.expense import ExpenseNotFound
+from exceptions.expense import ExpenseNotFound, ListMemberNotMatch
 from exceptions.users import UserNotFound
 from expense.models import Expense, UserSharesInExpense
 from expense.queries import Query
@@ -37,6 +37,9 @@ class Service:
         users = self.user_query.get_user_by_uids(uids=list_uids)
         if len(users) != len(payload.list_expense_member):
             raise UserNotFound
+        event_members = self.event_query.total_event_members(event=event)
+        if event_members != len(payload.list_expense_member):
+            raise ListMemberNotMatch
         expense = self.query.create_expense(
             creator=creator,
             event=event,
@@ -65,15 +68,6 @@ class Service:
             )
             for m in payload.list_expense_member
         ]
-        if not user_map.get(paid_by.uid):
-            expense_members.append(
-                UserSharesInExpense(
-                    expense=expense,
-                    user=paid_by,
-                    amount=payload.total_amount,
-                    payer_amount=Decimal("0.0"),
-                )
-            )
         self.query.create_expense_members(expense_members=expense_members)
         user_exits = self.group_query.get_users_in_group_member_balance(
             group=expense.event.group, currency=payload.currency
@@ -192,6 +186,9 @@ class Service:
         list_user_share_in_expense = self.query.list_user_share_in_expense(
             expense=expense
         )
+        if len(list_user_share_in_expense) != len(payload.list_expense_member):
+            raise ListMemberNotMatch
+        self.query.update_expense(expense=expense, payload=payload, updated_by=user)
         user_share_in_expense_map = {m.user.uid: m for m in list_user_share_in_expense}
         self.query.hard_delete_expense_members(expense=expense)
         user_map = {u.uid: u for u in users}
@@ -220,7 +217,26 @@ class Service:
                 )
             )
         self.query.create_expense_members(expense_members=expense_members)
-
+        user_exits = self.group_query.get_users_in_group_member_balance(
+            group=expense.event.group, currency=payload.currency
+        )
+        if len(user_exits) < len(expense_members):
+            new_user_uids = list(
+                set([m.user.uid for m in expense_members]) - set(user_exits)
+            )
+            new_user_balance = [
+                GroupMemberBalance(
+                    group=expense.event.group,
+                    user=m.user,
+                    currency=payload.currency,
+                    balance=m.amount,
+                )
+                for m in expense_members
+                if m.user.uid in new_user_uids
+            ]
+            self.group_query.create_group_member_balance(
+                group_member_balance=new_user_balance
+            )
         for member in expense_members:
             old = user_share_in_expense_map.get(member.user.uid)
             if old:
@@ -242,7 +258,7 @@ class Service:
         )
         self.query.soft_delete_expense_members(expense=expense)
         self.query.soft_delete_expense(expense_uid=expense_uid)
-        return expense.event
+        return expense
 
     def hard_delete_expense(self, expense_uid: UUID):
         self.query.hard_delete_expense_members(expense_uid=expense_uid)

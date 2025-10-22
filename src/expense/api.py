@@ -3,7 +3,7 @@ from uuid import UUID
 from authenticate.api import AuthenticatedRequest
 from event.services import Service as EventService
 from exceptions.event import EventNotFound
-from exceptions.expense import ExpenseNotFound
+from exceptions.expense import ExpenseNotFound, ListMemberNotMatch
 from exceptions.users import UserNotFound
 from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
 from expense.schemas.response import CreateExpense, ExpenseResponse, NameExpense
@@ -29,7 +29,7 @@ class ExpenseAPI(Controller):
     @post(
         "",
         response=CreateExpense,
-        exceptions=(EventNotFound, UserNotFound),
+        exceptions=(EventNotFound, UserNotFound, ListMemberNotMatch),
     )
     def create_expense(self, request: AuthenticatedRequest, payload: ExpenseRequest):
         event = self.event_service.query.get_event(event_uid=payload.event_uid)
@@ -54,7 +54,7 @@ class ExpenseAPI(Controller):
     @put(
         "/{expense_uid}",
         response=CreateExpense,
-        exceptions=(ExpenseNotFound,),
+        exceptions=(ExpenseNotFound, ListMemberNotMatch),
     )
     def update_expense(
         self,
@@ -65,19 +65,19 @@ class ExpenseAPI(Controller):
         expense = self.service.update_expense(
             user=request.user, expense_uid=expense_uid, payload=payload
         )
-        self.service.calculate_debt(event=expense.event)
+        self.service.calculate_debt(expense=expense)
         return expense
 
     @put("/{expense_uid}/restore", response=bool, exceptions=(ExpenseNotFound,))
     def restore_expense(self, expense_uid: UUID):
         expense = self.service.restore_expense(expense_uid=expense_uid)
-        self.service.calculate_debt(event=expense.event)
+        self.service.calculate_debt(expense=expense)
         return True
 
     @put("/{expense_uid}/soft", response=bool, exceptions=(ExpenseNotFound,))
     def soft_delete_expense(self, expense_uid: UUID):
-        event = self.service.soft_delete_expense(expense_uid=expense_uid)
-        self.service.calculate_debt(event=event)
+        expense = self.service.soft_delete_expense(expense_uid=expense_uid)
+        self.service.calculate_debt(expense=expense)
         return True
 
     @delete("/{expense_uid}/hard", response=bool, exceptions=(ExpenseNotFound,))

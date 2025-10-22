@@ -144,3 +144,7 @@ class Query:
             event__event_member_fk_event__status="ACTIVE",
             status="ACTIVE",
         ).count()
+
+    @staticmethod
+    def total_event_members(event: Event):
+        return EventMember.objects.filter(event=event, status="ACTIVE").count()
