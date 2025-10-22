@@ -43,6 +43,7 @@ class DebtMember(Schema):
     debtor: UserResponse
     creditor: UserResponse
     value: float
+    currency: str
 
 
 class BalanceMembersResponse(Schema):

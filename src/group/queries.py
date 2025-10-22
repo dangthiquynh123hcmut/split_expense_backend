@@ -1,6 +1,6 @@
 from collections import defaultdict
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from channels.db import database_sync_to_async
@@ -255,7 +255,10 @@ class Query:
 
     @staticmethod
     def get_balances_by_group_and_member(
-        user: TUser, filter: FilterNameSchema, order_by: OrderByNameAndUpdatedAtSchema
+        user: TUser,
+        currency: str,
+        filter: FilterNameSchema,
+        order_by: OrderByNameAndUpdatedAtSchema,
     ):
         members_qs = (
             GroupMember.objects.filter(status="ACTIVE")
@@ -265,13 +268,21 @@ class Query:
                         Case(
                             # member là creditor, user hiện tại là debtor
                             When(
-                                Q(group__restructure_debt_fk_group__creditor=F("user"))
+                                Q(
+                                    group__restructure_debt_fk_group__creditor=F(
+                                        "user"
+                                    ),
+                                    group__restructure_debt_fk_group__currency=currency,
+                                )
                                 & Q(group__restructure_debt_fk_group__debtor=user),
                                 then=F("group__restructure_debt_fk_group__value"),
                             ),
                             # member là debtor, user hiện tại là creditor
                             When(
-                                Q(group__restructure_debt_fk_group__debtor=F("user"))
+                                Q(
+                                    group__restructure_debt_fk_group__debtor=F("user"),
+                                    group__restructure_debt_fk_group__currency=currency,
+                                )
                                 & Q(group__restructure_debt_fk_group__creditor=user),
                                 then=-F("group__restructure_debt_fk_group__value"),
                             ),
@@ -309,7 +320,13 @@ class Query:
         return query
 
     @staticmethod
-    def restructured_debt(user: TUser, group: Group):
+    def restructured_debt(user: TUser, group: Group, currency: Optional[str]):
+        if currency:
+            return RestructureDebt.objects.filter(
+                (Q(creditor=user) | Q(debtor=user))
+                & Q(group=group)
+                & Q(currency=currency)
+            ).select_related("debtor", "creditor")
         return RestructureDebt.objects.filter(
             (Q(creditor=user) | Q(debtor=user)) & Q(group=group)
         ).select_related("debtor", "creditor")

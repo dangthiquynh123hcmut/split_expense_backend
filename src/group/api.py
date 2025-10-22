@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from ninja import Query
@@ -76,11 +76,12 @@ class GroupAPI(Controller):
     def get_balances_by_group_and_member(
         self,
         request: AuthenticatedRequest,
+        currency: str = "VND",
         filter: FilterNameSchema = Query(...),
         order_by: OrderByNameAndUpdatedAtSchema = Query(...),
     ):
         return self.service.get_balances_by_group_and_member(
-            user=request.user, filter=filter, order_by=order_by
+            user=request.user, currency=currency, filter=filter, order_by=order_by
         )
 
     @get(
@@ -120,8 +121,15 @@ class GroupAPI(Controller):
         )
 
     @get("/{group_uid}", response=DetailGroup, exceptions=(GroupNotFound,))
-    def get_group_detail(self, request: AuthenticatedRequest, group_uid: UUID):
-        return self.service.get_group_detail(user=request.user, group_uid=group_uid)
+    def get_group_detail(
+        self,
+        request: AuthenticatedRequest,
+        group_uid: UUID,
+        currency: Optional[str] = None,
+    ):
+        return self.service.get_group_detail(
+            user=request.user, group_uid=group_uid, currency=currency
+        )
 
     @put(
         "/{group_uid}/leave",

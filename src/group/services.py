@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from django.db import transaction
@@ -128,7 +128,7 @@ class Service:
             group=group, filter=filter, order_by=order_by
         )
 
-    def get_group_detail(self, user: TUser, group_uid: UUID):
+    def get_group_detail(self, user: TUser, group_uid: UUID, currency: Optional[str]):
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
@@ -145,7 +145,9 @@ class Service:
         agg = self.expense_query.expense_attended_in_group(user=user, group=group)
         user_spent = float(agg["user_spent"] or 0.0)
         expense_attended = agg["expense_attended"] or 0
-        restructured_debt = self.query.restructured_debt(user=user, group=group)
+        restructured_debt = self.query.restructured_debt(
+            user=user, group=group, currency=currency
+        )
 
         return DetailGroup(
             group=GroupResponse.from_orm(group),
@@ -155,7 +157,10 @@ class Service:
             user_spent=user_spent if user_spent > 0 else -user_spent,
             restructured_debt=[
                 DebtMember(
-                    debtor=rd.debtor, creditor=rd.creditor, value=float(rd.value)
+                    debtor=rd.debtor,
+                    creditor=rd.creditor,
+                    value=float(rd.value),
+                    currency=rd.currency,
                 )
                 for rd in restructured_debt
             ],
@@ -211,11 +216,12 @@ class Service:
     def get_balances_by_group_and_member(
         self,
         user: TUser,
+        currency: str,
         filter: FilterNameSchema,
         order_by: OrderByNameAndUpdatedAtSchema,
     ):
         return self.query.get_balances_by_group_and_member(
-            user=user, filter=filter, order_by=order_by
+            user=user, currency=currency, filter=filter, order_by=order_by
         )
 
     def group_report(self, user: TUser, group_uid: UUID):
