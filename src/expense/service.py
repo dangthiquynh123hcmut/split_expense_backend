@@ -10,11 +10,11 @@ from event.queries import Query as EventQuery
 from exceptions.event import EventNotFound
 from exceptions.expense import ExpenseNotFound
 from exceptions.users import UserNotFound
-from expense.models import UserSharesInExpense
+from expense.models import Expense, UserSharesInExpense
 from expense.queries import Query
 from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
 from expense.schemas.response import UserExpense
-from group.models import RestructureDebt
+from group.models import GroupMemberBalance, RestructureDebt
 from group.queries import Query as GroupQuery
 from utils.exceptions import GetIsDenied
 from utils.functions.debt_simplification import simplify_minflow
@@ -60,7 +60,7 @@ class Service:
                     else Decimal(payload.total_amount) - Decimal(m.amount)
                 ),
                 payer_amount=(
-                    Decimal(m.amount) if m.user_uid == paid_by.uid else Decimal("0.0")
+                    -Decimal(m.amount) if m.user_uid == paid_by.uid else Decimal("0.0")
                 ),
             )
             for m in payload.list_expense_member
@@ -75,31 +75,57 @@ class Service:
                 )
             )
         self.query.create_expense_members(expense_members=expense_members)
+        user_exits = self.group_query.get_users_in_group_member_balance(
+            group=expense.event.group, currency=payload.currency
+        )
+        if len(user_exits) < len(expense_members):
+            new_user_uids = list(
+                set([m.user.uid for m in expense_members]) - set(user_exits)
+            )
+            new_user_balance = [
+                GroupMemberBalance(
+                    group=expense.event.group,
+                    user=m.user,
+                    currency=payload.currency,
+                    balance=m.amount,
+                )
+                for m in expense_members
+                if m.user.uid in new_user_uids
+            ]
+            self.group_query.create_group_member_balance(
+                group_member_balance=new_user_balance
+            )
+
         self.group_query.update_total_amount(
             group=expense.event.group, expense_members=expense_members
         )
         return expense
 
-    def calculate_debt(self, event: Event):
-        balances = self.group_query.list_member_balances(group=event.group)
+    def calculate_debt(self, expense: Expense):
+        balances = self.group_query.list_member_balances(
+            group=expense.event.group, currency=expense.currency
+        )
         balances = list(balances)
         transactions = simplify_minflow(balances)
         user_map = {
             group_member.user.uid: group_member.user
             for group_member in self.group_query.list_group_members_not_filter(
-                group=event.group
+                group=expense.event.group
             )
         }
         restructure_debt = [
             RestructureDebt(
-                group=event.group,
+                group=expense.event.group,
                 debtor=user_map.get(transactions[i][0]),
                 creditor=user_map.get(transactions[i][1]),
                 value=transactions[i][2],
+                currency=expense.currency,
             )
             for i in range(len(transactions))
         ]
-        self.group_query.delete_restructure_debt(group=event.group)
+        self.group_query.delete_restructure_debt(
+            group=expense.event.group, currency=expense.currency
+        )
         self.group_query.create_restructure_debt(restructure_debt=restructure_debt)
         return
 
@@ -128,6 +154,7 @@ class Service:
                 "user__avatar_url__original_name",
                 "user__avatar_url__public_url",
                 "amount",
+                "payer_amount",
             )
         )
         expense_members = [
@@ -139,7 +166,7 @@ class Service:
                 )
                 if m[2]
                 else None,
-                amount=float(m[5]),
+                amount=m[5] if expense.paid_by.uid != m[0] else (m[6] or Decimal(0)),
             )
             for m in raw_members
         ]

@@ -156,6 +156,16 @@ class Query:
         return Expense.objects.filter(event__group=group, status="ACTIVE").distinct()
 
     @staticmethod
+    def get_users_in_group_member_balance(group: Group, currency: str):
+        return GroupMemberBalance.objects.filter(
+            group=group, currency=currency
+        ).values_list("user__uid", flat=True)
+
+    @staticmethod
+    def create_group_member_balance(group_member_balance: List[GroupMemberBalance]):
+        return GroupMemberBalance.objects.bulk_create(group_member_balance)
+
+    @staticmethod
     def update_total_amount(group: Group, expense_members: List[UserSharesInExpense]):
         whens = []
         users = []
@@ -164,7 +174,6 @@ class Query:
             users.append(em.user)
             whens.append(When(user=em.user, then=F("balance") + em.amount))
 
-        print("kkkkkk")
         return GroupMemberBalance.objects.filter(group=group, user__in=users).update(
             balance=Case(*whens, default=F("balance"))
         )
@@ -207,14 +216,14 @@ class Query:
         return result
 
     @staticmethod
-    def list_member_balances(group: Group):
-        return GroupMemberBalance.objects.filter(group=group).values_list(
-            "user__uid", "balance"
-        )
+    def list_member_balances(group: Group, currency: str):
+        return GroupMemberBalance.objects.filter(
+            group=group, currency=currency
+        ).values_list("user__uid", "balance")
 
     @staticmethod
-    def delete_restructure_debt(group: Group):
-        return RestructureDebt.objects.filter(group=group).delete()
+    def delete_restructure_debt(group: Group, currency: str):
+        return RestructureDebt.objects.filter(group=group, currency=currency).delete()
 
     @staticmethod
     def create_restructure_debt(restructure_debt: List[RestructureDebt]):

@@ -148,6 +148,11 @@ class RestructureDebt(BaseModel):
     value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    currency = models.CharField(
+        max_length=20,
+        choices=CurrencyEnum.choices,
+        default=CurrencyEnum.VND,
+    )
     status = models.CharField(
         max_length=20,
         choices=StatusEnum.choices,

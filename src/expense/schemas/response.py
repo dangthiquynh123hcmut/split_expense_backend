@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
@@ -10,7 +11,7 @@ from user.schemas.response import UserResponse
 
 
 class UserExpense(UserResponse):
-    amount: float
+    amount: Decimal
 
 
 class ExpenseResponse(ModelSchema):
@@ -22,7 +23,6 @@ class ExpenseResponse(ModelSchema):
         model = Expense
         exclude = [
             "name_no_accent",
-            "event",
             "creator",
             "receipt_url",
             "created_at",

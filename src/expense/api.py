@@ -38,7 +38,7 @@ class ExpenseAPI(Controller):
         expense = self.service.create_expense(
             creator=request.user, payload=payload, event=event
         )
-        self.service.calculate_debt(event=event)
+        self.service.calculate_debt(expense=expense)
         return expense
 
     @get(
