@@ -1,12 +1,15 @@
 from collections import defaultdict
+from decimal import Decimal
 from typing import Any, DefaultDict, Dict, List
 from uuid import UUID
 
-from django.db.models import F
+from django.db.models import Case, DecimalField, ExpressionWrapper, F, Sum, When
+from django.db.models.functions import Round
 
 from attachment.schemas.responses import AttachmentResponse
 from event.models import Event, EventMember
 from event.schemas.request import EventUpdateRequest
+from expense.models import UserSharesInExpense
 from group.models import Group
 from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
@@ -148,3 +151,26 @@ class Query:
     @staticmethod
     def total_event_members(event: Event):
         return EventMember.objects.filter(event=event, status="ACTIVE").count()
+
+    @staticmethod
+    def get_event_spending(event: Event, total_amount: Decimal):
+        return (
+            UserSharesInExpense.objects.filter(expense__event=event, deleted="ACTIVE")
+            .values(full_name=F("user__full_name"))
+            .annotate(
+                spending_amount=Sum(
+                    Case(
+                        When(amount__lt=0, then=F("amount")),
+                        default=-F("payer_amount"),
+                        output_field=DecimalField(),
+                    )
+                ),
+            )
+            .annotate(
+                percent=ExpressionWrapper(
+                    Round(-(F("spending_amount") / total_amount) * 100, 2),
+                    output_field=DecimalField(max_digits=5, decimal_places=2),
+                )
+            )
+            .values("full_name", "percent")
+        )

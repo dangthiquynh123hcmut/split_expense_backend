@@ -68,12 +68,11 @@ class AttachmentController(Controller):
                     user=request.user,
                     payload=file,
                 )
-            responses.append(
-                {
-                    "uid": attachment.uid,
-                    "url": presigned_url,
-                    "file_name": file.file_name,
-                }
-            )
-
+                responses.append(
+                    {
+                        "uid": attachment.uid,
+                        "url": presigned_url,
+                        "file_name": file.file_name,
+                    }
+                )
         return responses

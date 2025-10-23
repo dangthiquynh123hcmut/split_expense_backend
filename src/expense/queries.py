@@ -101,6 +101,13 @@ class Query:
         )
 
     @staticmethod
+    def total_expenses_in_event(event: Event):
+        return Expense.objects.filter(event=event, status="ACTIVE").aggregate(
+            total_amount=Sum("total_amount"),
+            expense_total=Count("uid", distinct=True),
+        )
+
+    @staticmethod
     def expense_attended_in_group(user: TUser, group: Group):
         return UserSharesInExpense.objects.filter(
             expense__event__group=group, user=user, deleted="ACTIVE"

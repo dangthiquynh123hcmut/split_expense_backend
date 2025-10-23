@@ -7,6 +7,7 @@ from event.schemas.response import ListEventGroup
 from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
+from group.schemas.response import GroupMembersReport
 from utils.exceptions import (
     CreateIsDenied,
     DeleteIsDenied,
@@ -98,6 +99,18 @@ class EventAPI(Controller):
         return self.service.list_event_members(
             user=request.user, event_uid=event_uid, filter=filter, order_by=order_by
         )
+
+    @get(
+        "/{event_uid}/spending",
+        response=List[GroupMembersReport],
+        exceptions=(EventNotFound,),
+    )
+    def get_event_spending(
+        self,
+        request: AuthenticatedRequest,
+        event_uid: UUID,
+    ):
+        return self.service.get_event_spending(user=request.user, event_uid=event_uid)
 
     # @post("/{event_uid}/members/{user_uid}", response=bool, exceptions=(EventNotFound,))
     # def remove_event_member(

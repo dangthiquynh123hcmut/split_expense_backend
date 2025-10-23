@@ -1,9 +1,11 @@
+from decimal import Decimal
 from uuid import UUID
 
 from authenticate.queries import Query as UseQuery
 from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
+from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
 from utils.exceptions import (
     CreateIsDenied,
@@ -28,6 +30,7 @@ class Service:
         self.query = Query()
         self.group_query = GroupQuery()
         self.user_query = UseQuery()
+        self.expense_query = ExpenseQuery()
 
     def create_event(self, user: TUser, data: EventRequest):
         group = self.group_query.get_group_sync(group_uid=data.group_id)
@@ -117,3 +120,14 @@ class Service:
         event_members = [EventMember(event=event, user=user) for user in users]
         self.query.create_event_members(event_members=event_members)
         return
+
+    def get_event_spending(self, user: TUser, event_uid: UUID):
+        event = self.query.get_event(event_uid=event_uid)
+        if not event:
+            raise EventNotFound
+        is_member_in_event = self.query.get_event_has_user(user=user, event=event)
+        if not is_member_in_event:
+            raise GetIsDenied
+        agg = self.expense_query.total_expenses_in_event(event=event)
+        total_amount = Decimal(agg["total_amount"] or 0.0)
+        return self.query.get_event_spending(event=event, total_amount=total_amount)
