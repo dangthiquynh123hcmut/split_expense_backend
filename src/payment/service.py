@@ -49,6 +49,6 @@ class Service:
     def create_deposit(self, user: TUser, amount: float, currency: str):
         self.user_query.update_balance(user=user, amount=amount)
         self.deposit_query.add_deposit_history(
-            amount=amount, user=user, currency=currency
+            user=user, amount=amount, currency=currency
         )
         return

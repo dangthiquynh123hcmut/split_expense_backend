@@ -261,7 +261,10 @@ class Service:
         return expense
 
     def hard_delete_expense(self, expense_uid: UUID):
-        self.query.hard_delete_expense_members(expense_uid=expense_uid)
+        expense = self.query.get_expense(expense_uid=expense_uid)
+        if not expense:
+            raise ExpenseNotFound
+        self.query.hard_delete_expense_members(expense=expense)
         self.query.hard_delete_expense(expense_uid=expense_uid)
         return True
 

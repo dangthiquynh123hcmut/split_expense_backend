@@ -6,7 +6,7 @@ from wallet.models import WalletDeposit
 
 class DepositORM:
     @staticmethod
-    def add_deposit_history(amount: float, user: TUser, currency: str):
+    def add_deposit_history(user: TUser, amount: float, currency: str):
         WalletDeposit.objects.create(
             user=user,
             amount=amount,
