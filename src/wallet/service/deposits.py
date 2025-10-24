@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from authenticate.models import User
 from exceptions.wallet import DepositNotFound
+from utils.types import TUser
 from wallet.orm.deposit import DepositORM
 
 
@@ -9,10 +9,7 @@ class DepositService:
     def __init__(self):
         self.query = DepositORM()
 
-    def deposit_history(self, user: User):
-        return self.query.deposit_history(user=user)
-
-    def deposit_detail(self, user: User, deposit_uid: UUID):
+    def deposit_detail(self, user: TUser, deposit_uid: UUID):
         deposit = self.query.deposit_detail(user=user, deposit_uid=deposit_uid)
         if deposit is None:
             raise DepositNotFound

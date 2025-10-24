@@ -4,7 +4,7 @@ from django.db import transaction
 
 from authenticate.queries import Query as Auth_Query
 from user.queries import Query as User_Query
-from utils.types import AuthenticatedRequest
+from utils.types import AuthenticatedRequest, TUser
 from wallet.orm.deposit import DepositORM
 
 from .config import VNPayConfig
@@ -46,7 +46,7 @@ class Service:
         return {"payment_url": payment_url}
 
     @transaction.atomic
-    def create_deposit(self, user: AuthenticatedRequest, amount: float, currency: str):
+    def create_deposit(self, user: TUser, amount: float, currency: str):
         self.user_query.update_balance(user=user, amount=amount)
         self.deposit_query.add_deposit_history(
             amount=amount, user=user, currency=currency

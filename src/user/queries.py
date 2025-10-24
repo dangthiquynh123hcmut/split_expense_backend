@@ -40,7 +40,7 @@ class Query:
         return list_user
 
     @staticmethod
-    def update_balance(user: User, amount: float):
+    def update_balance(user: TUser, amount: float):
         user.balance += amount
         user.save()
         return
