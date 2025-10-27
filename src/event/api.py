@@ -109,8 +109,11 @@ class EventAPI(Controller):
         self,
         request: AuthenticatedRequest,
         event_uid: UUID,
+        currency: str = "VND",
     ):
-        return self.service.get_event_spending(user=request.user, event_uid=event_uid)
+        return self.service.get_event_spending(
+            user=request.user, event_uid=event_uid, currency=currency
+        )
 
     # @post("/{event_uid}/members/{user_uid}", response=bool, exceptions=(EventNotFound,))
     # def remove_event_member(

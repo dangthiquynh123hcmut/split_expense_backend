@@ -38,7 +38,7 @@ class ExpenseAPI(Controller):
         expense = self.service.create_expense(
             creator=request.user, payload=payload, event=event
         )
-        self.service.calculate_debt(expense=expense)
+        self.service.calculate_debt(expense=expense, old_currency="")
         return expense
 
     @get(
@@ -62,22 +62,23 @@ class ExpenseAPI(Controller):
         expense_uid: UUID,
         payload: UpdateExpenseRequest,
     ):
+        old_expense = self.service.query.get_expense(expense_uid=expense_uid)
         expense = self.service.update_expense(
             user=request.user, expense_uid=expense_uid, payload=payload
         )
-        self.service.calculate_debt(expense=expense)
+        self.service.calculate_debt(expense=expense, old_currency=old_expense.currency)
         return expense
 
     @put("/{expense_uid}/restore", response=bool, exceptions=(ExpenseNotFound,))
     def restore_expense(self, expense_uid: UUID):
         expense = self.service.restore_expense(expense_uid=expense_uid)
-        self.service.calculate_debt(expense=expense)
+        self.service.calculate_debt(expense=expense, old_currency="")
         return True
 
     @put("/{expense_uid}/soft", response=bool, exceptions=(ExpenseNotFound,))
     def soft_delete_expense(self, expense_uid: UUID):
         expense = self.service.soft_delete_expense(expense_uid=expense_uid)
-        self.service.calculate_debt(expense=expense)
+        self.service.calculate_debt(expense=expense, old_currency="")
         return True
 
     @delete("/{expense_uid}/hard", response=bool, exceptions=(ExpenseNotFound,))

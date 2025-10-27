@@ -220,5 +220,8 @@ class GroupAPI(Controller):
         self,
         request: AuthenticatedRequest,
         group_uid: UUID,
+        currency: str = "VND",
     ):
-        return self.service.get_member_spending(user=request.user, group_uid=group_uid)
+        return self.service.get_member_spending(
+            user=request.user, group_uid=group_uid, currency=currency
+        )

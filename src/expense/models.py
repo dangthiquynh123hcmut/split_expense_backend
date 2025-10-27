@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 
 from event.models import Event
-from utils.enums import CurrencyEnum, ExpenseStatusEnum, SplitTypeEnum, StatusEnum
+from utils.enums import CurrencyEnum, SplitTypeEnum, StatusEnum
 from utils.functions.remove_accents import remove_accents
 from utils.models import BaseModel
 
@@ -149,20 +149,16 @@ class UserSharesInExpense(BaseModel):
     )
     amount = models.DecimalField(
         max_digits=10, decimal_places=2, null=False, blank=False
-    )
-    status_paid = models.CharField(
-        max_length=20,
-        choices=ExpenseStatusEnum.choices,
-        default=ExpenseStatusEnum.NOTYET,
-    )
+    )  # spending >0
+
     deleted = models.CharField(
         max_length=20,
         choices=StatusEnum.choices,
         default=StatusEnum.ACTIVE,
     )
-    payer_amount = models.DecimalField(
+    receiver_amount = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True, default=0
-    )  # always <0
+    )  # always >=0
 
     class Meta:
         indexes = [

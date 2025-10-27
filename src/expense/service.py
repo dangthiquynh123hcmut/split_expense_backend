@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Optional
 from uuid import UUID
 
 from django.db import transaction
@@ -57,13 +58,11 @@ class Service:
             UserSharesInExpense(
                 expense=expense,
                 user=user_map.get(m.user_uid),
-                amount=(
-                    -Decimal(m.amount)
-                    if m.user_uid != paid_by.uid
-                    else Decimal(payload.total_amount) - Decimal(m.amount)
-                ),
-                payer_amount=(
-                    -Decimal(m.amount) if m.user_uid == paid_by.uid else Decimal("0.0")
+                amount=(Decimal(m.amount)),
+                receiver_amount=(
+                    Decimal(payload.total_amount) - Decimal(m.amount)
+                    if m.user_uid == paid_by.uid
+                    else Decimal("0.0")
                 ),
             )
             for m in payload.list_expense_member
@@ -81,7 +80,9 @@ class Service:
                     group=expense.event.group,
                     user=m.user,
                     currency=payload.currency,
-                    balance=m.amount,
+                    balance=-m.amount
+                    if m.user != paid_by
+                    else (m.receiver_amount or Decimal("0.0")),
                 )
                 for m in expense_members
                 if m.user.uid in new_user_uids
@@ -90,12 +91,25 @@ class Service:
                 group_member_balance=new_user_balance
             )
 
-        self.group_query.update_total_amount(
-            group=expense.event.group, expense_members=expense_members
-        )
+        if len(user_exits) > 0:
+            user_update = [m for m in expense_members if m.user.uid in user_exits]
+
+            for m in user_update:
+                if m.user != paid_by:
+                    m.amount = -m.amount
+                else:
+                    m.amount = m.receiver_amount or Decimal("0.0")
+
+            self.group_query.update_total_amount(
+                group=expense.event.group,
+                expense_members=user_update,
+                currency=payload.currency,
+            )
+
         return expense
 
-    def calculate_debt(self, expense: Expense):
+    @transaction.atomic
+    def calculate_debt(self, expense: Expense, old_currency: Optional[str] = None):
         balances = self.group_query.list_member_balances(
             group=expense.event.group, currency=expense.currency
         )
@@ -117,8 +131,12 @@ class Service:
             )
             for i in range(len(transactions))
         ]
+        if old_currency:
+            delete_currency = old_currency
+        else:
+            delete_currency = expense.currency
         self.group_query.delete_restructure_debt(
-            group=expense.event.group, currency=expense.currency
+            group=expense.event.group, currency=delete_currency
         )
         self.group_query.create_restructure_debt(restructure_debt=restructure_debt)
         return
@@ -148,7 +166,6 @@ class Service:
                 "user__avatar_url__original_name",
                 "user__avatar_url__public_url",
                 "amount",
-                "payer_amount",
             )
         )
         expense_members = [
@@ -160,7 +177,7 @@ class Service:
                 )
                 if m[2]
                 else None,
-                amount=m[5] if expense.paid_by.uid != m[0] else (m[6] or Decimal(0)),
+                amount=-m[5],
             )
             for m in raw_members
         ]
@@ -182,10 +199,10 @@ class Service:
         users = self.user_query.get_user_by_uids(uids=list_uids)
         if len(users) != len(payload.list_expense_member):
             raise UserNotFound
-        self.query.update_expense(expense=expense, payload=payload, updated_by=user)
         list_user_share_in_expense = self.query.list_user_share_in_expense(
             expense=expense
         )
+        old_currency = expense.currency
         if len(list_user_share_in_expense) != len(payload.list_expense_member):
             raise ListMemberNotMatch
         self.query.update_expense(expense=expense, payload=payload, updated_by=user)
@@ -196,13 +213,11 @@ class Service:
             UserSharesInExpense(
                 expense=expense,
                 user=user_map.get(m.user_uid),
-                amount=(
-                    -Decimal(m.amount)
-                    if m.user_uid != paid_by.uid
-                    else Decimal(payload.total_amount) - Decimal(m.amount)
-                ),
-                payer_amount=(
-                    Decimal(m.amount) if m.user_uid == paid_by.uid else Decimal("0.0")
+                amount=(Decimal(m.amount)),
+                receiver_amount=(
+                    Decimal(payload.total_amount) - Decimal(m.amount)
+                    if m.user_uid == paid_by.uid
+                    else Decimal("0.0")
                 ),
             )
             for m in payload.list_expense_member
@@ -212,11 +227,18 @@ class Service:
                 UserSharesInExpense(
                     expense=expense,
                     user=paid_by,
-                    amount=payload.total_amount,
-                    payer_amount=Decimal("0.0"),
+                    amount=Decimal("0.0"),
+                    receiver_amount=payload.total_amount,
                 )
             )
         self.query.create_expense_members(expense_members=expense_members)
+        if old_currency != payload.currency:
+            self.group_query.update_currency_in_group_member_balance(
+                group=expense.event.group,
+                old_currency=old_currency,
+                new_currency=payload.currency,
+            )
+
         user_exits = self.group_query.get_users_in_group_member_balance(
             group=expense.event.group, currency=payload.currency
         )
@@ -237,31 +259,49 @@ class Service:
             self.group_query.create_group_member_balance(
                 group_member_balance=new_user_balance
             )
-        for member in expense_members:
-            old = user_share_in_expense_map.get(member.user.uid)
-            if old:
-                member.amount -= old.amount
-        self.group_query.update_total_amount(
-            group=expense.event.group, expense_members=expense_members
-        )
+
+        if len(user_exits) > 0:
+            user_update = [m for m in expense_members if m.user.uid in user_exits]
+
+            for m in user_update:
+                if m.user != paid_by:
+                    m.amount = -m.amount
+                else:
+                    m.amount = m.receiver_amount or Decimal("0.0")
+            for member in user_update:
+                old = user_share_in_expense_map.get(member.user.uid)
+                if old:
+                    if old.user == member.user and old.user != expense.paid_by:
+                        member.amount += old.amount
+                    else:
+                        member.amount -= old.receiver_amount or Decimal("0.0")
+            self.group_query.update_total_amount(
+                group=expense.event.group,
+                expense_members=user_update,
+                currency=payload.currency,
+            )
         return expense
 
+    @transaction.atomic
     def soft_delete_expense(self, expense_uid: UUID):
         expense = self.query.get_expense(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
         expense_members = self.query.list_user_share_in_expense(expense=expense)
         for member in expense_members:
-            member.amount = -member.amount
+            if member.user == expense.paid_by:
+                member.amount = -member.receiver_amount
         self.group_query.update_total_amount(
-            group=expense.event.group, expense_members=expense_members
+            group=expense.event.group,
+            expense_members=expense_members,
+            currency=expense.currency,
         )
         self.query.soft_delete_expense_members(expense=expense)
         self.query.soft_delete_expense(expense_uid=expense_uid)
         return expense
 
     def hard_delete_expense(self, expense_uid: UUID):
-        expense = self.query.get_expense(expense_uid=expense_uid)
+        expense = self.query.get_expense_deleted(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
         self.query.hard_delete_expense_members(expense=expense)
@@ -269,13 +309,20 @@ class Service:
         return True
 
     def restore_expense(self, expense_uid: UUID):
-        expense = self.query.get_expense(expense_uid=expense_uid)
+        expense = self.query.get_expense_deleted(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
         self.query.restore_expense(expense_uid=expense_uid)
         self.query.restore_user_shares_in_expense(expense=expense)
         expense_members = self.query.list_user_share_in_expense(expense=expense)
+        for member in expense_members:
+            if member.user == expense.paid_by:
+                member.amount = member.receiver_amount
+            else:
+                member.amount = -member.amount
         self.group_query.update_total_amount(
-            group=expense.event.group, expense_members=expense_members
+            group=expense.event.group,
+            expense_members=expense_members,
+            currency=expense.currency,
         )
         return expense

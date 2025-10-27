@@ -23,12 +23,6 @@ class FriendStatusEnum(TextChoices):
 
 
 @unique
-class ExpenseStatusEnum(TextChoices):
-    DONE = "DONE", "done"
-    NOTYET = "NOTYET", "not yet"
-
-
-@unique
 class CurrencyEnum(TextChoices):
     AED = "AED", "United Arab Emirates dirham"
     AFN = "AFN", "Afghan afghani"

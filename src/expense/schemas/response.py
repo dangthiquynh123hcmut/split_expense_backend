@@ -69,7 +69,6 @@ class NameExpense(Schema):
     name: str
     currency: str
     amount: float
-    status: str
     created_at: datetime
     deleted: Optional[str] = None
 

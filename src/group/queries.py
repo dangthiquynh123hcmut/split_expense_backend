@@ -156,6 +156,14 @@ class Query:
         return Expense.objects.filter(event__group=group, status="ACTIVE").distinct()
 
     @staticmethod
+    def update_currency_in_group_member_balance(
+        group: Group, old_currency: str, new_currency: str
+    ):
+        return GroupMemberBalance.objects.filter(
+            group=group, currency=old_currency
+        ).update(currency=new_currency)
+
+    @staticmethod
     def get_users_in_group_member_balance(group: Group, currency: str):
         return GroupMemberBalance.objects.filter(
             group=group, currency=currency
@@ -166,7 +174,9 @@ class Query:
         return GroupMemberBalance.objects.bulk_create(group_member_balance)
 
     @staticmethod
-    def update_total_amount(group: Group, expense_members: List[UserSharesInExpense]):
+    def update_total_amount(
+        group: Group, expense_members: List[UserSharesInExpense], currency: str
+    ):
         whens = []
         users = []
 
@@ -174,9 +184,9 @@ class Query:
             users.append(em.user)
             whens.append(When(user=em.user, then=F("balance") + em.amount))
 
-        return GroupMemberBalance.objects.filter(group=group, user__in=users).update(
-            balance=Case(*whens, default=F("balance"))
-        )
+        return GroupMemberBalance.objects.filter(
+            group=group, user__in=users, currency=currency
+        ).update(balance=Case(*whens, default=F("balance")))
 
     @staticmethod
     def list_expenses_in_a_group(
@@ -204,7 +214,6 @@ class Query:
                     name=share.expense.name,
                     currency=share.expense.currency,
                     amount=float(share.amount),
-                    status=share.status_paid,
                     created_at=share.expense.created_at,
                     deleted=share.deleted,
                 )
@@ -338,24 +347,17 @@ class Query:
         )
 
     @staticmethod
-    def get_member_spending(group: Group, total_amount: Decimal):
+    def get_member_spending(group: Group, total_amount: Decimal, currency: str = "VND"):
         return (
             UserSharesInExpense.objects.filter(
-                expense__event__group=group, deleted="ACTIVE"
+                expense__event__group=group,
+                deleted="ACTIVE",
+                expense__currency=currency,
             )
             .values(full_name=F("user__full_name"))
             .annotate(
-                spending_amount=Sum(
-                    Case(
-                        When(amount__lt=0, then=F("amount")),
-                        default=-F("payer_amount"),
-                        output_field=DecimalField(),
-                    )
-                ),
-            )
-            .annotate(
                 percent=ExpressionWrapper(
-                    Round(-(F("spending_amount") / total_amount) * 100, 2),
+                    Round((F("amount") / total_amount) * 100, 2),
                     output_field=DecimalField(max_digits=5, decimal_places=2),
                 )
             )

@@ -245,13 +245,15 @@ class Service:
             members=members,
         )
 
-    def get_member_spending(self, user: TUser, group_uid: UUID):
+    def get_member_spending(self, user: TUser, group_uid: UUID, currency: str = "VND"):
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
         member = self.query.get_group_has_user(user=user, group=group)
         if not member:
             raise GetIsDenied
-        agg = self.expense_query.total_expenses_in_group(group=group)
+        agg = self.expense_query.total_expenses_in_group(group=group, currency=currency)
         total_amount = Decimal(agg["total_amount"] or 0.0)
-        return self.query.get_member_spending(group=group, total_amount=total_amount)
+        return self.query.get_member_spending(
+            group=group, total_amount=total_amount, currency=currency
+        )

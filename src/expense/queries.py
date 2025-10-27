@@ -30,7 +30,6 @@ class Query:
             UserSharesInExpense.objects.filter(
                 expense__event=event,
                 user=user,
-                expense__status="ACTIVE",
             )
             .select_related("expense")
             .order_by("expense__created_at")
@@ -41,7 +40,6 @@ class Query:
                 name=share.expense.name,
                 currency=share.expense.currency,
                 amount=float(share.amount),
-                status=share.status_paid,
                 created_at=share.expense.created_at,
                 deleted=share.deleted,
             )
@@ -51,7 +49,11 @@ class Query:
 
     @staticmethod
     def get_expense(expense_uid: UUID):
-        return Expense.objects.filter(uid=expense_uid).first()
+        return Expense.objects.filter(uid=expense_uid, status="ACTIVE").first()
+
+    @staticmethod
+    def get_expense_deleted(expense_uid: UUID):
+        return Expense.objects.filter(uid=expense_uid, status="DELETED").first()
 
     @staticmethod
     def update_expense(
@@ -94,15 +96,19 @@ class Query:
         return ExpenseAttachment.objects.bulk_create(expense_attachments)
 
     @staticmethod
-    def total_expenses_in_group(group: Group):
-        return Expense.objects.filter(event__group=group, status="ACTIVE").aggregate(
+    def total_expenses_in_group(group: Group, currency: str = "VND"):
+        return Expense.objects.filter(
+            event__group=group, status="ACTIVE", currency=currency
+        ).aggregate(
             total_amount=Sum("total_amount"),
             expense_total=Count("uid", distinct=True),
         )
 
     @staticmethod
-    def total_expenses_in_event(event: Event):
-        return Expense.objects.filter(event=event, status="ACTIVE").aggregate(
+    def total_expenses_in_event(event: Event, currency: str = "VND"):
+        return Expense.objects.filter(
+            event=event, status="ACTIVE", currency=currency
+        ).aggregate(
             total_amount=Sum("total_amount"),
             expense_total=Count("uid", distinct=True),
         )

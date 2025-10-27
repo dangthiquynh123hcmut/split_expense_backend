@@ -121,13 +121,15 @@ class Service:
         self.query.create_event_members(event_members=event_members)
         return
 
-    def get_event_spending(self, user: TUser, event_uid: UUID):
+    def get_event_spending(self, user: TUser, event_uid: UUID, currency: str = "VND"):
         event = self.query.get_event(event_uid=event_uid)
         if not event:
             raise EventNotFound
         is_member_in_event = self.query.get_event_has_user(user=user, event=event)
         if not is_member_in_event:
             raise GetIsDenied
-        agg = self.expense_query.total_expenses_in_event(event=event)
+        agg = self.expense_query.total_expenses_in_event(event=event, currency=currency)
         total_amount = Decimal(agg["total_amount"] or 0.0)
-        return self.query.get_event_spending(event=event, total_amount=total_amount)
+        return self.query.get_event_spending(
+            event=event, total_amount=total_amount, currency=currency
+        )
