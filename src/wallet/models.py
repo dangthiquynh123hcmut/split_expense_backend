@@ -8,6 +8,17 @@ from utils.models import BaseModel
 
 
 class Transaction(BaseModel):
+    group = models.ForeignKey(
+        to="group.Group",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="group_uid",
+        related_name="transaction_fk_group",
+        db_constraint=True,
+        db_index=True,
+        null=True,
+        blank=True,
+    )
     from_user = models.ForeignKey(
         to="authenticate.User",
         on_delete=models.CASCADE,

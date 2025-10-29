@@ -9,6 +9,7 @@ from exceptions.users import (
     UserNotFound,
     WeakPasswordError,
 )
+from exceptions.wallet import PinAlreadyExists, PinIncorrect
 from utils.router.controller import Controller, api, get, post, put
 from utils.types import AuthenticatedRequest, UnauthenticatedRequest
 
@@ -19,12 +20,14 @@ from .schemas import (
     PasswordChangeRequest,
     PasswordForgetRequest,
     PasswordNewRequest,
+    PinNewRequest,
     RefreshRequest,
     RefreshResponse,
     RegisterSchema,
     ResetPasswordOTPRequest,
-    ResetPasswordToken,
+    TokenResponse,
     UpdateMeSchema,
+    UpdatePinRequest,
     UserSchema,
 )
 from .services import Service
@@ -112,7 +115,7 @@ class AuthenticateAPI(Controller):
 
     @post(
         "password/otp",
-        response=ResetPasswordToken,
+        response=TokenResponse,
         exceptions=(
             InvalidOrExpiredOTP,
             UserNotFound,
@@ -124,3 +127,11 @@ class AuthenticateAPI(Controller):
     @put("password/reset", response=bool, exceptions=(InvalidOrExpiredToken,))
     def reset_password(self, payload: PasswordNewRequest):
         return self.service.reset_password(payload=payload)
+
+    @post("/pin", response=bool, exceptions=(PinAlreadyExists,))
+    def create_pin(self, request: AuthenticatedRequest, payload: PinNewRequest):
+        return self.service.create_pin(user=request.user, payload=payload)
+
+    @put("/pin", response=bool, exceptions=(PinIncorrect,))
+    def update_pin(self, request: AuthenticatedRequest, payload: UpdatePinRequest):
+        return self.service.update_pin(user=request.user, payload=payload)

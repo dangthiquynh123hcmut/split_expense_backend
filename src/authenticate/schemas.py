@@ -87,10 +87,19 @@ class ResetPasswordOTPRequest(Schema):
     email: str
 
 
-class ResetPasswordToken(Schema):
+class TokenResponse(Schema):
     token: str
 
 
 class PasswordNewRequest(Schema):
     token: str
     new_password: str = Field(..., min_length=8)
+
+
+class UpdatePinRequest(Schema):
+    old_pin: str = Field(..., min_length=6, max_length=6)
+    new_pin: str = Field(..., min_length=6, max_length=6)
+
+
+class PinNewRequest(Schema):
+    pin: str = Field(..., min_length=6, max_length=6)

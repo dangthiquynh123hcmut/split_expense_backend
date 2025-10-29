@@ -28,3 +28,4 @@ channels[daphne]
 channels-redis
 redis==5.0.1
 django-sendgrid-v5
+django-redis

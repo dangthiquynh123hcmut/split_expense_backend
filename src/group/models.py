@@ -153,8 +153,3 @@ class RestructureDebt(BaseModel):
         choices=CurrencyEnum.choices,
         default=CurrencyEnum.VND,
     )
-    status = models.CharField(
-        max_length=20,
-        choices=StatusEnum.choices,
-        default=StatusEnum.ACTIVE,
-    )

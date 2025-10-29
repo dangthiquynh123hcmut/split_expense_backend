@@ -32,3 +32,23 @@ class TransactionHistoryResponse(Schema):
     currency: Optional[str] = None
     code: str
     date: datetime
+
+
+class TransactionResponse(Schema):
+    from_user: UserResponse
+    to_user: UserResponse
+    amount: float
+    description: Optional[str] = None
+    group: Optional[str] = None
+    code: str
+    created_at: datetime
+
+
+class ListTransactionResponse(Schema):
+    from_user: str
+    to_user: str
+    amount: Decimal
+    description: Optional[str] = None
+    group: Optional[str] = None
+    code: str
+    created_at: datetime

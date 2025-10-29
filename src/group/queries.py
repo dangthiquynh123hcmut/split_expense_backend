@@ -375,16 +375,15 @@ class Query:
         return GroupMember.objects.filter(
             user=user,
             group__group_member_fk_group__user=friend,
-            group__group_member_fk_group__status="ACTIVE",
-            status="ACTIVE",
+            group__status="ACTIVE",
+            group__group_member_fk_group__group__status="ACTIVE",
         ).count()
 
     @staticmethod
     def total_debt_between_two_people(user: TUser, friend: TUser):
         return (
             RestructureDebt.objects.filter(
-                Q(creditor=user, debtor=friend) | Q(debtor=user, creditor=friend),
-                status="ACTIVE",
+                Q(creditor=user, debtor=friend) | Q(debtor=user, creditor=friend)
             )
             .annotate(
                 signed_value=Case(
@@ -404,8 +403,23 @@ class Query:
         return (
             RestructureDebt.objects.filter(
                 Q(creditor=user, debtor=friend) | Q(debtor=user, creditor=friend),
-                status="ACTIVE",
             )
             .select_related("debtor", "creditor", "group")
             .order_by("-value")
         )
+
+    @staticmethod
+    def update_balance_in_group(
+        user: TUser, group: Group, amount: Decimal, currency: str
+    ):
+        GroupMemberBalance.objects.filter(
+            group=group, user=user, currency=currency
+        ).update(balance=F("balance") - amount)
+
+    @staticmethod
+    def update_restructure_debt(
+        debtor: TUser, creditor: TUser, group: Group, amount: Decimal, currency: str
+    ):
+        RestructureDebt.objects.filter(
+            group=group, debtor=debtor, creditor=creditor, currency=currency
+        ).update(value=F("value") - amount)

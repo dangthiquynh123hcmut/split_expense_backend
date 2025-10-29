@@ -11,9 +11,11 @@ from django.utils import timezone
 from authenticate.schemas import (
     PasswordChangeRequest,
     PasswordNewRequest,
+    PinNewRequest,
     RegisterSchema,
     ResetPasswordOTPRequest,
     UpdateMeSchema,
+    UpdatePinRequest,
 )
 from exceptions.auth import InvalidOrExpiredOTP, InvalidOrExpiredToken
 from exceptions.users import (
@@ -22,6 +24,7 @@ from exceptions.users import (
     PhoneNumberAlreadyExists,
     UserNotFound,
 )
+from exceptions.wallet import PinAlreadyExists, PinIncorrect
 from utils.exceptions import SecretKeyNotFound
 from utils.services.base import BaseService
 from utils.services.email.client import EmailClient
@@ -179,3 +182,13 @@ class Service(BaseService):
             raise InvalidOrExpiredToken
 
         return self.query.reset_password(record=record, payload=payload)
+
+    def create_pin(self, user: TUser, payload: PinNewRequest):
+        if user.pin not in [None, "", "None"]:
+            raise PinAlreadyExists
+        return self.query.create_or_update_pin(user=user, pin=payload.pin)
+
+    def update_pin(self, user: TUser, payload: UpdatePinRequest):
+        if not user.check_pin(raw_pin=payload.old_pin):
+            raise PinIncorrect
+        return self.query.create_or_update_pin(user=user, pin=payload.new_pin)

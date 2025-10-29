@@ -187,3 +187,9 @@ class Query:
         user.avatar_url = attachment
         user.save()
         return user
+
+    @staticmethod
+    def create_or_update_pin(user: TUser, pin: str):
+        user.set_pin(pin)
+        user.save(update_fields=["pin"])
+        return True

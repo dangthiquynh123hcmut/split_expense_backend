@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import jwt
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.timezone import now
@@ -65,6 +66,7 @@ class User(AbstractUser):
         choices=CurrencyEnum.choices,
         default=CurrencyEnum.VND,
     )
+    pin = models.CharField(max_length=128, blank=True, null=True)
     uid = models.UUIDField(default=uuid4, unique=True, editable=False, primary_key=True)
 
     USERNAME_FIELD = "email"
@@ -74,6 +76,14 @@ class User(AbstractUser):
 
     def get_full_name(self):
         return self.full_name or super().get_full_name()
+
+    def set_pin(self, raw_pin: str):
+        self.pin = make_password(raw_pin)
+
+    def check_pin(self, raw_pin: str) -> bool:
+        if self.pin is None:
+            return False
+        return check_password(raw_pin, self.pin)
 
     def save(self, *args, **kwargs):
         if self.balance < 0:

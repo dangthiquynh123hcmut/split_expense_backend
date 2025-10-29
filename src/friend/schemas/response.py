@@ -48,4 +48,4 @@ class FriendDebt(ModelSchema):
 
     class Meta:
         model = RestructureDebt
-        exclude = ["uid", "created_at", "updated_at", "status"]
+        exclude = ["uid", "created_at", "updated_at"]
