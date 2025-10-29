@@ -69,6 +69,8 @@ class TransactionService:
                 amount=payload.amount,
                 currency=payload.currency,
             )
+        else:
+            group = None
         self.query.update_balance_in_wallet(uid=user.uid, amount=-payload.amount)
         self.query.update_balance_in_wallet(uid=payload.user_uid, amount=payload.amount)
         transaction = self.query.create_transaction(
