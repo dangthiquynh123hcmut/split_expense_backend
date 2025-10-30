@@ -5,7 +5,8 @@ from ninja import Schema
 
 
 class TransferRequest(Schema):
-    amount: float
+    original_amount: float
+    convert_amount: float
     currency: str
     user_uid: UUID
     description: Optional[str] = ""

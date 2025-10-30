@@ -80,10 +80,14 @@ class User(AbstractUser):
     def set_pin(self, raw_pin: str):
         self.pin = make_password(raw_pin)
 
-    def check_pin(self, raw_pin: str) -> bool:
-        if self.pin is None:
-            return False
-        return check_password(raw_pin, self.pin)
+    def check_pin(self, raw_pin: str) -> str:
+        if not self.pin:
+            return "NO_PIN"
+        if not self.currency:
+            return "NO_CURRENCY"
+        if check_password(raw_pin, self.pin):
+            return "VALID"
+        return "INVALID"
 
     def save(self, *args, **kwargs):
         if self.balance < 0:

@@ -39,7 +39,9 @@ class Query:
                 uid=share.expense.uid,
                 name=share.expense.name,
                 currency=share.expense.currency,
-                amount=float(share.amount),
+                amount=-float(share.amount or 0)
+                if share.expense.paid_by != share.user
+                else float(share.receiver_amount or 0),
                 created_at=share.expense.created_at,
                 deleted=share.deleted,
             )

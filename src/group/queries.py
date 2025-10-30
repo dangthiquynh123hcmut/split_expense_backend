@@ -284,7 +284,7 @@ class Query:
                                     group__restructure_debt_fk_group__currency=currency,
                                 )
                                 & Q(group__restructure_debt_fk_group__debtor=user),
-                                then=F("group__restructure_debt_fk_group__value"),
+                                then=-F("group__restructure_debt_fk_group__value"),
                             ),
                             # member là debtor, user hiện tại là creditor
                             When(
@@ -293,7 +293,7 @@ class Query:
                                     group__restructure_debt_fk_group__currency=currency,
                                 )
                                 & Q(group__restructure_debt_fk_group__creditor=user),
-                                then=-F("group__restructure_debt_fk_group__value"),
+                                then=F("group__restructure_debt_fk_group__value"),
                             ),
                             default=Value(0, output_field=DecimalField()),
                             output_field=DecimalField(),

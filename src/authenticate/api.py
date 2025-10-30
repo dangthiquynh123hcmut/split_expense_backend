@@ -128,10 +128,10 @@ class AuthenticateAPI(Controller):
     def reset_password(self, payload: PasswordNewRequest):
         return self.service.reset_password(payload=payload)
 
-    @post("/pin", response=bool, exceptions=(PinAlreadyExists,))
+    @post("/pin", auth=True, response=bool, exceptions=(PinAlreadyExists,))
     def create_pin(self, request: AuthenticatedRequest, payload: PinNewRequest):
         return self.service.create_pin(user=request.user, payload=payload)
 
-    @put("/pin", response=bool, exceptions=(PinIncorrect,))
+    @put("/pin", auth=True, response=bool, exceptions=(PinIncorrect,))
     def update_pin(self, request: AuthenticatedRequest, payload: UpdatePinRequest):
         return self.service.update_pin(user=request.user, payload=payload)

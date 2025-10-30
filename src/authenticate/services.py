@@ -128,12 +128,6 @@ class Service(BaseService):
         return user
 
     def update_me(self, user: TUser, data: UpdateMeSchema) -> TUser:
-        is_user = self.query.get_user_by_email(email=data.email)
-        if is_user and is_user.email != user.email:
-            raise EmailAlreadyExists
-        is_user = self.query.get_user_by_phone_number(phone_number=data.phone_number)
-        if is_user and is_user.phone_number != user.phone_number:
-            raise PhoneNumberAlreadyExists
         return self.query.update_me(user=user, data=data)
 
     def change_password(self, user: TUser, payload: PasswordChangeRequest):

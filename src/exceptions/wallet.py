@@ -37,3 +37,9 @@ class InvalidTokenOrAmountIncorrect(APIException):
     error_code = HTTPStatus.BAD_REQUEST
     message_code = "INVALID_TOKEN_OR_AMOUNT_INCORRECT"
     message = "Invalid token or amount incorrect"
+
+
+class PinNotSet(APIException):
+    error_code = HTTPStatus.BAD_REQUEST
+    message_code = "PIN_NOT_SET"
+    message = "Pin not set"

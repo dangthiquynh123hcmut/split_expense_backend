@@ -7,7 +7,7 @@ from authenticate.models import User
 from authenticate.queries import Query as AuthQuery
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
-from exceptions.wallet import InvalidTokenOrAmountIncorrect, PinIncorrect
+from exceptions.wallet import InvalidTokenOrAmountIncorrect, PinIncorrect, PinNotSet
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
 from user.schemas.response import UserResponse
@@ -32,9 +32,15 @@ class TransactionService:
         return self.query.get_external_transaction_history(user=user)
 
     def verify_pin(self, user: User, payload: VerifyPinRequest):
-        if not user.check_pin(raw_pin=payload.pin):
+        if (
+            user.check_pin(raw_pin=payload.pin) == "NO_PIN"
+            or user.check_pin(raw_pin=payload.pin) == "NO_CURRENCY"
+        ):
+            raise PinNotSet
+        if user.check_pin(raw_pin=payload.pin) == "INVALID":
             raise PinIncorrect
-        return generate_transfer_token(user_uid=user.uid, amount=payload.amount)
+        if user.check_pin(raw_pin=payload.pin) == "VALID":
+            return generate_transfer_token(user_uid=user.uid, amount=payload.amount)
 
     @transaction.atomic
     def create_transaction(self, user: User, payload: TransferRequest):
@@ -43,7 +49,9 @@ class TransactionService:
             raise UserNotFound
 
         if not verify_transfer_token(
-            user_uid=user.uid, token=payload.transfer_token, amount=payload.amount
+            user_uid=user.uid,
+            token=payload.transfer_token,
+            amount=payload.convert_amount,
         ):
             raise InvalidTokenOrAmountIncorrect
         if payload.group_uid:
@@ -53,37 +61,41 @@ class TransactionService:
             self.group_query.update_balance_in_group(
                 user=user,
                 group=group,
-                amount=-payload.amount,
+                amount=-payload.original_amount,
                 currency=payload.currency,
             )
             self.group_query.update_balance_in_group(
                 user=to_user,
                 group=group,
-                amount=payload.amount,
+                amount=payload.original_amount,
                 currency=payload.currency,
             )
             self.group_query.update_restructure_debt(
                 debtor=user,
                 creditor=to_user,
                 group=group,
-                amount=payload.amount,
+                amount=payload.original_amount,
                 currency=payload.currency,
             )
         else:
             group = None
-        self.query.update_balance_in_wallet(uid=user.uid, amount=-payload.amount)
-        self.query.update_balance_in_wallet(uid=payload.user_uid, amount=payload.amount)
+        self.query.update_balance_in_wallet(
+            uid=user.uid, amount=-payload.convert_amount
+        )
+        self.query.update_balance_in_wallet(
+            uid=payload.user_uid, amount=payload.convert_amount
+        )
         transaction = self.query.create_transaction(
             from_user=user,
             to_user=to_user,
-            amount=payload.amount,
+            amount=payload.convert_amount,
             description=payload.description,
             group=group,
         )
         return TransactionResponse(
             from_user=UserResponse.from_orm(user),
             to_user=UserResponse.from_orm(to_user),
-            amount=payload.amount,
+            amount=payload.convert_amount,
             description=payload.description,
             group=group.name if payload.group_uid else None,
             code=transaction.code,
