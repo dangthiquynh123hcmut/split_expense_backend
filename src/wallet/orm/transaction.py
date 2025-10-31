@@ -6,7 +6,7 @@ from django.db.models import CharField, F, Q, Value
 
 from authenticate.models import User
 from group.models import Group
-from utils.schemas.filter_and_order_by import FilterNameSchema
+from utils.schemas.filter_and_order_by import FilterGroupSchema
 from wallet.models import Transaction, WalletDeposit, Withdraw
 
 
@@ -48,15 +48,8 @@ class TransactionORM:
         )
 
     @staticmethod
-    def list_transactions(
-        user: User, filter: FilterNameSchema, group: Optional[Group] = None
-    ):
-        if not group:
-            queryset = Transaction.objects.filter(Q(from_user=user) | Q(to_user=user))
-        else:
-            queryset = Transaction.objects.filter(
-                Q(from_user=user) | Q(to_user=user), group=group
-            )
+    def list_transactions(user: User, filter: FilterGroupSchema):
+        queryset = Transaction.objects.filter(Q(from_user=user) | Q(to_user=user))
         if filter:
             queryset = queryset.filter(filter.get_filter_expression())
         return queryset.order_by("-created_at")

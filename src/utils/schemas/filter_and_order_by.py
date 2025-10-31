@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Literal, Optional
+from uuid import UUID
 
 from django.db.models import Q
 from ninja import FilterSchema
@@ -17,6 +18,17 @@ class FilterFullNameSchema(FilterSchema):
         return Q(user__full_name_no_accent__icontains=remove_accents(value))
 
 
+class FilterCurrencySchema(FilterSchema):
+    currency: Optional[str] = FilterField(
+        default=None, description="Filter by currency"
+    )
+
+    def filter_currency(self, value: Optional[str]):
+        if value is None:
+            return Q()
+        return Q(currency__icontains=value)
+
+
 class FilterNameSchema(FilterSchema):
     search: Optional[str] = FilterField(default=None, description="Search by name")
 
@@ -24,6 +36,23 @@ class FilterNameSchema(FilterSchema):
         if value is None:
             return Q()
         return Q(name_no_accent__icontains=remove_accents(value))
+
+
+class FilterGroupSchema(FilterSchema):
+    search: Optional[str] = FilterField(
+        default=None, description="Search by group name"
+    )
+    group_id: Optional[UUID] = FilterField(
+        default=None, description="Filter by group uid"
+    )
+
+    def get_filter_q(self) -> Q:
+        q = Q()
+        if self.search:
+            q &= Q(name__icontains=remove_accents(self.search))
+        if self.group_id:
+            q &= Q(group_id=self.group_id)
+        return q
 
 
 class FilterMonthSchema(FilterSchema):

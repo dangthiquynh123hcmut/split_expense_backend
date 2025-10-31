@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from ninja import Query
@@ -17,7 +16,7 @@ from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, get, post
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
-from utils.schemas.filter_and_order_by import FilterNameSchema
+from utils.schemas.filter_and_order_by import FilterGroupSchema
 from utils.types import AuthenticatedRequest
 from wallet.schemas.response import (
     ListTransactionResponse,
@@ -101,11 +100,10 @@ class WalletAPI(Controller):
     def list_transactions(
         self,
         request: AuthenticatedRequest,
-        filter: FilterNameSchema = Query(...),
-        group_uid: Optional[UUID] = Query(None),
+        filter: FilterGroupSchema = Query(...),
     ):
         return self.transaction_service.list_transactions(
-            user=request.user, filter=filter, group_uid=group_uid
+            user=request.user, filter=filter
         )
 
 

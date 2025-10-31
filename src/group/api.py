@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional
+from typing import List, Literal
 from uuid import UUID
 
 from ninja import Query
@@ -13,6 +13,7 @@ from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
 from utils.schemas.filter_and_order_by import (
+    FilterCurrencySchema,
     FilterFullNameSchema,
     FilterMonthSchema,
     FilterNameSchema,
@@ -76,12 +77,15 @@ class GroupAPI(Controller):
     def get_balances_by_group_and_member(
         self,
         request: AuthenticatedRequest,
-        currency: str = "VND",
+        filter_currency: FilterCurrencySchema = Query(...),
         filter: FilterNameSchema = Query(...),
         order_by: OrderByNameAndUpdatedAtSchema = Query(...),
     ):
         return self.service.get_balances_by_group_and_member(
-            user=request.user, currency=currency, filter=filter, order_by=order_by
+            user=request.user,
+            filter_currency=filter_currency,
+            filter=filter,
+            order_by=order_by,
         )
 
     @get(
@@ -125,10 +129,10 @@ class GroupAPI(Controller):
         self,
         request: AuthenticatedRequest,
         group_uid: UUID,
-        currency: Optional[str] = None,
+        filter: FilterCurrencySchema = Query(...),
     ):
         return self.service.get_group_detail(
-            user=request.user, group_uid=group_uid, currency=currency
+            user=request.user, group_uid=group_uid, filter=filter
         )
 
     @put(

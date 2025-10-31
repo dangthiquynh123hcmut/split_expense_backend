@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
 from django.db import transaction
@@ -11,6 +11,7 @@ from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
 from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
 from utils.schemas.filter_and_order_by import (
+    FilterCurrencySchema,
     FilterFullNameSchema,
     FilterMonthSchema,
     FilterNameSchema,
@@ -128,7 +129,9 @@ class Service:
             group=group, filter=filter, order_by=order_by
         )
 
-    def get_group_detail(self, user: TUser, group_uid: UUID, currency: Optional[str]):
+    def get_group_detail(
+        self, user: TUser, group_uid: UUID, filter: FilterCurrencySchema
+    ):
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
             raise GroupNotFound
@@ -146,7 +149,7 @@ class Service:
         user_spent = float(agg["user_spent"] or 0.0)
         expense_attended = agg["expense_attended"] or 0
         restructured_debt = self.query.restructured_debt(
-            user=user, group=group, currency=currency
+            user=user, group=group, filter=filter
         )
 
         return DetailGroup(
@@ -216,12 +219,12 @@ class Service:
     def get_balances_by_group_and_member(
         self,
         user: TUser,
-        currency: str,
+        filter_currency: FilterCurrencySchema,
         filter: FilterNameSchema,
         order_by: OrderByNameAndUpdatedAtSchema,
     ):
         return self.query.get_balances_by_group_and_member(
-            user=user, currency=currency, filter=filter, order_by=order_by
+            user=user, filter_currency=filter_currency, filter=filter, order_by=order_by
         )
 
     def group_report(self, user: TUser, group_uid: UUID):

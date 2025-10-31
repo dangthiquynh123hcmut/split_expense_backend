@@ -1,6 +1,3 @@
-from typing import Optional
-from uuid import UUID
-
 from django.db import transaction
 
 from authenticate.models import User
@@ -15,7 +12,7 @@ from utils.functions.transfer_token import (
     generate_transfer_token,
     verify_transfer_token,
 )
-from utils.schemas.filter_and_order_by import FilterNameSchema
+from utils.schemas.filter_and_order_by import FilterGroupSchema
 from wallet.orm.transaction import TransactionORM
 from wallet.schemas.request import TransferRequest, VerifyPinRequest
 from wallet.schemas.response import ListTransactionResponse, TransactionResponse
@@ -102,18 +99,8 @@ class TransactionService:
             created_at=transaction.created_at,
         )
 
-    def list_transactions(
-        self, user: User, filter: FilterNameSchema, group_uid: Optional[UUID] = None
-    ):
-        if group_uid:
-            group = self.group_query.get_group_sync(group_uid=group_uid)
-            if not group:
-                raise GroupNotFound
-        if not group_uid:
-            group = None
-        transactions = self.query.list_transactions(
-            user=user, filter=filter, group=group
-        )
+    def list_transactions(self, user: User, filter: FilterGroupSchema):
+        transactions = self.query.list_transactions(user=user, filter=filter)
         list_transaction = []
         for trans in transactions:
             list_transaction.append(
