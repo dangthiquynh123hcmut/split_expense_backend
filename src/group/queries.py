@@ -266,16 +266,10 @@ class Query:
     @staticmethod
     def get_balances_by_group_and_member(
         user: TUser,
-        filter_currency: FilterCurrencySchema,
+        currency: str,
         filter: FilterNameSchema,
         order_by: OrderByNameAndUpdatedAtSchema,
     ):
-        currency_q = Q()
-        if filter_currency.currency:
-            currency_q = Q(
-                group__restructure_debt_fk_group__currency=filter_currency.currency
-            )
-
         members_qs = (
             GroupMember.objects.filter(status="ACTIVE")
             .annotate(
@@ -288,18 +282,18 @@ class Query:
                                     group__restructure_debt_fk_group__creditor=F(
                                         "user"
                                     ),
-                                    group__restructure_debt_fk_group__debtor=user,
+                                    group__restructure_debt_fk_group__currency=currency,
                                 )
-                                & currency_q,
+                                & Q(group__restructure_debt_fk_group__debtor=user),
                                 then=-F("group__restructure_debt_fk_group__value"),
                             ),
                             # member là debtor, user hiện tại là creditor
                             When(
                                 Q(
                                     group__restructure_debt_fk_group__debtor=F("user"),
-                                    group__restructure_debt_fk_group__creditor=user,
+                                    group__restructure_debt_fk_group__currency=currency,
                                 )
-                                & currency_q,
+                                & Q(group__restructure_debt_fk_group__creditor=user),
                                 then=F("group__restructure_debt_fk_group__value"),
                             ),
                             default=Value(0, output_field=DecimalField()),
@@ -328,8 +322,6 @@ class Query:
                 )
             )
         )
-        if filter_currency:
-            query = query.filter(filter_currency.get_filter_expression())
         if filter:
             query = query.filter(filter.get_filter_expression())
 

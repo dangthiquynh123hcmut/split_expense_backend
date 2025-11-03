@@ -3,7 +3,7 @@ from django.db import transaction
 from authenticate.models import User
 from authenticate.queries import Query as AuthQuery
 from exceptions.group import GroupNotFound
-from exceptions.users import UserNotFound
+from exceptions.users import BalanceNotEnough, UserNotFound
 from exceptions.wallet import InvalidTokenOrAmountIncorrect, PinIncorrect, PinNotSet
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
@@ -76,6 +76,8 @@ class TransactionService:
             )
         else:
             group = None
+        if user.balance < payload.convert_amount:
+            raise BalanceNotEnough
         self.query.update_balance_in_wallet(
             uid=user.uid, amount=-payload.convert_amount
         )

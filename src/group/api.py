@@ -77,13 +77,13 @@ class GroupAPI(Controller):
     def get_balances_by_group_and_member(
         self,
         request: AuthenticatedRequest,
-        filter_currency: FilterCurrencySchema = Query(...),
+        currency: str = "VND",
         filter: FilterNameSchema = Query(...),
         order_by: OrderByNameAndUpdatedAtSchema = Query(...),
     ):
         return self.service.get_balances_by_group_and_member(
             user=request.user,
-            filter_currency=filter_currency,
+            currency=currency,
             filter=filter,
             order_by=order_by,
         )

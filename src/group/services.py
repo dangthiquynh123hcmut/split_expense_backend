@@ -219,12 +219,12 @@ class Service:
     def get_balances_by_group_and_member(
         self,
         user: TUser,
-        filter_currency: FilterCurrencySchema,
+        currency: str,
         filter: FilterNameSchema,
         order_by: OrderByNameAndUpdatedAtSchema,
     ):
         return self.query.get_balances_by_group_and_member(
-            user=user, filter_currency=filter_currency, filter=filter, order_by=order_by
+            user=user, currency=currency, filter=filter, order_by=order_by
         )
 
     def group_report(self, user: TUser, group_uid: UUID):
