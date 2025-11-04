@@ -29,7 +29,9 @@ class Query:
         user: User, event: Event, status: Literal["DELETED", "ACTIVE"] = "ACTIVE"
     ):
         expenses = list(
-            Expense.objects.filter(event=event, status=status).select_related("event")
+            Expense.objects.filter(event=event, status=status)
+            .select_related("event")
+            .order_by("-created_at")
         )
 
         user_shares = UserSharesInExpense.objects.filter(

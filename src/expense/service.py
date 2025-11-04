@@ -14,7 +14,7 @@ from exceptions.users import UserNotFound
 from expense.models import Expense, UserSharesInExpense
 from expense.queries import Query
 from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
-from expense.schemas.response import NameExpense, UserExpense
+from expense.schemas.response import UserExpense
 from group.models import GroupMemberBalance, RestructureDebt
 from group.queries import Query as GroupQuery
 from utils.exceptions import GetIsDenied
@@ -150,33 +150,7 @@ class Service:
         is_member_event = self.event_query.get_event_has_user(user=user, event=event)
         if not is_member_event:
             raise GetIsDenied
-        queryset = self.query.list_expenses_in_event(
-            user=user, event=event, status=status
-        )
-        transactions_query = self.transaction_orm.get_transactions_in_event(event=event)
-
-        if status == "ACTIVE":
-            transactions = [
-                NameExpense(
-                    uid=txn.uid,
-                    category="Transfer",
-                    currency=txn.currency,
-                    amount=float(txn.amount),
-                    created_at=txn.created_at,
-                    from_user=txn.from_user.full_name,
-                    to_user=txn.to_user.full_name,
-                    name=f"From {txn.from_user.full_name} to {txn.to_user.full_name}",
-                )
-                for txn in transactions_query
-            ]
-        else:
-            transactions = []
-
-        combined = queryset + transactions
-
-        combined_sorted = sorted(combined, key=lambda x: x.created_at, reverse=True)
-
-        return combined_sorted
+        return self.query.list_expenses_in_event(user=user, event=event, status=status)
 
     def get_expense_detail(self, user: TUser, expense_uid: UUID):
         expense = self.query.get_expense(expense_uid=expense_uid)
