@@ -7,7 +7,7 @@ from event.schemas.response import ListEventGroup
 from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
-from group.schemas.response import GroupMembersReport
+from group.schemas.response import GroupChart, GroupMembersReport
 from utils.exceptions import (
     CreateIsDenied,
     DeleteIsDenied,
@@ -121,6 +121,21 @@ class EventAPI(Controller):
     # ):
     #     self.service.remove_event_member(user=request.user, event_uid=event_uid)
     #     return True
+
+    @get(
+        "/{event_uid}/chart",
+        response=List[GroupChart],
+        exceptions=(EventNotFound, GetIsDenied),
+    )
+    def chart_expenses_in_event(
+        self,
+        request: AuthenticatedRequest,
+        event_uid: UUID,
+        year: int,
+    ):
+        return self.service.chart_expenses_in_event(
+            user=request.user, event_uid=event_uid, year=year
+        )
 
 
 @api(

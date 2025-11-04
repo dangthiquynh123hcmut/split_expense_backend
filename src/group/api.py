@@ -6,7 +6,7 @@ from ninja import Query
 from event.schemas.response import EventResponse
 from exceptions.group import GroupNotFound, LeaveIsDenied, UserNotInGroup
 from exceptions.users import UserNotFound
-from expense.schemas.response import ExpenseEvent
+from expense.schemas.response import NameExpense
 from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
@@ -15,7 +15,6 @@ from utils.router.permissions import IsAuthenticated
 from utils.schemas.filter_and_order_by import (
     FilterCurrencySchema,
     FilterFullNameSchema,
-    FilterMonthSchema,
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
@@ -27,6 +26,7 @@ from .schemas.response import (
     BalanceGroupResponse,
     CreateGroup,
     DetailGroup,
+    GroupChart,
     GroupMembersReport,
     GroupReport,
     GroupResponse,
@@ -168,7 +168,7 @@ class GroupAPI(Controller):
 
     @get(
         "/{group_uid}/expenses",
-        response=ExpenseEvent,
+        response=NameExpense,
         paginate=True,
         exceptions=(GroupNotFound, GetIsDenied),
     )
@@ -178,13 +178,11 @@ class GroupAPI(Controller):
         request: AuthenticatedRequest,
         group_uid: UUID,
         status: Literal["DELETED", "ACTIVE"] = "ACTIVE",
-        filter: FilterMonthSchema = Query(...),
     ):
         return self.service.list_expenses_in_a_group(
             user=request.user,
             group_uid=group_uid,
             status=status,
-            filter=filter,
         )
 
     @put(
@@ -228,4 +226,16 @@ class GroupAPI(Controller):
     ):
         return self.service.get_member_spending(
             user=request.user, group_uid=group_uid, currency=currency
+        )
+
+    @get(
+        "/{group_uid}/chart",
+        response=List[GroupChart],
+        exceptions=(GroupNotFound, GetIsDenied),
+    )
+    def chart_expenses_in_group(
+        self, request: AuthenticatedRequest, group_uid: UUID, year: int
+    ):
+        return self.service.chart_expenses_in_group(
+            user=request.user, group_uid=group_uid, year=year
         )

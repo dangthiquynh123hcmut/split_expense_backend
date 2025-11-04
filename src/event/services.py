@@ -133,3 +133,12 @@ class Service:
         return self.query.get_event_spending(
             event=event, total_amount=total_amount, currency=currency
         )
+
+    def chart_expenses_in_event(self, user: TUser, event_uid: UUID, year: int):
+        event = self.query.get_event(event_uid=event_uid)
+        if not event:
+            raise EventNotFound
+        is_member_in_event = self.query.get_event_has_user(user=user, event=event)
+        if not is_member_in_event:
+            raise GetIsDenied
+        return self.expense_query.chart_expenses(event=event, year=year)

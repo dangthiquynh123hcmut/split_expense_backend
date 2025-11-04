@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from django.db.models import Count, Sum
@@ -25,29 +25,42 @@ class Query:
         return
 
     @staticmethod
-    def list_expenses_in_event(user: TUser, event: Event):
-        queryset = (
-            UserSharesInExpense.objects.filter(
-                expense__event=event,
-                user=user,
-            )
-            .select_related("expense")
-            .order_by("expense__created_at")
+    def list_expenses_in_event(
+        user: User, event: Event, status: Literal["DELETED", "ACTIVE"] = "ACTIVE"
+    ):
+        expenses = list(
+            Expense.objects.filter(event=event, status=status).select_related("event")
         )
-        expenses: list[NameExpense] = [
-            NameExpense(
-                uid=share.expense.uid,
-                name=share.expense.name,
-                currency=share.expense.currency,
-                amount=-float(share.amount or 0)
-                if share.expense.paid_by != share.user
-                else float(share.receiver_amount or 0),
-                created_at=share.expense.created_at,
-                deleted=share.deleted,
+
+        user_shares = UserSharesInExpense.objects.filter(
+            expense__event=event,
+            user=user,
+        ).select_related("expense")
+
+        user_share_map = {share.expense_id: share for share in user_shares}
+        result = []
+
+        for expense in expenses:
+            share = user_share_map.get(expense.uid)
+            if share:
+                amount_value = (
+                    share.receiver_amount if (share.amount or 0) > 0 else share.amount
+                )
+                amount = float(amount_value or 0)
+            else:
+                amount = 0.0
+            result.append(
+                NameExpense(
+                    uid=expense.uid,
+                    name=expense.name,
+                    currency=expense.currency,
+                    amount=amount,
+                    created_at=expense.created_at,
+                    status=expense.status,
+                    event=expense.event.name,
+                )
             )
-            for share in queryset
-        ]
-        return expenses
+        return result
 
     @staticmethod
     def get_expense(expense_uid: UUID):
@@ -142,3 +155,20 @@ class Query:
             expense__user_shares_in_expense_fk_expense__deleted="ACTIVE",
             deleted="ACTIVE",
         ).count()
+
+    @staticmethod
+    def chart_expenses(
+        year: int, group: Optional[Group] = None, event: Optional[Event] = None
+    ):
+        queryset = Expense.objects.filter(created_at__year=year)
+
+        if group:
+            queryset = queryset.filter(event__group=group)
+        elif event:
+            queryset = queryset.filter(event=event)
+
+        return (
+            queryset.values("created_at__month")
+            .annotate(total_amount=Sum("total_amount"))
+            .order_by("created_at__month")
+        )

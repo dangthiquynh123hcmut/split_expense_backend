@@ -5,6 +5,7 @@ from uuid import UUID
 from django.db.models import CharField, F, Q, Value
 
 from authenticate.models import User
+from event.models import Event
 from group.models import Group
 from utils.schemas.filter_and_order_by import FilterGroupSchema
 from wallet.models import Transaction, WalletDeposit, Withdraw
@@ -57,3 +58,11 @@ class TransactionORM:
     @staticmethod
     def update_balance_in_wallet(uid: UUID, amount: Decimal):
         return User.objects.filter(uid=uid).update(balance=F("balance") + amount)
+
+    @staticmethod
+    def get_transactions_in_group(group: Group):
+        return Transaction.objects.filter(group=group).order_by("-created_at")
+
+    @staticmethod
+    def get_transactions_in_event(event: Event):
+        return Transaction.objects.filter(group__event=event).order_by("-created_at")

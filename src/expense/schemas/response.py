@@ -70,9 +70,8 @@ class NameExpense(Schema):
     currency: str
     amount: float
     created_at: datetime
-    deleted: Optional[str] = None
-
-
-class ExpenseEvent(Schema):
-    expense: List[NameExpense]
-    event: str
+    status: Optional[str] = None
+    category: Optional[str] = None
+    from_user: Optional[str] = None
+    to_user: Optional[str] = None
+    event: Optional[str] = None

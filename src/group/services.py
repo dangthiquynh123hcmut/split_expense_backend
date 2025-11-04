@@ -9,16 +9,17 @@ from event.queries import Query as EventQuery
 from exceptions.group import GroupNotFound, LeaveIsDenied, UserNotInGroup
 from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
+from expense.schemas.response import NameExpense
 from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
 from utils.schemas.filter_and_order_by import (
     FilterCurrencySchema,
     FilterFullNameSchema,
-    FilterMonthSchema,
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
 )
 from utils.types import TUser
+from wallet.orm.transaction import TransactionORM
 
 from .models import GroupMember
 from .queries import Query
@@ -32,6 +33,7 @@ class Service:
         self.user_query = UserQuery()
         self.expense_query = ExpenseQuery()
         self.event_query = EventQuery()
+        self.transaction_orm = TransactionORM()
 
     @transaction.atomic
     def create_group(self, leader: TUser, name: str, list_user_uids: List[UUID]):
@@ -191,7 +193,6 @@ class Service:
         user: TUser,
         group_uid: UUID,
         status: str,
-        filter: FilterMonthSchema,
     ):
         group = self.query.get_group_sync(group_uid=group_uid)
         if not group:
@@ -199,12 +200,35 @@ class Service:
         member = self.query.get_group_has_user(user=user, group=group)
         if not member:
             raise GetIsDenied
-        return self.query.list_expenses_in_a_group(
+        queryset = self.query.list_expenses_in_a_group(
             user=user,
             group=group,
             status=status,
-            filter=filter,
         )
+        transactions_query = self.transaction_orm.get_transactions_in_group(group=group)
+
+        if status == "ACTIVE":
+            transactions = [
+                NameExpense(
+                    uid=txn.uid,
+                    category="Transfer",
+                    currency=txn.currency,
+                    amount=float(txn.amount),
+                    created_at=txn.created_at,
+                    from_user=txn.from_user.full_name,
+                    to_user=txn.to_user.full_name,
+                    name=f"From {txn.from_user.full_name} to {txn.to_user.full_name}",
+                )
+                for txn in transactions_query
+            ]
+        else:
+            transactions = []
+
+        combined = queryset + transactions
+
+        combined_sorted = sorted(combined, key=lambda x: x.created_at, reverse=True)
+
+        return combined_sorted
 
     def update_group_leader(self, user: TUser, group_uid: UUID, new_leader: UUID):
         group = self.query.get_group_sync(group_uid=group_uid)
@@ -260,3 +284,12 @@ class Service:
         return self.query.get_member_spending(
             group=group, total_amount=total_amount, currency=currency
         )
+
+    def chart_expenses_in_group(self, user: TUser, group_uid: UUID, year: int):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        member = self.query.get_group_has_user(user=user, group=group)
+        if not member:
+            raise GetIsDenied
+        return self.expense_query.chart_expenses(group=group, year=year)

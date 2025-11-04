@@ -1,4 +1,3 @@
-from collections import defaultdict
 from decimal import Decimal
 from typing import List
 from uuid import UUID
@@ -22,7 +21,7 @@ from attachment.models import Attachment
 from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, UserSharesInExpense
-from expense.schemas.response import ExpenseEvent, NameExpense
+from expense.schemas.response import NameExpense
 from utils.schemas.filter_and_order_by import (
     FilterCurrencySchema,
     FilterFullNameSchema,
@@ -196,34 +195,39 @@ class Query:
         status: str,
         filter: FilterMonthSchema,
     ):
-        expense_members = (
-            UserSharesInExpense.objects.filter(
-                expense__event__group=group, expense__status=status, user=user
-            )
-            .select_related("expense", "expense__event")
-            .order_by("expense__event__name", "expense__created_at")
-        )
+        expenses = Expense.objects.filter(event__group=group, status=status)
         if filter:
-            expense_members = expense_members.filter(filter.get_filter_expression())
+            expenses = expenses.filter(filter.get_filter_expression())
 
-        grouped: dict[str, list[NameExpense]] = defaultdict(list)
+        user_shares = UserSharesInExpense.objects.filter(
+            expense__event__group=group,
+            user=user,
+        ).select_related("expense")
 
-        for share in expense_members:
-            grouped[share.expense.event.name].append(
+        user_share_map = {share.expense_id: share for share in user_shares}
+        expenses_result = []
+
+        for expense in expenses:
+            share = user_share_map.get(expense.uid)
+            if share:
+                amount_value = (
+                    share.receiver_amount if (share.amount or 0) > 0 else share.amount
+                )
+                amount = float(amount_value or 0)
+            else:
+                amount = 0.0
+            expenses_result.append(
                 NameExpense(
-                    uid=share.expense.uid,
-                    name=share.expense.name,
-                    currency=share.expense.currency,
-                    amount=float(share.amount),
-                    created_at=share.expense.created_at,
-                    deleted=share.deleted,
+                    uid=expense.uid,
+                    name=expense.name,
+                    currency=expense.currency,
+                    amount=amount,
+                    created_at=expense.created_at,
+                    status=expense.status,
+                    event=expense.event.name,
                 )
             )
-        result: list[ExpenseEvent] = [
-            ExpenseEvent(event=event_name, expense=expenses)
-            for event_name, expenses in grouped.items()
-        ]
-        return result
+        return expenses_result
 
     @staticmethod
     def list_member_balances(group: Group, currency: str):

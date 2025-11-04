@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from authenticate.api import AuthenticatedRequest
@@ -107,7 +108,8 @@ class ListExpenseAPI(Controller):
         self,
         request: AuthenticatedRequest,
         event_uid: UUID,
+        status: Literal["DELETED", "ACTIVE"] = "ACTIVE",
     ):
         return self.service.list_expenses_in_event(
-            user=request.user, event_uid=event_uid
+            user=request.user, event_uid=event_uid, status=status
         )

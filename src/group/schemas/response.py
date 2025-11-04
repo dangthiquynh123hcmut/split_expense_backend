@@ -80,3 +80,8 @@ class GroupReport(Schema):
     shared_expenses: int = 0
     total_amount: float = 0.0
     members: int
+
+
+class GroupChart(Schema):
+    month: int = Field(..., alias="created_at__month")
+    total_amount: float
