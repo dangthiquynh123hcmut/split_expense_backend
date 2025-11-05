@@ -6,29 +6,33 @@ from django.db.models import CharField, F, Q, Value
 
 from authenticate.models import User
 from group.models import Group
-from utils.schemas.filter_and_order_by import FilterGroupSchema
+from utils.schemas.filter_and_order_by import (
+    FilterDateAndAmountSchema,
+    FilterGroupSchema,
+)
 from wallet.models import Transaction, WalletDeposit, Withdraw
 
 
 class TransactionORM:
     @staticmethod
-    def get_external_transaction_history(user: User):
+    def get_external_transaction_history(user: User, filter: FilterDateAndAmountSchema):
         deposits = (
             WalletDeposit.objects.filter(user=user)
             .annotate(type=Value("deposit", output_field=CharField()))
-            .values("uid", "type", "amount", "currency", "code", "date")
+            .values("uid", "type", "amount", "currency", "code", "created_at")
         )
-
         withdraws = (
             Withdraw.objects.filter(user=user)
             .annotate(
                 type=Value("withdraw", output_field=CharField()),
                 currency=Value(user.currency, output_field=CharField()),
             )
-            .values("uid", "type", "amount", "currency", "code", "date")
+            .values("uid", "type", "amount", "currency", "code", "created_at")
         )
-
-        return deposits.union(withdraws).order_by("-date")
+        if filter:
+            deposits = deposits.filter(filter.get_filter_expression())
+            withdraws = withdraws.filter(filter.get_filter_expression())
+        return deposits.union(withdraws).order_by("-created_at")
 
     @staticmethod
     def create_transaction(
@@ -48,10 +52,16 @@ class TransactionORM:
         )
 
     @staticmethod
-    def list_transactions(user: User, filter: FilterGroupSchema):
+    def list_transactions(
+        user: User,
+        filter: FilterGroupSchema,
+        filter_date_and_amount: FilterDateAndAmountSchema,
+    ):
         queryset = Transaction.objects.filter(Q(from_user=user) | Q(to_user=user))
         if filter:
             queryset = queryset.filter(filter.get_filter_expression())
+        if filter_date_and_amount:
+            queryset = queryset.filter(filter_date_and_amount.get_filter_expression())
         return queryset.order_by("-created_at")
 
     @staticmethod

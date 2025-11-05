@@ -23,7 +23,7 @@ class WithdrawService:
             user=user,
             bank_name=payload.bank_name,
         )
-        if bank_account is None:
+        if not bank_account:
             raise BankAccountNotFound
         self.user_query.update_balance(user=user, amount=-payload.amount)
         return self.query.withdraw(

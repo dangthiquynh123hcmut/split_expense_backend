@@ -14,11 +14,16 @@ from exceptions.users import UserNotFound
 from expense.models import Expense, UserSharesInExpense
 from expense.queries import Query
 from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
-from expense.schemas.response import UserExpense
+from expense.schemas.response import ListExpenseUser, UserExpense
 from group.models import GroupMemberBalance, RestructureDebt
 from group.queries import Query as GroupQuery
 from utils.exceptions import GetIsDenied
 from utils.functions.debt_simplification import simplify_minflow
+from utils.schemas.filter_and_order_by import (
+    FilterAmountSchema,
+    FilterDateSchema,
+    FilterEventSchema,
+)
 from utils.types import TUser
 from wallet.orm.transaction import TransactionORM
 
@@ -328,3 +333,46 @@ class Service:
             currency=expense.currency,
         )
         return expense
+
+    def list_expenses_by_user(
+        self,
+        user: TUser,
+        status: str,
+        filter: FilterDateSchema,
+        filter_amount: FilterAmountSchema,
+        filter_name: FilterEventSchema,
+    ):
+        query_set = self.query.list_expenses_by_user(
+            user=user, status=status, filter=filter, filter_name=filter_name
+        )
+        expenses: list[ListExpenseUser] = [
+            ListExpenseUser(
+                uid=share.expense.uid,
+                name=share.expense.name,
+                currency=share.expense.currency,
+                amount=-float(share.amount or 0)
+                if share.expense.paid_by != share.user
+                else float(share.receiver_amount or 0),
+                created_at=share.expense.created_at,
+                status=share.deleted,
+                category=share.expense.category,
+                event=share.expense.event.name,
+            )
+            for share in query_set
+        ]
+        if filter_amount.max_amount is not None:
+            expenses = [e for e in expenses if e.amount <= filter_amount.max_amount]
+
+        if filter_amount.min_amount is not None:
+            expenses = [e for e in expenses if e.amount >= filter_amount.min_amount]
+        if filter_name.group is not None:
+            expenses = [e for e in expenses if e.event.group == filter_name.group]  # type: ignore
+        if filter_name.event is not None:
+            expenses = [e for e in expenses if e.event == filter_name.event]
+        if filter_name.category is not None:
+            expenses = [e for e in expenses if e.category == filter_name.category]
+
+        return expenses
+
+    def transaction_chart(self, user: TUser, year: int):
+        return self.query.transaction_chart(user=user, year=year)

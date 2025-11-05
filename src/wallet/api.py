@@ -16,7 +16,10 @@ from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, get, post
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
-from utils.schemas.filter_and_order_by import FilterGroupSchema
+from utils.schemas.filter_and_order_by import (
+    FilterDateAndAmountSchema,
+    FilterGroupSchema,
+)
 from utils.types import AuthenticatedRequest
 from wallet.schemas.response import (
     ListTransactionResponse,
@@ -51,9 +54,14 @@ class WalletAPI(Controller):
 
     @get("/external", response=TransactionHistoryResponse, paginate=True)
     @paginate
-    def get_external_transaction_history(self, request: AuthenticatedRequest):
+    def get_external_transaction_history(
+        self,
+        request: AuthenticatedRequest,
+        filter: FilterDateAndAmountSchema = Query(...),
+    ):
         return self.transaction_service.get_external_transaction_history(
-            user=request.user
+            user=request.user,
+            filter=filter,
         )
 
     @get(
@@ -101,9 +109,12 @@ class WalletAPI(Controller):
         self,
         request: AuthenticatedRequest,
         filter: FilterGroupSchema = Query(...),
+        filter_date_and_amount: FilterDateAndAmountSchema = Query(...),
     ):
         return self.transaction_service.list_transactions(
-            user=request.user, filter=filter
+            user=request.user,
+            filter=filter,
+            filter_date_and_amount=filter_date_and_amount,
         )
 
 

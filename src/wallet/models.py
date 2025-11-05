@@ -94,7 +94,7 @@ class WalletDeposit(BaseModel):
         choices=CurrencyEnum.choices,
         default=CurrencyEnum.VND,
     )
-    date = models.DateTimeField(
+    created_at = models.DateTimeField(
         auto_now_add=True,
     )
     code = models.CharField(
@@ -149,7 +149,7 @@ class Withdraw(models.Model):
         unique=True,
         editable=False,
     )
-    date = models.DateTimeField(
+    created_at = models.DateTimeField(
         auto_now_add=True,
     )
 

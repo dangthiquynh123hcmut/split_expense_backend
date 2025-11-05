@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Literal, Optional
 from uuid import UUID
 
-from ninja import ModelSchema, Schema
+from ninja import Field, ModelSchema, Schema
 
 from bank_account.schemas.responses import BankAccountResponse
 from user.schemas.response import UserResponse
@@ -31,7 +31,7 @@ class TransactionHistoryResponse(Schema):
     amount: Decimal
     currency: Optional[str] = None
     code: str
-    date: datetime
+    date: datetime = Field(..., alias="created_at")
 
 
 class TransactionResponse(Schema):

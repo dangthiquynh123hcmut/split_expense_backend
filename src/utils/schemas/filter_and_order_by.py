@@ -39,23 +39,56 @@ class FilterNameSchema(FilterSchema):
 
 
 class FilterGroupSchema(FilterSchema):
-    search: Optional[str] = FilterField(
+    group_name: Optional[str] = FilterField(
         default=None, description="Search by group name"
     )
     group_id: Optional[UUID] = FilterField(
         default=None, description="Filter by group uid"
     )
 
-    def get_filter_q(self) -> Q:
+    def get_filter_expression(self) -> Q:
         q = Q()
-        if self.search:
-            q &= Q(name__icontains=remove_accents(self.search))
+        if self.group_name:
+            q &= Q(group__name=remove_accents(self.group_name))
         if self.group_id:
             q &= Q(group_id=self.group_id)
         return q
 
 
-class FilterMonthSchema(FilterSchema):
+class FilterEventSchema(FilterSchema):
+    event: Optional[str] = FilterField(default=None, description="Filter by event name")
+    group: Optional[str] = FilterField(default=None, description="Filter by group name")
+    category: Optional[str] = FilterField(
+        default=None, description="Filter by category name"
+    )
+
+
+class FilterDateAndAmountSchema(FilterSchema):
+    start: datetime = FilterField(
+        default=None, description="Filter by created at, between start and end"
+    )
+    end: datetime = FilterField(
+        default=None, description="Filter by created at, between start and end"
+    )
+    min_amount: Optional[float] = FilterField(
+        default=None, description="Filter from min amount"
+    )
+    max_amount: Optional[float] = FilterField(
+        default=None, description="Filter to max amount"
+    )
+
+    def get_filter_expression(self):
+        q = Q()
+        if self.start and self.end:
+            q &= Q(created_at__gte=self.start, created_at__lte=self.end)
+        if self.min_amount:
+            q &= Q(amount__gte=self.min_amount)
+        if self.max_amount:
+            q &= Q(amount__lte=self.max_amount)
+        return q
+
+
+class FilterDateSchema(FilterSchema):
     start: datetime = FilterField(
         default=None, description="Filter by created at, between start and end"
     )
@@ -68,6 +101,15 @@ class FilterMonthSchema(FilterSchema):
         if self.start and self.end:
             q &= Q(created_at__gte=self.start, created_at__lte=self.end)
         return q
+
+
+class FilterAmountSchema(FilterSchema):
+    min_amount: Optional[float] = FilterField(
+        default=None, description="Filter from min amount"
+    )
+    max_amount: Optional[float] = FilterField(
+        default=None, description="Filter to max amount"
+    )
 
 
 class OrderByNameAndUpdatedAtSchema(OrderBySchema):

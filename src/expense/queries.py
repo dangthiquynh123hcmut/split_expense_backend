@@ -9,6 +9,7 @@ from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
 from expense.schemas.request import UpdateExpenseRequest
 from expense.schemas.response import NameExpense
 from group.models import Group
+from utils.schemas.filter_and_order_by import FilterDateSchema, FilterEventSchema
 from utils.types import TUser
 
 
@@ -172,5 +173,33 @@ class Query:
         return (
             queryset.values("created_at__month")
             .annotate(total_amount=Sum("total_amount"))
+            .order_by("created_at__month")
+        )
+
+    @staticmethod
+    def list_expenses_by_user(
+        user: TUser,
+        status: str,
+        filter: FilterDateSchema,
+        filter_name: FilterEventSchema,
+    ):
+        if filter_name.group is not None:
+            queryset = UserSharesInExpense.objects.filter(
+                user=user, deleted=status, expense__event__group__name=filter_name.group
+            )
+        else:
+            queryset = UserSharesInExpense.objects.filter(user=user, deleted=status)
+        if filter:
+            queryset = queryset.filter(filter.get_filter_expression())
+        return queryset
+
+    @staticmethod
+    def transaction_chart(user: TUser, year: int):
+        return (
+            UserSharesInExpense.objects.filter(
+                user=user, created_at__year=year, deleted="ACTIVE"
+            )
+            .values("created_at__month")
+            .annotate(total_amount=Sum("amount"))
             .order_by("created_at__month")
         )

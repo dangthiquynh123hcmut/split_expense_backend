@@ -12,7 +12,10 @@ from utils.functions.transfer_token import (
     generate_transfer_token,
     verify_transfer_token,
 )
-from utils.schemas.filter_and_order_by import FilterGroupSchema
+from utils.schemas.filter_and_order_by import (
+    FilterDateAndAmountSchema,
+    FilterGroupSchema,
+)
 from wallet.orm.transaction import TransactionORM
 from wallet.schemas.request import TransferRequest, VerifyPinRequest
 from wallet.schemas.response import ListTransactionResponse, TransactionResponse
@@ -25,8 +28,11 @@ class TransactionService:
         self.group_query = GroupQuery()
         self.expense_query = ExpenseQuery()
 
-    def get_external_transaction_history(self, user: User):
-        return self.query.get_external_transaction_history(user=user)
+    def get_external_transaction_history(
+        self, user: User, filter: FilterDateAndAmountSchema
+    ):
+        query = self.query.get_external_transaction_history(user=user, filter=filter)
+        return query
 
     def verify_pin(self, user: User, payload: VerifyPinRequest):
         if (
@@ -101,8 +107,15 @@ class TransactionService:
             created_at=transaction.created_at,
         )
 
-    def list_transactions(self, user: User, filter: FilterGroupSchema):
-        transactions = self.query.list_transactions(user=user, filter=filter)
+    def list_transactions(
+        self,
+        user: User,
+        filter: FilterGroupSchema,
+        filter_date_and_amount: FilterDateAndAmountSchema,
+    ):
+        transactions = self.query.list_transactions(
+            user=user, filter=filter, filter_date_and_amount=filter_date_and_amount
+        )
         list_transaction = []
         for trans in transactions:
             list_transaction.append(

@@ -25,7 +25,6 @@ from expense.schemas.response import NameExpense
 from utils.schemas.filter_and_order_by import (
     FilterCurrencySchema,
     FilterFullNameSchema,
-    FilterMonthSchema,
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
@@ -193,12 +192,8 @@ class Query:
         user: User,
         group: Group,
         status: str,
-        filter: FilterMonthSchema,
     ):
         expenses = Expense.objects.filter(event__group=group, status=status)
-        if filter:
-            expenses = expenses.filter(filter.get_filter_expression())
-
         user_shares = UserSharesInExpense.objects.filter(
             expense__event__group=group,
             user=user,

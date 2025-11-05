@@ -75,3 +75,14 @@ class NameExpense(Schema):
     from_user: Optional[str] = None
     to_user: Optional[str] = None
     event: Optional[str] = None
+
+
+class ListExpenseUser(Schema):
+    uid: UUID
+    name: str
+    currency: str
+    amount: float
+    created_at: datetime
+    status: Optional[str] = None
+    category: Optional[str] = None
+    event: Optional[str] = None

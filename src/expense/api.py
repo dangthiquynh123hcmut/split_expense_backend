@@ -1,5 +1,7 @@
-from typing import Literal
+from typing import List, Literal
 from uuid import UUID
+
+from ninja import Query
 
 from authenticate.api import AuthenticatedRequest
 from event.services import Service as EventService
@@ -7,13 +9,24 @@ from exceptions.event import EventNotFound
 from exceptions.expense import ExpenseNotFound, ListMemberNotMatch
 from exceptions.users import UserNotFound
 from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
-from expense.schemas.response import CreateExpense, ExpenseResponse, NameExpense
+from expense.schemas.response import (
+    CreateExpense,
+    ExpenseResponse,
+    ListExpenseUser,
+    NameExpense,
+)
 from expense.service import Service
+from group.schemas.response import GroupChart
 from utils.exceptions import GetIsDenied
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, delete, get, post, put
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
+from utils.schemas.filter_and_order_by import (
+    FilterAmountSchema,
+    FilterDateSchema,
+    FilterEventSchema,
+)
 
 
 @api(
@@ -113,3 +126,36 @@ class ListExpenseAPI(Controller):
         return self.service.list_expenses_in_event(
             user=request.user, event_uid=event_uid, status=status
         )
+
+    @get(
+        "/transaction",
+        response=ListExpenseUser,
+        paginate=True,
+    )
+    @paginate
+    def list_expenses_by_user(
+        self,
+        request: AuthenticatedRequest,
+        status: Literal["DELETED", "ACTIVE"] = "ACTIVE",
+        filter: FilterDateSchema = Query(...),
+        filter_amount: FilterAmountSchema = Query(...),
+        filter_name: FilterEventSchema = Query(...),
+    ):
+        return self.service.list_expenses_by_user(
+            user=request.user,
+            status=status,
+            filter=filter,
+            filter_amount=filter_amount,
+            filter_name=filter_name,
+        )
+
+    @get(
+        "/transaction-chart",
+        response=List[GroupChart],
+    )
+    def transaction_chart(
+        self,
+        request: AuthenticatedRequest,
+        year: int,
+    ):
+        return self.service.transaction_chart(user=request.user, year=year)
