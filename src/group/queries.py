@@ -220,6 +220,7 @@ class Query:
                     created_at=expense.created_at,
                     status=expense.status,
                     event=expense.event.name,
+                    category=expense.category,
                 )
             )
         return expenses_result
