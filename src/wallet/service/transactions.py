@@ -13,6 +13,7 @@ from utils.functions.transfer_token import (
     verify_transfer_token,
 )
 from utils.schemas.filter_and_order_by import (
+    FilterCodeSchema,
     FilterDateAndAmountSchema,
     FilterGroupSchema,
 )
@@ -29,9 +30,14 @@ class TransactionService:
         self.expense_query = ExpenseQuery()
 
     def get_external_transaction_history(
-        self, user: User, filter: FilterDateAndAmountSchema
+        self,
+        user: User,
+        filter_code: FilterCodeSchema,
+        filter: FilterDateAndAmountSchema,
     ):
-        query = self.query.get_external_transaction_history(user=user, filter=filter)
+        query = self.query.get_external_transaction_history(
+            user=user, filter_code=filter_code, filter=filter
+        )
         return query
 
     def verify_pin(self, user: User, payload: VerifyPinRequest):

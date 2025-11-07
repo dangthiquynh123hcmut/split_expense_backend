@@ -17,6 +17,7 @@ from utils.router.controller import Controller, api, get, post
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
 from utils.schemas.filter_and_order_by import (
+    FilterCodeSchema,
     FilterDateAndAmountSchema,
     FilterGroupSchema,
 )
@@ -57,10 +58,12 @@ class WalletAPI(Controller):
     def get_external_transaction_history(
         self,
         request: AuthenticatedRequest,
+        filter_code: FilterCodeSchema = Query(...),
         filter: FilterDateAndAmountSchema = Query(...),
     ):
         return self.transaction_service.get_external_transaction_history(
             user=request.user,
+            filter_code=filter_code,
             filter=filter,
         )
 

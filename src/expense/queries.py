@@ -38,6 +38,7 @@ class Query:
         user_shares = UserSharesInExpense.objects.filter(
             expense__event=event,
             user=user,
+            deleted=status,
         ).select_related("expense")
 
         user_share_map = {share.expense_id: share for share in user_shares}
@@ -47,7 +48,9 @@ class Query:
             share = user_share_map.get(expense.uid)
             if share:
                 amount_value = (
-                    share.receiver_amount if (share.amount or 0) > 0 else share.amount
+                    share.receiver_amount
+                    if (share.receiver_amount or 0) > 0
+                    else share.amount
                 )
                 amount = float(amount_value or 0)
             else:
@@ -162,18 +165,21 @@ class Query:
 
     @staticmethod
     def chart_expenses(
-        year: int, group: Optional[Group] = None, event: Optional[Event] = None
+        user: TUser,
+        year: int,
+        group: Optional[Group] = None,
+        event: Optional[Event] = None,
     ):
-        queryset = Expense.objects.filter(created_at__year=year)
+        queryset = UserSharesInExpense.objects.filter(user=user, created_at__year=year)
 
         if group:
-            queryset = queryset.filter(event__group=group)
+            queryset = queryset.filter(expense__event__group=group)
         elif event:
-            queryset = queryset.filter(event=event)
+            queryset = queryset.filter(expense__event=event, deleted="ACTIVE")
 
         return (
             queryset.values("created_at__month")
-            .annotate(total_amount=Sum("total_amount"))
+            .annotate(total_amount=Sum("amount"))
             .order_by("created_at__month")
         )
 
@@ -190,6 +196,8 @@ class Query:
             )
         else:
             queryset = UserSharesInExpense.objects.filter(user=user, deleted=status)
+        if filter_name.name is not None:
+            queryset = queryset.filter(filter_name.get_filter_expression())
         if filter:
             queryset = queryset.filter(filter.get_filter_expression())
         return queryset

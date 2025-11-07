@@ -7,6 +7,7 @@ from django.db.models import CharField, F, Q, Value
 from authenticate.models import User
 from group.models import Group
 from utils.schemas.filter_and_order_by import (
+    FilterCodeSchema,
     FilterDateAndAmountSchema,
     FilterGroupSchema,
 )
@@ -15,7 +16,9 @@ from wallet.models import Transaction, WalletDeposit, Withdraw
 
 class TransactionORM:
     @staticmethod
-    def get_external_transaction_history(user: User, filter: FilterDateAndAmountSchema):
+    def get_external_transaction_history(
+        user: User, filter_code: FilterCodeSchema, filter: FilterDateAndAmountSchema
+    ):
         deposits = (
             WalletDeposit.objects.filter(user=user)
             .annotate(type=Value("deposit", output_field=CharField()))
@@ -29,6 +32,9 @@ class TransactionORM:
             )
             .values("uid", "type", "amount", "currency", "code", "created_at")
         )
+        if filter_code:
+            deposits = deposits.filter(filter_code.get_filter_expression())
+            withdraws = withdraws.filter(filter_code.get_filter_expression())
         if filter:
             deposits = deposits.filter(filter.get_filter_expression())
             withdraws = withdraws.filter(filter.get_filter_expression())

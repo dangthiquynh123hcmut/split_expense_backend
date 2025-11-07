@@ -197,6 +197,7 @@ class Query:
         user_shares = UserSharesInExpense.objects.filter(
             expense__event__group=group,
             user=user,
+            deleted=status,
         ).select_related("expense")
 
         user_share_map = {share.expense_id: share for share in user_shares}
@@ -206,7 +207,9 @@ class Query:
             share = user_share_map.get(expense.uid)
             if share:
                 amount_value = (
-                    share.receiver_amount if (share.amount or 0) > 0 else share.amount
+                    share.receiver_amount
+                    if (share.receiver_amount or 0) > 0
+                    else share.amount
                 )
                 amount = float(amount_value or 0)
             else:

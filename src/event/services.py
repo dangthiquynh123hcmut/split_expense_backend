@@ -141,4 +141,4 @@ class Service:
         is_member_in_event = self.query.get_event_has_user(user=user, event=event)
         if not is_member_in_event:
             raise GetIsDenied
-        return self.expense_query.chart_expenses(event=event, year=year)
+        return self.expense_query.chart_expenses(user=user, event=event, year=year)

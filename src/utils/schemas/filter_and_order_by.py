@@ -39,20 +39,37 @@ class FilterNameSchema(FilterSchema):
 
 
 class FilterGroupSchema(FilterSchema):
-    group_name: Optional[str] = FilterField(
-        default=None, description="Search by group name"
+    name: Optional[str] = FilterField(
+        default=None, description="Search by group name, username "
     )
+    code: Optional[str] = FilterField(default=None, description="Filter by code")
     group_id: Optional[UUID] = FilterField(
         default=None, description="Filter by group uid"
     )
 
     def get_filter_expression(self) -> Q:
         q = Q()
-        if self.group_name:
-            q &= Q(group__name=remove_accents(self.group_name))
+        if self.name:
+            name_filter = (
+                Q(group__name__icontains=remove_accents(self.name))
+                | Q(from_user__full_name_no_accent__icontains=remove_accents(self.name))
+                | Q(to_user__full_name_no_accent__icontains=remove_accents(self.name))
+            )
+            q &= name_filter
+        if self.code:
+            q &= Q(code__icontains=self.code)
         if self.group_id:
             q &= Q(group_id=self.group_id)
         return q
+
+
+class FilterCodeSchema(FilterSchema):
+    code: Optional[str] = FilterField(default=None, description="Filter by code")
+
+    def get_filter_expression(self):
+        if self.code is None:
+            return Q()
+        return Q(code__icontains=self.code)
 
 
 class FilterEventSchema(FilterSchema):
@@ -61,6 +78,13 @@ class FilterEventSchema(FilterSchema):
     category: Optional[str] = FilterField(
         default=None, description="Filter by category name"
     )
+    name: Optional[str] = FilterField(default=None, description="Filter by name")
+
+    def get_filter_expression(self):
+        q = Q()
+        if self.name:
+            q &= Q(expense__name__icontains=self.name)
+        return q
 
 
 class FilterDateAndAmountSchema(FilterSchema):
