@@ -10,6 +10,8 @@ from exceptions.group import GroupNotFound, LeaveIsDenied, UserNotInGroup
 from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
 from expense.schemas.response import NameExpense
+from message.orm.notification_queries import NotificationORM
+from utils.enums import NotificationTypeEnum
 from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
 from utils.schemas.filter_and_order_by import (
     FilterCurrencySchema,
@@ -18,6 +20,7 @@ from utils.schemas.filter_and_order_by import (
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
 )
+from utils.services.fcm_service import FCMService
 from utils.types import TUser
 from wallet.orm.transaction import TransactionORM
 
@@ -34,6 +37,8 @@ class Service:
         self.expense_query = ExpenseQuery()
         self.event_query = EventQuery()
         self.transaction_orm = TransactionORM()
+        self.fcm_service = FCMService()
+        self.notification_orm = NotificationORM()
 
     @transaction.atomic
     def create_group(self, leader: TUser, name: str, list_user_uids: List[UUID]):
@@ -44,6 +49,18 @@ class Service:
         group_members = [GroupMember(group=group, user=member) for member in members]
         group_members.append(GroupMember(group=group, user=leader))
         self.query.create_group_members(group_members=group_members)
+        self.fcm_service.send_multicast_notification(
+            token=[member.user.fcm_token for member in group_members],
+            title="Group created",
+            body=f"{leader.full_name} have created a group {name}",
+        )
+        self.notification_orm.create_notification(
+            from_user=leader,
+            content=f"{leader.full_name} have created a group {name}",
+            type=NotificationTypeEnum.GROUP_CREATED,
+            related_uid=group.uid,
+            to_users=[member.user for member in group_members],
+        )
         return group
 
     def list_groups(
@@ -91,6 +108,14 @@ class Service:
                 if deleted_member.total_amount != 0:
                     raise DeleteIsDenied
             self.query.delete_group_members(group_members=deleted_members)
+        members = self.query.list_group_members_not_filter(group=group)
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{user.full_name} have updated a group {group.name}",
+            type=NotificationTypeEnum.GROUP_UPDATED,
+            related_uid=group.uid,
+            to_users=[member.user for member in members],
+        )
         return group
 
     def leave_group(self, user: TUser, group_uid: UUID):
@@ -103,7 +128,8 @@ class Service:
             raise UserNotInGroup
         if member.total_amount != 0:
             raise LeaveIsDenied
-        return self.query.leave_group(user=user, group=group)
+        query = self.query.leave_group(user=user, group=group)
+        return query
 
     def delete_group(self, user: TUser, group_uid: UUID):
         group = self.query.get_group_sync(group_uid=group_uid)
@@ -237,8 +263,17 @@ class Service:
         member = self.query.get_group_has_user(user=user, group=group)
         if not member or group.leader != user:
             raise UpdatedIsDenied
-        new_leader = self.user_query.get_user_by_uid(uid=new_leader)
-        self.query.update_group_leader(group=group, new_leader=new_leader)
+        leader = self.user_query.get_user_by_uid(uid=new_leader)
+        self.query.update_group_leader(group=group, leader=leader)
+        members = self.query.list_group_members_not_filter(group=group)
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{leader.full_name} is new leader of group {group.name}",
+            type=NotificationTypeEnum.GROUP_UPDATED,
+            related_uid=group.uid,
+            to_users=[member.user for member in members],
+        )
+        return group
 
     def get_balances_by_group_and_member(
         self,

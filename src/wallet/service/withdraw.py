@@ -6,6 +6,7 @@ from authenticate.models import User
 from bank_account.queries import Query as BankAccountQuery
 from exceptions.wallet import BankAccountNotFound
 from user.queries import Query as UserQuery
+from utils.services.fcm_service import FCMService
 from wallet.orm.withdraw import WithdrawORM
 from wallet.schemas.request import WithdrawRequest
 
@@ -15,6 +16,7 @@ class WithdrawService:
         self.query = WithdrawORM()
         self.bank_account_query = BankAccountQuery()
         self.user_query = UserQuery()
+        self.fcm_service = FCMService()
 
     @transaction.atomic
     def withdraw(self, user: User, payload: WithdrawRequest):
@@ -26,6 +28,11 @@ class WithdrawService:
         if not bank_account:
             raise BankAccountNotFound
         self.user_query.update_balance(user=user, amount=-payload.amount)
+        self.fcm_service.send_notification(
+            token=user.fcm_token,
+            title="Withdrawal Request",
+            body=f"You have requested to withdraw {payload.amount} from your bank account.",
+        )
         return self.query.withdraw(
             user=user, bank_account=bank_account[0], amount=payload.amount
         )

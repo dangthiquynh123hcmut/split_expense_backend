@@ -68,6 +68,7 @@ class User(AbstractUser):
     )
     pin = models.CharField(max_length=128, blank=True, null=True)
     uid = models.UUIDField(default=uuid4, unique=True, editable=False, primary_key=True)
+    fcm_token = models.CharField(max_length=255, blank=True, null=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["full_name"]

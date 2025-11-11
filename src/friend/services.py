@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from django.db import transaction
+
 from authenticate.models import User
 from event.queries import Query as EventQuery
 from exceptions.friends import FriendHasRelation, FriendshipNotFound
@@ -7,7 +9,10 @@ from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
 from friend.schemas.response import FriendResponse, RequestAddFriend
 from group.queries import Query as GroupQuery
+from message.orm.notification_queries import NotificationORM
 from user.schemas.response import UserResponse
+from utils.enums import NotificationTypeEnum
+from utils.services.fcm_service import FCMService
 from utils.types import TUser
 
 from .queries import Query
@@ -21,6 +26,8 @@ class FriendService:
         self.group_query = GroupQuery()
         self.event_query = EventQuery()
         self.expense_query = ExpenseQuery()
+        self.fcm_service = FCMService()
+        self.notification_orm = NotificationORM()
 
     def get_friend_by_uid(self, uid: UUID) -> User:
         friend = self.query.get_friend_by_uid(uid=uid)
@@ -28,15 +35,31 @@ class FriendService:
             raise UserNotFound
         return friend
 
+    @transaction.atomic
     def send_friend_request(self, user: TUser, data: AddFriendRequest):
         friend = self.get_friend_by_uid(uid=data.receiver_uid)
         if self.query.find_relationship(user=user, friend=friend):
             raise FriendHasRelation
         if user.uid == friend.uid:
             raise FriendHasRelation
-        return self.query.send_friend_request(
+        friendship = self.query.send_friend_request(
             user=user, message=data.message, friend=friend
         )
+
+        self.fcm_service.send_notification(
+            token=friend.fcm_token,
+            title="Friend request",
+            body=f"You have received a friend request from {user.full_name}",
+        )
+
+        self.notification_orm.create_notification(
+            from_user=user,
+            related_uid=friendship.uid,
+            content=data.message,
+            type=NotificationTypeEnum.FRIEND_REQUEST,
+            to_users=[friend],
+        )
+        return friendship
 
     def list_friends(
         self, user: TUser, filter: FilterFriendSchema, order_by: OrderByUserSchema
@@ -107,10 +130,24 @@ class FriendService:
         if request_type == "Sent":
             return list_sent
 
+    @transaction.atomic
     def accept_request_friend(self, friendship_uid: UUID):
         friendship = self.query.accept_request_friend(friendship_uid=friendship_uid)
         if not friendship:
             raise FriendshipNotFound
+        self.fcm_service.send_notification(
+            token=friendship.user.fcm_token,
+            title="Friend request",
+            body=f"{friendship.friend.full_name} accepted your friend request",
+        )
+        self.notification_orm.create_notification(
+            from_user=friendship.friend,
+            related_uid=friendship.uid,
+            content=f"{friendship.friend.full_name} accepted your friend request",
+            type=NotificationTypeEnum.FRIEND_ACCEPTED,
+            to_users=[friendship.user],
+        )
+        return
 
     def remove_or_reject_friend(self, friendship_uid: UUID):
         friendship = self.query.remove_or_reject_friend(friendship_uid=friendship_uid)

@@ -249,8 +249,8 @@ class Query:
         ).delete()
 
     @staticmethod
-    def update_group_leader(group: Group, new_leader: TUser):
-        group.leader = new_leader
+    def update_group_leader(group: Group, leader: TUser):
+        group.leader = leader
         group.save()
         return
 

@@ -266,3 +266,28 @@ class SplitTypeEnum(TextChoices):
 class SortTypeEnum(Enum):
     ASC = "asc"
     DESC = "desc"
+
+
+@unique
+class NotificationTypeEnum(TextChoices):
+    FRIEND_REQUEST = "FRIEND_REQUEST", "Friend Request"
+    FRIEND_ACCEPTED = "FRIEND_ACCEPTED", "Friend Accepted"
+    REMINDER = "REMINDER", "Reminder"
+
+    TRANSFER = "TRANSFER", "Transfer"
+    DEPOSIT = "DEPOSIT", "Deposit"
+    WITHDRAW = "WITHDRAW", "Withdraw"
+
+    GROUP_CREATED = "GROUP_CREATED", "Group Created"
+    GROUP_UPDATED = "GROUP_UPDATED", "Group Updated"
+    GROUP_LEFT = "GROUP_LEFT", "Group Left"
+
+    EVENT_CREATED = "EVENT_CREATED", "Event Created"
+    EVENT_UPDATED = "EVENT_UPDATED", "Event Updated"
+    EVENT_DELETED = "EVENT_DELETED", "Event Deleted"
+
+    EXPENSE_CREATED = "EXPENSE_CREATED", "Expense Created"
+    EXPENSE_UPDATED = "EXPENSE_UPDATED", "Expense Updated"
+    EXPENSE_RESTORED = "EXPENSE_RESTORED", "Expense Restored"
+    EXPENSE_SOFT_DELETED = "EXPENSE_SOFT_DELETED", "Expense Soft Deleted"
+    EXPENSE_HARD_DELETED = "EXPENSE_HARD_DELETED", "Expense Hard Deleted"

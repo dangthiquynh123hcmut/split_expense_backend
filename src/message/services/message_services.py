@@ -5,21 +5,21 @@ from django.utils import timezone
 
 from exceptions.group import GroupNotFound
 from group.queries import Query as GroupQuery
-from message.queries import Query
+from message.orm.message_queries import MessageORM
 from message.schemas.request import MessageFilter, MessageIn
 from utils.exceptions import GetIsDenied
 from utils.types import TUser
 
 
-class Service:
+class MessageService:
     def __init__(self):
-        self.query = Query()
+        self.message_orm = MessageORM()
         self.group_query = GroupQuery()
         self.channel_layer = get_channel_layer()
 
     async def sent_message(self, user: TUser, group_uid: UUID, message: MessageIn):
         group = await self.group_query.get_group(group_uid=group_uid)
-        result = await self.query.create_message(
+        result = await self.message_orm.create_message(
             user=user, group=group, message=message
         )
 
@@ -41,12 +41,14 @@ class Service:
         member = self.group_query.get_group_has_user(user=user, group=group)
         if not member:
             raise GetIsDenied
-        return self.query.list_messages(group=group, filters=filters)
+        return self.message_orm.list_messages(group=group, filters=filters)
 
     async def update_message(self, user: TUser, message_uid: UUID, data: MessageIn):
-        message = await self.query.get_message(message_uid=message_uid)
+        message = await self.message_orm.get_message(message_uid=message_uid)
 
-        updated_message = await self.query.update_message(message=message, data=data)
+        updated_message = await self.message_orm.update_message(
+            message=message, data=data
+        )
         await self._send_ws_event(
             group_uid=message.group.uid,
             message_type="message_updated",
@@ -58,8 +60,8 @@ class Service:
         return updated_message
 
     async def delete_message(self, user: TUser, message_uid: UUID):
-        message = await self.query.get_message(message_uid=message_uid)
-        await self.query.delete_message(message=message)
+        message = await self.message_orm.get_message(message_uid=message_uid)
+        await self.message_orm.delete_message(message=message)
         await self._send_ws_event(
             group_uid=message.group.uid,
             message_type="message_deleted",

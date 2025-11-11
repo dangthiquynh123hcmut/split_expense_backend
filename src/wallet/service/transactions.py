@@ -17,6 +17,7 @@ from utils.schemas.filter_and_order_by import (
     FilterDateAndAmountSchema,
     FilterGroupSchema,
 )
+from utils.services.fcm_service import FCMService
 from wallet.orm.transaction import TransactionORM
 from wallet.schemas.request import TransferRequest, VerifyPinRequest
 from wallet.schemas.response import ListTransactionResponse, TransactionResponse
@@ -28,6 +29,7 @@ class TransactionService:
         self.auth_query = AuthQuery()
         self.group_query = GroupQuery()
         self.expense_query = ExpenseQuery()
+        self.fcm_service = FCMService()
 
     def get_external_transaction_history(
         self,
@@ -102,6 +104,16 @@ class TransactionService:
             amount=payload.convert_amount,
             description=payload.description,
             group=group,
+        )
+        self.fcm_service.send_notification(
+            token=user.fcm_token,
+            title="Transaction Request",
+            body=f"You have requested to transfer {payload.convert_amount} to {to_user.full_name}.",
+        )
+        self.fcm_service.send_notification(
+            token=to_user.fcm_token,
+            title="Transaction Request",
+            body=f"You have received {payload.convert_amount} from {user.full_name}.",
         )
         return TransactionResponse(
             from_user=UserResponse.from_orm(user),

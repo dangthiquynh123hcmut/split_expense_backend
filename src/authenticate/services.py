@@ -186,3 +186,6 @@ class Service(BaseService):
         if not user.check_pin(raw_pin=payload.old_pin):
             raise PinIncorrect
         return self.query.create_or_update_pin(user=user, pin=payload.new_pin)
+
+    def update_fcm_token(self, user: TUser, fcm_token: str):
+        return self.query.update_fcm_token(user=user, fcm_token=fcm_token)

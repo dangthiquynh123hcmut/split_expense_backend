@@ -12,8 +12,9 @@ from utils.router.permissions import IsAuthenticated
 from utils.types import AuthenticatedRequest
 
 from .schemas.request import MessageFilter, MessageIn
-from .schemas.response import MessageOut, MessageUpdateOut
-from .services import Service
+from .schemas.response import MessageOut, MessageUpdateOut, NotificationResponse
+from .services.message_services import MessageService
+from .services.notification_services import NotificationService
 
 
 @api(
@@ -23,7 +24,7 @@ from .services import Service
     permissions=[IsAuthenticated],
 )
 class MessageAPI(Controller):
-    def __init__(self, service: Service):
+    def __init__(self, service: MessageService):
         self.service = service
 
     @post("/group/{group_uid}", response=MessageOut)
@@ -69,3 +70,19 @@ class MessageAPI(Controller):
             user=request.user,
             message_uid=message_uid,
         )
+
+
+@api(
+    prefix_or_class="notifications",
+    tags=["Notification"],
+    auth=AuthBear(),
+    permissions=[IsAuthenticated],
+)
+class NotificationAPI(Controller):
+    def __init__(self, service: NotificationService):
+        self.notification_service = service
+
+    @get("", response=NotificationResponse, paginate=True)
+    @paginate
+    def list_notifications(self, request: AuthenticatedRequest):
+        return self.notification_service.list_notifications(user=request.user)

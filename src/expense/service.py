@@ -17,6 +17,8 @@ from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
 from expense.schemas.response import ListExpenseUser, UserExpense
 from group.models import GroupMemberBalance, RestructureDebt
 from group.queries import Query as GroupQuery
+from message.orm.notification_queries import NotificationORM
+from utils.enums import NotificationTypeEnum
 from utils.exceptions import GetIsDenied
 from utils.functions.debt_simplification import simplify_minflow
 from utils.schemas.filter_and_order_by import (
@@ -24,6 +26,7 @@ from utils.schemas.filter_and_order_by import (
     FilterDateSchema,
     FilterEventSchema,
 )
+from utils.services.fcm_service import FCMService
 from utils.types import TUser
 from wallet.orm.transaction import TransactionORM
 
@@ -35,6 +38,8 @@ class Service:
         self.event_query = EventQuery()
         self.user_query = UserQuery()
         self.transaction_orm = TransactionORM()
+        self.fcm_service = FCMService()
+        self.notification_orm = NotificationORM()
 
     @transaction.atomic
     def create_expense(self, creator: TUser, payload: ExpenseRequest, event: Event):
@@ -113,6 +118,20 @@ class Service:
                 currency=payload.currency,
             )
 
+        self.notification_orm.create_notification(
+            from_user=creator,
+            content=f"{creator.full_name} have created an expense {expense.name}",
+            type=NotificationTypeEnum.EXPENSE_CREATED,
+            related_uid=expense.uid,
+            to_users=[member.user for member in expense_members],
+        )
+        self.fcm_service.send_multicast_notification(
+            tokens=[m.user.fcm_token for m in expense_members],
+            title="New Expense",
+            body=f"{creator.full_name} have created an expense {expense.name}",
+            type=NotificationTypeEnum.EXPENSE_CREATED,
+            related_uid=expense.uid,
+        )
         return expense
 
     @transaction.atomic
@@ -287,10 +306,25 @@ class Service:
                 expense_members=user_update,
                 currency=payload.currency,
             )
+
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{user.full_name} have updated an expense {expense.name}",
+            type=NotificationTypeEnum.EXPENSE_UPDATED,
+            related_uid=expense.uid,
+            to_users=[member.user for member in expense_members],
+        )
+        self.fcm_service.send_multicast_notification(
+            tokens=[m.user.fcm_token for m in expense_members],
+            title="New Expense",
+            body=f"{user.full_name} have updated an expense {expense.name}",
+            type=NotificationTypeEnum.EXPENSE_UPDATED,
+            related_uid=expense.uid,
+        )
         return expense
 
     @transaction.atomic
-    def soft_delete_expense(self, expense_uid: UUID):
+    def soft_delete_expense(self, user: TUser, expense_uid: UUID):
         expense = self.query.get_expense(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
@@ -305,17 +339,32 @@ class Service:
         )
         self.query.soft_delete_expense_members(expense=expense)
         self.query.soft_delete_expense(expense_uid=expense_uid)
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{user.full_name} have deleted an expense {expense.name}",
+            type=NotificationTypeEnum.EXPENSE_SOFT_DELETED,
+            related_uid=expense.uid,
+            to_users=[member.user for member in expense_members],
+        )
         return expense
 
-    def hard_delete_expense(self, expense_uid: UUID):
+    def hard_delete_expense(self, user: TUser, expense_uid: UUID):
         expense = self.query.get_expense_deleted(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
         self.query.hard_delete_expense_members(expense=expense)
         self.query.hard_delete_expense(expense_uid=expense_uid)
+        expense_members = self.query.list_user_share_in_expense(expense=expense)
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{user.full_name} have deleted an expense {expense.name}",
+            type=NotificationTypeEnum.EXPENSE_HARD_DELETED,
+            related_uid=expense.uid,
+            to_users=[member.user for member in expense_members],
+        )
         return True
 
-    def restore_expense(self, expense_uid: UUID):
+    def restore_expense(self, user: TUser, expense_uid: UUID):
         expense = self.query.get_expense_deleted(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
@@ -331,6 +380,13 @@ class Service:
             group=expense.event.group,
             expense_members=expense_members,
             currency=expense.currency,
+        )
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{user.full_name} have restored an expense {expense.name}",
+            type=NotificationTypeEnum.EXPENSE_RESTORED,
+            related_uid=expense.uid,
+            to_users=[member.user for member in expense_members],
         )
         return expense
 

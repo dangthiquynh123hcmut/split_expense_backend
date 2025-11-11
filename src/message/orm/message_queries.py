@@ -5,15 +5,13 @@ from django.utils import timezone
 
 from attachment.models import Attachment
 from group.models import Group
-from message.models import Message
+from message.models import Message, MessageAttachment
 from message.schemas.request import MessageFilter, MessageIn
 from utils.enums import StatusEnum, StatusMessageEnum
 from utils.types import TUser
 
-from .models import MessageAttachment
 
-
-class Query:
+class MessageORM:
     @staticmethod
     @database_sync_to_async
     def create_message(user: TUser, group: Group, message: MessageIn):

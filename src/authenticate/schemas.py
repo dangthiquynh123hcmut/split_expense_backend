@@ -100,3 +100,7 @@ class UpdatePinRequest(Schema):
 
 class PinNewRequest(Schema):
     pin: str = Field(..., min_length=6, max_length=6)
+
+
+class FCMTokenRequest(Schema):
+    fcm_token: str

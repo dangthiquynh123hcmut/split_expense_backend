@@ -170,3 +170,7 @@ class Query:
             )
             .values(full_name=F("user__full_name"), percent=F("percent"))
         )
+
+    @staticmethod
+    def get_event_members(event: Event):
+        return EventMember.objects.filter(event=event, status="ACTIVE")

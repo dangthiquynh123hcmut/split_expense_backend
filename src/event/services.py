@@ -1,12 +1,16 @@
 from decimal import Decimal
 from uuid import UUID
 
+from django.db import transaction
+
 from authenticate.queries import Query as UseQuery
 from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
+from message.orm.notification_queries import NotificationORM
+from utils.enums import NotificationTypeEnum
 from utils.exceptions import (
     CreateIsDenied,
     DeleteIsDenied,
@@ -18,6 +22,7 @@ from utils.schemas.filter_and_order_by import (
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
 )
+from utils.services.fcm_service import FCMService
 from utils.types import TUser
 
 from .models import EventMember
@@ -31,6 +36,8 @@ class Service:
         self.group_query = GroupQuery()
         self.user_query = UseQuery()
         self.expense_query = ExpenseQuery()
+        self.notification_orm = NotificationORM()
+        self.fcm_service = FCMService()
 
     def create_event(self, user: TUser, data: EventRequest):
         group = self.group_query.get_group_sync(group_uid=data.group_id)
@@ -49,6 +56,18 @@ class Service:
         member = EventMember(event=event, user=user)
         event_members.append(member)
         self.query.create_event_members(event_members=event_members)
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{user.full_name} have created an event {event.name}",
+            type=NotificationTypeEnum.EVENT_CREATED,
+            related_uid=event.uid,
+            to_users=[member.user for member in event_members],
+        )
+        self.fcm_service.send_multicast_notification(
+            token=[member.user.fcm_token for member in event_members],
+            title="Event created",
+            body=f"{user.full_name} have created an event {event.name}",
+        )
         return event
 
     def get_event(self, event_uid: UUID):
@@ -57,6 +76,7 @@ class Service:
             raise EventNotFound
         return event
 
+    @transaction.atomic
     def update_event(self, user: TUser, event_uid: UUID, data: EventUpdateRequest):
         event = self.query.get_event(event_uid=event_uid)
         if not event:
@@ -64,7 +84,16 @@ class Service:
         is_member_in_event = self.query.get_event_has_user(user=user, event=event)
         if not is_member_in_event:
             raise UpdatedIsDenied
-        return self.query.update_event(event=event, data=data)
+        self.query.update_event(event=event, data=data)
+        event_members = self.query.get_event_members(event=event)
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{user.full_name} have updated an event {event.name}",
+            type=NotificationTypeEnum.EVENT_UPDATED,
+            related_uid=event.uid,
+            to_users=[member.user for member in event_members],
+        )
+        return event
 
     # def leave_event(self, user: TUser, event_uid: UUID):
     #     event = self.query.get_event(event_uid=event_uid)
@@ -78,7 +107,16 @@ class Service:
             raise EventNotFound
         if user != event.creator:
             raise DeleteIsDenied
-        return self.query.delete_event(event_uid=event_uid)
+        result = self.query.delete_event(event_uid=event_uid)
+        event_members = self.query.get_event_members(event=event)
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"{user.full_name} have deleted an event {event.name}",
+            type=NotificationTypeEnum.EVENT_DELETED,
+            related_uid=event.uid,
+            to_users=[member.user for member in event_members],
+        )
+        return result
 
     def list_event_members(
         self,

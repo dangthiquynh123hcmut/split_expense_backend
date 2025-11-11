@@ -15,7 +15,7 @@ from expense.models import ExpenseAttachment
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
 from message.models import MessageAttachment
-from message.queries import Query as MessageQuery
+from message.orm.message_queries import MessageORM
 from utils.services import BaseService
 from utils.types import TUser
 
@@ -43,7 +43,7 @@ class AttachmentService(BaseService):
         self.user_query = UserQuery()
         self.group_query = GroupQuery()
         self.expense_query = ExpenseQuery()
-        self.message_query = MessageQuery()
+        self.message_query = MessageORM()
 
     def get_presigned_url(self, user: TUser, payload: GeneratePresignedUrlSchema):
         attachment = self.query.create_new_instance(

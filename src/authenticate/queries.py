@@ -190,3 +190,9 @@ class Query:
         user.set_pin(pin)
         user.save(update_fields=["pin"])
         return True
+
+    @staticmethod
+    def update_fcm_token(user: TUser, fcm_token: str):
+        user.fcm_token = fcm_token
+        user.save(update_fields=["fcm_token"])
+        return True

@@ -84,20 +84,26 @@ class ExpenseAPI(Controller):
         return expense
 
     @put("/{expense_uid}/restore", response=bool, exceptions=(ExpenseNotFound,))
-    def restore_expense(self, expense_uid: UUID):
-        expense = self.service.restore_expense(expense_uid=expense_uid)
+    def restore_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
+        expense = self.service.restore_expense(
+            user=request.user, expense_uid=expense_uid
+        )
         self.service.calculate_debt(expense=expense, old_currency="")
         return True
 
     @put("/{expense_uid}/soft", response=bool, exceptions=(ExpenseNotFound,))
-    def soft_delete_expense(self, expense_uid: UUID):
-        expense = self.service.soft_delete_expense(expense_uid=expense_uid)
+    def soft_delete_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
+        expense = self.service.soft_delete_expense(
+            user=request.user, expense_uid=expense_uid
+        )
         self.service.calculate_debt(expense=expense, old_currency="")
         return True
 
     @delete("/{expense_uid}/hard", response=bool, exceptions=(ExpenseNotFound,))
-    def hard_delete_expense(self, expense_uid: UUID):
-        return self.service.hard_delete_expense(expense_uid=expense_uid)
+    def hard_delete_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
+        return self.service.hard_delete_expense(
+            user=request.user, expense_uid=expense_uid
+        )
 
 
 @api(

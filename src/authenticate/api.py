@@ -14,6 +14,7 @@ from utils.router.controller import Controller, api, get, post, put
 from utils.types import AuthenticatedRequest, UnauthenticatedRequest
 
 from .schemas import (
+    FCMTokenRequest,
     LoginResponseSchema,
     LoginSchema,
     MeResponseSchema,
@@ -135,3 +136,9 @@ class AuthenticateAPI(Controller):
     @put("/pin", auth=True, response=bool, exceptions=(PinIncorrect,))
     def update_pin(self, request: AuthenticatedRequest, payload: UpdatePinRequest):
         return self.service.update_pin(user=request.user, payload=payload)
+
+    @put("/fcm-token", auth=True, response=bool)
+    def update_fcm_token(self, request: AuthenticatedRequest, payload: FCMTokenRequest):
+        return self.service.update_fcm_token(
+            user=request.user, fcm_token=payload.fcm_token
+        )

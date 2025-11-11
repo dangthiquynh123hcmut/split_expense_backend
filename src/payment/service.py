@@ -3,7 +3,10 @@ import random
 from django.db import transaction
 
 from authenticate.queries import Query as Auth_Query
+from message.orm.notification_queries import NotificationORM
 from user.queries import Query as User_Query
+from utils.enums import NotificationTypeEnum
+from utils.services.fcm_service import FCMService
 from utils.types import AuthenticatedRequest, TUser
 from wallet.orm.deposit import DepositORM
 
@@ -18,6 +21,8 @@ class Service:
         self.user_query = User_Query()
         self.auth_query = Auth_Query()
         self.deposit_query = DepositORM()
+        self.fcm_service = FCMService()
+        self.notification_orm = NotificationORM()
 
     def create_payment_url(
         self, request: AuthenticatedRequest, payload: PaymentRequest
@@ -48,7 +53,19 @@ class Service:
     @transaction.atomic
     def create_deposit(self, user: TUser, amount: float, currency: str):
         self.user_query.update_balance(user=user, amount=amount)
-        self.deposit_query.add_deposit_history(
+        self.fcm_service.send_notification(
+            token=user.fcm_token,
+            title="Deposit",
+            body=f"You have deposited {amount} {currency}",
+        )
+        deposit = self.deposit_query.add_deposit_history(
             user=user, amount=amount, currency=currency
+        )
+        self.notification_orm.create_notification(
+            from_user=user,
+            related_uid=deposit.uid,
+            content=f"You have deposited {amount} {currency}",
+            type=NotificationTypeEnum.DEPOSIT,
+            to_users=[user],
         )
         return

@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from utils.enums import StatusMessageEnum
+from utils.enums import NotificationTypeEnum, StatusMessageEnum
 from utils.models import BaseModel
 
 
@@ -75,3 +75,26 @@ class MessageAttachment(BaseModel):
         indexes = [
             models.Index(fields=["message", "attachment"]),
         ]
+
+
+class Notification(BaseModel):
+    from_user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="from_user_uid",
+        related_name="notification_fk_from_user",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    content = models.CharField(max_length=255)
+    type = models.CharField(max_length=50, choices=NotificationTypeEnum.choices)
+    related_uid = models.UUIDField(null=True, blank=True)
+    to_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="received_notifications"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]

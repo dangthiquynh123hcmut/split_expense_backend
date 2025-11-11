@@ -39,25 +39,29 @@ class FilterNameSchema(FilterSchema):
 
 
 class FilterGroupSchema(FilterSchema):
-    name: Optional[str] = FilterField(
-        default=None, description="Search by group name, username "
+    keyword: Optional[str] = FilterField(
+        default=None, description="Search by group name, username or code"
     )
-    code: Optional[str] = FilterField(default=None, description="Filter by code")
     group_id: Optional[UUID] = FilterField(
         default=None, description="Filter by group uid"
     )
 
     def get_filter_expression(self) -> Q:
         q = Q()
-        if self.name:
-            name_filter = (
-                Q(group__name__icontains=remove_accents(self.name))
-                | Q(from_user__full_name_no_accent__icontains=remove_accents(self.name))
-                | Q(to_user__full_name_no_accent__icontains=remove_accents(self.name))
+        if self.keyword:
+            keyword_filter = (
+                Q(group__name__icontains=remove_accents(self.keyword))
+                | Q(
+                    from_user__full_name_no_accent__icontains=remove_accents(
+                        self.keyword
+                    )
+                )
+                | Q(
+                    to_user__full_name_no_accent__icontains=remove_accents(self.keyword)
+                )
+                | Q(code__icontains=self.keyword)
             )
-            q &= name_filter
-        if self.code:
-            q &= Q(code__icontains=self.code)
+            q &= keyword_filter
         if self.group_id:
             q &= Q(group_id=self.group_id)
         return q
