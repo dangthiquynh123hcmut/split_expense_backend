@@ -6,7 +6,7 @@ from authenticate.models import User
 from bank_account.queries import Query as BankAccountQuery
 from exceptions.wallet import BankAccountNotFound
 from user.queries import Query as UserQuery
-from utils.services.fcm_service import FCMService
+from utils.services.firebase_cm.fcm_service import FCMService
 from wallet.orm.withdraw import WithdrawORM
 from wallet.schemas.request import WithdrawRequest
 

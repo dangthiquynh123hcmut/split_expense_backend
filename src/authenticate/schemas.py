@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from typing import Optional
 
 from ninja import Schema
 from pydantic import Field, field_validator
@@ -113,4 +114,4 @@ class WalletInfoResponse(Schema):
     total_transactions: int
     phone_number: str
     full_name: str
-    latest_time: datetime
+    latest_time: Optional[datetime] = None

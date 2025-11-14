@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import firebase_admin
 from django.conf import settings
@@ -70,10 +70,29 @@ class FCMService:
         )
 
         try:
-            response = messaging.send_multicast(message)
+            response = messaging.send_each_for_multicast(message)
             return response
         except Exception:
             return None
+
+    def send_chat_message_notification(
+        self,
+        device_tokens: List[str],
+        title: str,
+        body: str,
+        data: Dict[str, Any] | None = None,
+        image: Optional[str] | None = None,
+    ):
+        """Convenience wrapper to send chat notifications to multiple devices."""
+        if not device_tokens:
+            return None
+
+        message = messaging.MulticastMessage(
+            tokens=device_tokens,
+            notification=messaging.Notification(title=title, body=body, image=image),
+            data={k: str(v) for k, v in (data or {}).items()},
+        )
+        return messaging.send_each_for_multicast(message)
 
 
 # Create a singleton instance

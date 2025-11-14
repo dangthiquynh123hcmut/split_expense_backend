@@ -20,7 +20,7 @@ from utils.schemas.filter_and_order_by import (
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
 )
-from utils.services.fcm_service import FCMService
+from utils.services.firebase_cm.fcm_service import FCMService
 from utils.types import TUser
 from wallet.orm.transaction import TransactionORM
 

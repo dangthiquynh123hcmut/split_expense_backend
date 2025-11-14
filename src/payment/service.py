@@ -6,7 +6,7 @@ from authenticate.queries import Query as Auth_Query
 from message.orm.notification_queries import NotificationORM
 from user.queries import Query as User_Query
 from utils.enums import NotificationTypeEnum
-from utils.services.fcm_service import FCMService
+from utils.services.firebase_cm.fcm_service import FCMService
 from utils.types import AuthenticatedRequest, TUser
 from wallet.orm.deposit import DepositORM
 

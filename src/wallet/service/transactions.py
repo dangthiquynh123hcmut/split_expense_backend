@@ -17,7 +17,7 @@ from utils.schemas.filter_and_order_by import (
     FilterDateAndAmountSchema,
     FilterGroupSchema,
 )
-from utils.services.fcm_service import FCMService
+from utils.services.firebase_cm.fcm_service import FCMService
 from wallet.orm.transaction import TransactionORM
 from wallet.schemas.request import TransferRequest, VerifyPinRequest
 from wallet.schemas.response import ListTransactionResponse, TransactionResponse

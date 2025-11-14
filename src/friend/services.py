@@ -13,7 +13,7 @@ from group.queries import Query as GroupQuery
 from message.orm.notification_queries import NotificationORM
 from user.schemas.response import UserResponse
 from utils.enums import NotificationTypeEnum
-from utils.services.fcm_service import FCMService
+from utils.services.firebase_cm.fcm_service import FCMService
 from utils.types import TUser
 
 from .queries import Query

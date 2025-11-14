@@ -16,14 +16,14 @@ django.setup()
 from channels.routing import ProtocolTypeRouter, URLRouter  # noqa: E402
 from django.urls import re_path  # noqa: E402
 
-from message import consumers  # noqa: E402
-from message.middleware import WebSocketJWTAuthMiddleware  # noqa: E402
+from utils.services.websocket.consumers import ChatConsumer  # noqa: E402
+from utils.services.websocket.middleware import WebSocketJWTAuthMiddleware  # noqa: E402
 
 
 django_asgi_app = get_asgi_application()
 
 websocket_urlpatterns = [
-    re_path(r"ws/chat/group/(?P<group_uid>[^/]+)/$", consumers.ChatConsumer.as_asgi()),
+    re_path(r"ws/chat/group/(?P<group_uid>[^/]+)/$", ChatConsumer.as_asgi()),
 ]
 
 application = ProtocolTypeRouter(
