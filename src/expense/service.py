@@ -213,7 +213,7 @@ class Service:
     def update_expense(
         self, user: TUser, expense_uid: UUID, payload: UpdateExpenseRequest
     ):
-        expense = self.query.get_expense(expense_uid=expense_uid)
+        expense = self.query.get_expense(expense_uid=expense_uid, status="ACTIVE")
         if not expense:
             raise ExpenseNotFound
         paid_by = self.user_query.get_user_by_uid(uid=payload.paid_by)
@@ -313,7 +313,7 @@ class Service:
             to_users=[member.user for member in expense_members],
         )
         self.fcm_service.send_multicast_notification(
-            tokens=[m.user.fcm_token for m in expense_members],
+            tokens=[m.user.fcm_token for m in expense_members if m.user.fcm_token],
             title="New Expense",
             body=f"{user.full_name} have updated an expense {expense.name}",
             type=NotificationTypeEnum.EXPENSE_UPDATED,
@@ -323,7 +323,7 @@ class Service:
 
     @transaction.atomic
     def soft_delete_expense(self, user: TUser, expense_uid: UUID):
-        expense = self.query.get_expense(expense_uid=expense_uid)
+        expense = self.query.get_expense(expense_uid=expense_uid, status="ACTIVE")
         if not expense:
             raise ExpenseNotFound
         expense_members = self.query.list_user_share_in_expense(expense=expense)
@@ -347,7 +347,7 @@ class Service:
         return expense
 
     def hard_delete_expense(self, user: TUser, expense_uid: UUID):
-        expense = self.query.get_expense_deleted(expense_uid=expense_uid)
+        expense = self.query.get_expense(expense_uid=expense_uid, status="DELETED")
         if not expense:
             raise ExpenseNotFound
         self.query.hard_delete_expense_members(expense=expense)
@@ -363,7 +363,7 @@ class Service:
         return True
 
     def restore_expense(self, user: TUser, expense_uid: UUID):
-        expense = self.query.get_expense_deleted(expense_uid=expense_uid)
+        expense = self.query.get_expense(expense_uid=expense_uid, status="DELETED")
         if not expense:
             raise ExpenseNotFound
         self.query.restore_expense(expense_uid=expense_uid)

@@ -76,7 +76,9 @@ class ExpenseAPI(Controller):
         expense_uid: UUID,
         payload: UpdateExpenseRequest,
     ):
-        old_expense = self.service.query.get_expense(expense_uid=expense_uid)
+        old_expense = self.service.get_expense(expense_uid=expense_uid, status="ACTIVE")
+        if not old_expense:
+            raise ExpenseNotFound
         expense = self.service.update_expense(
             user=request.user, expense_uid=expense_uid, payload=payload
         )

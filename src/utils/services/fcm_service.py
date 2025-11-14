@@ -47,8 +47,7 @@ class FCMService:
         try:
             response = messaging.send(message)
             return response
-        except Exception as e:
-            print(f"Error sending FCM notification: {str(e)}")
+        except Exception:
             return "Error sending FCM notification"
 
     def send_multicast_notification(
@@ -73,8 +72,7 @@ class FCMService:
         try:
             response = messaging.send_multicast(message)
             return response
-        except Exception as e:
-            print(f"Error sending multicast FCM notification: {str(e)}")
+        except Exception:
             return None
 
 

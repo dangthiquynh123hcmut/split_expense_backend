@@ -50,7 +50,11 @@ class Service:
         group_members.append(GroupMember(group=group, user=leader))
         self.query.create_group_members(group_members=group_members)
         self.fcm_service.send_multicast_notification(
-            token=[member.user.fcm_token for member in group_members],
+            tokens=[
+                member.user.fcm_token
+                for member in group_members
+                if member.user.fcm_token
+            ],
             title="Group created",
             body=f"{leader.full_name} have created a group {name}",
         )

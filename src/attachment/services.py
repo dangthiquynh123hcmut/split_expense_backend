@@ -109,7 +109,9 @@ class AttachmentService(BaseService):
             self.group_query.add_attachment(group=group, attachment=attachment)
 
         if attachment.type == AttachmentType.EXPENSE:
-            expense = self.expense_query.get_expense(expense_uid=instance_uid)
+            expense = self.expense_query.get_expense(
+                expense_uid=instance_uid, status="ACTIVE"
+            )
             if not expense:
                 raise ExpenseNotFound
 

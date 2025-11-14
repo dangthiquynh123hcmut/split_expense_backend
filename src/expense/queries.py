@@ -70,12 +70,10 @@ class Query:
         return result
 
     @staticmethod
-    def get_expense(expense_uid: UUID):
-        return Expense.objects.filter(uid=expense_uid, status="ACTIVE").first()
-
-    @staticmethod
-    def get_expense_deleted(expense_uid: UUID):
-        return Expense.objects.filter(uid=expense_uid, status="DELETED").first()
+    def get_expense(expense_uid: UUID, status: Optional[str] = None):
+        if status is None:
+            return Expense.objects.filter(uid=expense_uid).first()
+        return Expense.objects.filter(uid=expense_uid, status=status).first()
 
     @staticmethod
     def update_expense(

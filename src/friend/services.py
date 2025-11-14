@@ -57,7 +57,7 @@ class FriendService:
         self.notification_orm.create_notification(
             from_user=user,
             related_uid=friendship.uid,
-            content=data.message,
+            content=f"{user.full_name} has sent you a friend request. message: {data.message}",
             type=NotificationTypeEnum.FRIEND_REQUEST,
             to_users=[friend],
         )
