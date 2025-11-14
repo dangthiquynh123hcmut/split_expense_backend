@@ -2,6 +2,7 @@ from uuid import UUID
 
 from django.db import transaction
 
+from attachment.schemas.responses import AttachmentResponse
 from authenticate.models import User
 from event.queries import Query as EventQuery
 from exceptions.friends import FriendHasRelation, FriendshipNotFound
@@ -17,7 +18,7 @@ from utils.types import TUser
 
 from .queries import Query
 from .schemas.request import AddFriendRequest, FilterFriendSchema, OrderByUserSchema
-from .schemas.response import FriendOverview
+from .schemas.response import AddFriendResponse, FriendOverview
 
 
 class FriendService:
@@ -46,11 +47,12 @@ class FriendService:
             user=user, message=data.message, friend=friend
         )
 
-        self.fcm_service.send_notification(
-            token=friend.fcm_token,
-            title="Friend request",
-            body=f"You have received a friend request from {user.full_name}",
-        )
+        if friend.fcm_token:
+            self.fcm_service.send_notification(
+                token=friend.fcm_token,
+                title="Friend request",
+                body=f"You have received a friend request from {user.full_name}",
+            )
 
         self.notification_orm.create_notification(
             from_user=user,
@@ -59,7 +61,15 @@ class FriendService:
             type=NotificationTypeEnum.FRIEND_REQUEST,
             to_users=[friend],
         )
-        return friendship
+        return AddFriendResponse(
+            requester_uid=user.uid,
+            receiver_uid=friend.uid,
+            message=data.message,
+            full_name=user.full_name,
+            avatar_url=AttachmentResponse.from_orm(user.avatar_url)
+            if user.avatar_url
+            else None,
+        )
 
     def list_friends(
         self, user: TUser, filter: FilterFriendSchema, order_by: OrderByUserSchema

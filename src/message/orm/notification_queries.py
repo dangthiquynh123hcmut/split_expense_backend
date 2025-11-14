@@ -8,14 +8,14 @@ from utils.types import TUser
 class NotificationORM:
     @staticmethod
     def create_notification(
-        user: TUser,
+        from_user: TUser,
         related_uid: UUID,
         content: str,
         type: NotificationTypeEnum,
         to_users: list[TUser],
     ):
         notification = Notification.objects.create(
-            from_user=user, related_uid=related_uid, content=content, type=type
+            from_user=from_user, related_uid=related_uid, content=content, type=type
         )
         notification.to_users.add(*to_users)
         return notification

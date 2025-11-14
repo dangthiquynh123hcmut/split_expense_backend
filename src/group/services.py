@@ -327,4 +327,4 @@ class Service:
         member = self.query.get_group_has_user(user=user, group=group)
         if not member:
             raise GetIsDenied
-        return self.expense_query.chart_expenses(group=group, year=year)
+        return self.expense_query.chart_expenses(user=user, group=group, year=year)

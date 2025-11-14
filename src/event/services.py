@@ -64,7 +64,11 @@ class Service:
             to_users=[member.user for member in event_members],
         )
         self.fcm_service.send_multicast_notification(
-            token=[member.user.fcm_token for member in event_members],
+            tokens=[
+                member.user.fcm_token
+                for member in event_members
+                if member.user.fcm_token
+            ],
             title="Event created",
             body=f"{user.full_name} have created an event {event.name}",
         )

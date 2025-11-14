@@ -30,6 +30,7 @@ from .schemas import (
     UpdateMeSchema,
     UpdatePinRequest,
     UserSchema,
+    WalletInfoResponse,
 )
 from .services import Service
 
@@ -142,3 +143,7 @@ class AuthenticateAPI(Controller):
         return self.service.update_fcm_token(
             user=request.user, fcm_token=payload.fcm_token
         )
+
+    @get("/wallet", auth=True, response=WalletInfoResponse)
+    def get_wallet_info(self, request: AuthenticatedRequest):
+        return self.service.get_wallet_info(user=request.user)

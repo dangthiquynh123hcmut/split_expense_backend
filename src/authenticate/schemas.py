@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 from ninja import Schema
 from pydantic import Field, field_validator
@@ -104,3 +105,12 @@ class PinNewRequest(Schema):
 
 class FCMTokenRequest(Schema):
     fcm_token: str
+
+
+class WalletInfoResponse(Schema):
+    balance: float
+    currency: str
+    total_transactions: int
+    phone_number: str
+    full_name: str
+    latest_time: datetime

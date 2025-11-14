@@ -82,7 +82,9 @@ class FilterEventSchema(FilterSchema):
     category: Optional[str] = FilterField(
         default=None, description="Filter by category name"
     )
-    name: Optional[str] = FilterField(default=None, description="Filter by name")
+    name: Optional[str] = FilterField(
+        default=None, description="Filter by expense name"
+    )
 
     def get_filter_expression(self):
         q = Q()

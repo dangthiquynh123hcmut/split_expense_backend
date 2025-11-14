@@ -16,6 +16,7 @@ from authenticate.schemas import (
     ResetPasswordOTPRequest,
     UpdateMeSchema,
     UpdatePinRequest,
+    WalletInfoResponse,
 )
 from exceptions.auth import InvalidOrExpiredOTP, InvalidOrExpiredToken
 from exceptions.users import (
@@ -30,6 +31,9 @@ from utils.services.base import BaseService
 from utils.services.email.client import EmailClient
 from utils.services.email.template import EmailTemplate
 from utils.types import AuthenticatedRequest, TUser
+from wallet.orm.deposit import DepositORM
+from wallet.orm.transaction import TransactionORM
+from wallet.orm.withdraw import WithdrawORM
 
 from .queries import Query
 
@@ -41,6 +45,9 @@ class Service(BaseService):
         self.query = Query()
         self.email_template = EmailTemplate()
         self.email_client = EmailClient()
+        self.deposit_orm = DepositORM()
+        self.withdraw_orm = WithdrawORM()
+        self.transaction_orm = TransactionORM()
 
     def register(
         self, request: HttpRequest, data: RegisterSchema
@@ -189,3 +196,28 @@ class Service(BaseService):
 
     def update_fcm_token(self, user: TUser, fcm_token: str):
         return self.query.update_fcm_token(user=user, fcm_token=fcm_token)
+
+    def get_wallet_info(self, user: TUser):
+        total_deposit = self.deposit_orm.get_total_deposit(user=user)
+        total_withdraw = self.withdraw_orm.get_total_withdraw(user=user)
+        total_transactions = self.transaction_orm.get_total_transactions(user=user)
+        total_transactions = total_deposit + total_withdraw + total_transactions
+
+        times = [
+            self.deposit_orm.get_latest_deposits(user=user),
+            self.withdraw_orm.get_latest_withdrawals(user=user),
+            self.transaction_orm.get_latest_transactions(user=user),
+        ]
+
+        times = [t for t in times if t is not None]
+
+        latest_time = max(times) if times else None
+
+        return WalletInfoResponse(
+            balance=user.balance,
+            currency=user.currency,
+            total_transactions=total_transactions,
+            phone_number=user.phone_number,
+            full_name=user.full_name,
+            latest_time=latest_time,
+        )

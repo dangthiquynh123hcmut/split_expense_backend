@@ -3,35 +3,22 @@ from uuid import UUID
 
 from django.db.models import Case, CharField, F, Q, When
 
-from attachment.schemas.responses import AttachmentResponse
 from authenticate.models import User
 from utils.enums import FriendStatusEnum
 from utils.types import TUser
 
 from .models import Friend
 from .schemas.request import FilterFriendSchema, OrderByUserSchema
-from .schemas.response import AddFriendResponse
 
 
 class Query:
     @staticmethod
-    def send_friend_request(
-        user: TUser, message: str, friend: User
-    ) -> AddFriendResponse:
-        Friend.objects.create(
+    def send_friend_request(user: TUser, message: str, friend: User) -> Friend:
+        return Friend.objects.create(
             user=user,
             friend=friend,
             status=FriendStatusEnum.PENDING,
             message_request=message,
-        )
-        return AddFriendResponse(
-            requester_uid=user.uid,
-            receiver_uid=friend.uid,
-            message=message,
-            full_name=user.full_name,
-            avatar_url=AttachmentResponse.from_orm(user.avatar_url)
-            if user.avatar_url
-            else None,
         )
 
     @staticmethod

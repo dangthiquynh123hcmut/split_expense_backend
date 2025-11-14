@@ -126,11 +126,9 @@ class Service:
             to_users=[member.user for member in expense_members],
         )
         self.fcm_service.send_multicast_notification(
-            tokens=[m.user.fcm_token for m in expense_members],
+            tokens=[m.user.fcm_token for m in expense_members if m.user.fcm_token],
             title="New Expense",
             body=f"{creator.full_name} have created an expense {expense.name}",
-            type=NotificationTypeEnum.EXPENSE_CREATED,
-            related_uid=expense.uid,
         )
         return expense
 
@@ -418,11 +416,8 @@ class Service:
         ]
         if filter_amount.max_amount is not None:
             expenses = [e for e in expenses if e.amount <= filter_amount.max_amount]
-
         if filter_amount.min_amount is not None:
             expenses = [e for e in expenses if e.amount >= filter_amount.min_amount]
-        if filter_name.group is not None:
-            expenses = [e for e in expenses if e.event.group == filter_name.group]  # type: ignore
         if filter_name.event is not None:
             expenses = [e for e in expenses if e.event == filter_name.event]
         if filter_name.category is not None:

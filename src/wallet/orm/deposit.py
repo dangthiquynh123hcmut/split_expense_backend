@@ -16,3 +16,16 @@ class DepositORM:
     @staticmethod
     def deposit_detail(user: TUser, deposit_uid: UUID):
         return WalletDeposit.objects.get(user=user, uid=deposit_uid)
+
+    @staticmethod
+    def get_total_deposit(user: TUser):
+        return WalletDeposit.objects.filter(user=user).count()
+
+    @staticmethod
+    def get_latest_deposits(user: TUser):
+        return (
+            WalletDeposit.objects.filter(user=user)
+            .order_by("-created_at")
+            .values_list("created_at", flat=True)
+            .first()
+        )

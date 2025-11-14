@@ -77,3 +77,16 @@ class TransactionORM:
     @staticmethod
     def get_transactions_in_group(group: Group):
         return Transaction.objects.filter(group=group).order_by("-created_at")
+
+    @staticmethod
+    def get_total_transactions(user: User):
+        return Transaction.objects.filter(Q(from_user=user) | Q(to_user=user)).count()
+
+    @staticmethod
+    def get_latest_transactions(user: User):
+        return (
+            Transaction.objects.filter(Q(from_user=user) | Q(to_user=user))
+            .order_by("-created_at")
+            .values_list("created_at", flat=True)
+            .first()
+        )
