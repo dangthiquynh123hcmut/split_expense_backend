@@ -91,6 +91,7 @@ class MessageService:
                 "full_name": user.full_name,
                 "avatar_url": user.avatar_url,
             },
+            "group_uid": str(group_uid),
         }
         if content is not None:
             payload["content"] = content
@@ -103,7 +104,6 @@ class MessageService:
             f"chat_{group_uid}",
             {
                 "type": message_type,
-                "group_uid": str(group_uid),
                 "message": payload,
             },
         )
