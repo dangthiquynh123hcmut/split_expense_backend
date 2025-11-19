@@ -26,7 +26,7 @@ class MessageService:
         if result:
             await self._send_ws_event(
                 group_uid=group_uid,
-                message_type="chat_message",
+                message_type="multi_chat_message",
                 user=user,
                 uid=result.uid,
                 content=result.content,
@@ -51,7 +51,7 @@ class MessageService:
         )
         await self._send_ws_event(
             group_uid=message.group.uid,
-            message_type="message_updated",
+            message_type="multi_chat_message",
             user=user,
             uid=message_uid,
             content=data.content,
@@ -64,7 +64,7 @@ class MessageService:
         await self.message_orm.delete_message(message=message)
         await self._send_ws_event(
             group_uid=message.group.uid,
-            message_type="message_deleted",
+            message_type="multi_chat_message",
             user=user,
             uid=message_uid,
             content="message deleted",
@@ -103,6 +103,7 @@ class MessageService:
             f"chat_{group_uid}",
             {
                 "type": message_type,
+                "group_uid": str(group_uid),
                 "message": payload,
             },
         )

@@ -22,6 +22,7 @@ from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, UserSharesInExpense
 from expense.schemas.response import NameExpense
+from utils.enums import StatusEnum
 from utils.schemas.filter_and_order_by import (
     FilterCurrencySchema,
     FilterFullNameSchema,
@@ -427,3 +428,25 @@ class Query:
         RestructureDebt.objects.filter(
             group=group, debtor=debtor, creditor=creditor, currency=currency
         ).update(value=F("value") - amount)
+
+    @staticmethod
+    @database_sync_to_async
+    def get_user_group_uids(user: TUser):
+        memberships = GroupMember.objects.filter(
+            user=user, status=StatusEnum.ACTIVE
+        ).select_related("group")
+        return [str(m.group.uid) for m in memberships]
+
+    @staticmethod
+    @database_sync_to_async
+    def get_group_member_tokens(group_uid: str, exclude_user_uid: str):
+        group = Group.objects.get(uid=group_uid)
+        member_qs = (
+            GroupMember.objects.filter(group=group, status=StatusEnum.ACTIVE)
+            .exclude(user_id=exclude_user_uid)
+            .select_related("user")
+        )
+        tokens = [
+            m.user.fcm_token for m in member_qs if getattr(m.user, "fcm_token", None)
+        ]
+        return list(dict.fromkeys(tokens))
