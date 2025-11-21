@@ -2,6 +2,7 @@ import json
 import logging
 
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.core.cache import cache
 
 from group.queries import Query as GroupQuery
 from utils.services.firebase_cm.fcm_service import FCMService
@@ -17,6 +18,10 @@ class MultiGroupChatConsumer(AsyncWebsocketConsumer):
         self.group_query = GroupQuery()
         self.fcm_service = FCMService()
 
+    @staticmethod
+    def get_online_cache_key(user_uid: str) -> str:
+        return f"user_online:{user_uid}"
+
     async def connect(self):
         self.user = self.scope.get("user")
         if not self.user or not getattr(self.user, "is_authenticated", False):
@@ -29,6 +34,9 @@ class MultiGroupChatConsumer(AsyncWebsocketConsumer):
                 room = f"chat_{gid}"
                 await self.channel_layer.group_add(room, self.channel_name)
 
+            cache_key = self.get_online_cache_key(str(self.user.uid))
+            cache.set(cache_key, True, timeout=None)
+
             await self.accept()
 
         except Exception as e:
@@ -36,6 +44,10 @@ class MultiGroupChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4000)
 
     async def disconnect(self, close_code):
+        if self.user:
+            cache_key = self.get_online_cache_key(str(self.user.uid))
+            cache.delete(cache_key)
+
         group_uids = await self.group_query.get_user_group_uids(self.user)
 
         for gid in group_uids:

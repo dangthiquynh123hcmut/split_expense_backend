@@ -446,7 +446,7 @@ class Query:
             .exclude(user_id=exclude_user_uid)
             .select_related("user")
         )
-        tokens = [
-            m.user.fcm_token for m in member_qs if getattr(m.user, "fcm_token", None)
+        return [
+            {"user_uid": member.user.uid, "fcm_token": member.user.fcm_token}
+            for member in member_qs
         ]
-        return list(dict.fromkeys(tokens))

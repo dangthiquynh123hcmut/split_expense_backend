@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from channels.layers import get_channel_layer
+from django.core.cache import cache
 from django.utils import timezone
 
 from exceptions.group import GroupNotFound
@@ -8,6 +9,7 @@ from group.queries import Query as GroupQuery
 from message.orm.message_queries import MessageORM
 from message.schemas.request import MessageFilter, MessageIn
 from utils.exceptions import GetIsDenied
+from utils.services.firebase_cm.fcm_service import FCMService
 from utils.types import TUser
 
 
@@ -16,6 +18,7 @@ class MessageService:
         self.message_orm = MessageORM()
         self.group_query = GroupQuery()
         self.channel_layer = get_channel_layer()
+        self.fcm_service = FCMService()
 
     async def sent_message(self, user: TUser, group_uid: UUID, message: MessageIn):
         group = await self.group_query.get_group(group_uid=group_uid)
@@ -31,6 +34,10 @@ class MessageService:
                 uid=result.uid,
                 content=result.content,
                 created_at=result.created_at,
+            )
+
+            await self._send_fcm_to_offline_users(
+                sender=user, group_uid=group_uid, content=result.content
             )
         return result
 
@@ -107,3 +114,34 @@ class MessageService:
                 "message": payload,
             },
         )
+
+    async def _send_fcm_to_offline_users(
+        self, sender: TUser, group_uid: UUID, content: str
+    ):
+        member_tokens = await self.group_query.get_group_member_tokens(
+            group_uid=group_uid, exclude_user_uid=sender.uid
+        )
+
+        if not member_tokens:
+            return
+
+        offline_tokens = []
+        for token_data in member_tokens:
+            user_uid = token_data.get("user_uid")
+            fcm_token = token_data.get("fcm_token")
+
+            if not fcm_token:
+                continue
+
+            cache_key = f"user_online:{user_uid}"
+            is_online = cache.get(cache_key)
+
+            if not is_online:
+                offline_tokens.append(fcm_token)
+
+        if offline_tokens:
+            self.fcm_service.send_chat_message_notification(
+                device_tokens=offline_tokens,
+                title=f"New message from {sender.full_name}",
+                body=content[:100],
+            )
