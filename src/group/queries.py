@@ -209,10 +209,10 @@ class Query:
             if share:
                 amount_value = (
                     share.receiver_amount
-                    if (share.receiver_amount or 0) > 0
+                    if (share.receiver_amount) > 0  # type: ignore
                     else -share.amount
                 )
-                amount = float(amount_value or 0)
+                amount = float(amount_value)  # type: ignore
             else:
                 amount = 0.0
             expenses_result.append(
