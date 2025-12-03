@@ -210,7 +210,7 @@ class Query:
                 amount_value = (
                     share.receiver_amount
                     if (share.receiver_amount or 0) > 0
-                    else share.amount
+                    else -share.amount
                 )
                 amount = float(amount_value or 0)
             else:
