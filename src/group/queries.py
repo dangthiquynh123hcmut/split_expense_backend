@@ -6,7 +6,6 @@ from channels.db import database_sync_to_async
 from django.db.models import (
     Case,
     DecimalField,
-    ExpressionWrapper,
     F,
     IntegerField,
     Prefetch,
@@ -15,7 +14,7 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.functions import Abs, Coalesce, Round
+from django.db.models.functions import Abs, Coalesce
 
 from attachment.models import Attachment
 from authenticate.models import User
@@ -353,21 +352,32 @@ class Query:
 
     @staticmethod
     def get_member_spending(group: Group, total_amount: Decimal, currency: str = "VND"):
-        return (
+        user_totals = (
             UserSharesInExpense.objects.filter(
                 expense__event__group=group,
                 deleted="ACTIVE",
                 expense__currency=currency,
             )
-            .values(full_name=F("user__full_name"))
-            .annotate(
-                percent=ExpressionWrapper(
-                    Round((F("amount") / total_amount) * 100, 2),
-                    output_field=DecimalField(max_digits=5, decimal_places=2),
-                )
-            )
-            .values("full_name", "percent")
+            .values("user__uid", "user__full_name")
+            .annotate(total_user_amount=Sum("amount"))
         )
+
+        result = []
+        for user_data in user_totals:
+            percent = (
+                (user_data["total_user_amount"] / total_amount * 100)
+                if total_amount > 0
+                else 0
+            )
+            result.append(
+                {
+                    "full_name": user_data["user__full_name"],
+                    "percent": round(percent, 2),
+                    "amount": user_data["total_user_amount"],
+                }
+            )
+
+        return result
 
     @staticmethod
     def get_member_count(
