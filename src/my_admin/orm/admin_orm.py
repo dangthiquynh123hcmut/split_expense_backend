@@ -3,7 +3,7 @@ from typing import Optional
 from authenticate.models import User
 from friend.schemas.request import OrderByUserSchema
 
-from .schemas.request import UserFilter
+from ..schemas.request import UserFilter
 
 
 class Query:

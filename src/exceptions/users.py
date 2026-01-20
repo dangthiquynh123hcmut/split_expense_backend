@@ -55,3 +55,9 @@ class BalanceNotEnough(APIException):
     error_code = HTTPStatus.BAD_REQUEST
     message_code = "BALANCE_NOT_ENOUGH"
     message = "Balance not enough"
+
+
+class AdminCreateFail(APIException):
+    error_code = HTTPStatus.BAD_REQUEST
+    message_code = "ADMIN_CREATE_FAIL"
+    message = "Admin creation failed"

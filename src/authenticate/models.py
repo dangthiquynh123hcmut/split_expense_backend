@@ -12,6 +12,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
+from authenticate.enum import RoleEnum
 from exceptions.users import BalanceNotEnough
 from utils.enums import CurrencyEnum
 from utils.functions.remove_accents import remove_accents
@@ -34,6 +35,25 @@ class UserManager(BaseUserManager["User"]):
     ) -> "User":
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("role", RoleEnum.SUPERUSER)
+        if extra_fields.get("role") != RoleEnum.SUPERUSER:
+            raise ValueError("Superuser must have SUPERUSER role.")
+        return self.create_user(email, password, **extra_fields)
+
+    def create_admin(
+        self, email: str, password: str | None = None, **extra_fields
+    ) -> "User":
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        role = extra_fields.get("role", RoleEnum.ADMIN)
+        if isinstance(role, str):
+            role = role.upper()
+
+        if role not in [RoleEnum.ADMIN, "ADMIN"]:
+            raise ValueError("Admin must have ADMIN role.")
+
+        extra_fields["role"] = role
         return self.create_user(email, password, **extra_fields)
 
 
@@ -42,10 +62,10 @@ class User(AbstractUser):
     first_name = None  # type: ignore[assignment]
     last_name = None  # type: ignore[assignment]
 
-    full_name = models.CharField(max_length=255, blank=False, null=False)
+    full_name = models.CharField(max_length=255, blank=False, null=True)
     full_name_no_accent = models.TextField(blank=True, editable=False)
     email = models.EmailField(unique=True, max_length=255)
-    phone_number = models.CharField(max_length=10, blank=False, null=False)
+    phone_number = models.CharField(max_length=10, blank=False, null=True)
     avatar_url = models.ForeignKey(
         to="attachment.Attachment",
         on_delete=models.SET_NULL,
@@ -69,6 +89,11 @@ class User(AbstractUser):
     pin = models.CharField(max_length=128, blank=True, null=True)
     uid = models.UUIDField(default=uuid4, unique=True, editable=False, primary_key=True)
     fcm_token = models.CharField(max_length=255, blank=True, null=True)
+    role = models.CharField(
+        max_length=20,
+        choices=RoleEnum.choices,
+        default=RoleEnum.USER,
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["full_name"]

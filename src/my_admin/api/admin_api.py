@@ -7,14 +7,17 @@ from utils.router.controller import Controller, api, get
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAdminUser
 
-from .schemas.request import UserFilter
-from .services import AdminService
+from ..schemas.request import UserFilter
+from ..service.admin_service import AdminService
 
 
 @api(
-    prefix_or_class="admin", tags=["Admin"], auth=AuthBear(), permissions=[IsAdminUser]
+    prefix_or_class="admin",
+    tags=["Admin"],
+    auth=AuthBear(),
+    permissions=[IsAdminUser],
 )
-class AdminAPI(Controller):
+class AdminController(Controller):
     def __init__(self, service: AdminService):
         self.service = service
 

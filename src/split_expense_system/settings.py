@@ -226,6 +226,11 @@ OTP_LIFETIME = int(os.getenv("OTP_LIFETIME", 2))
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
+REDIS_TOKEN_TTL_ADMIN_ACTIVATE_ACCOUNT = int(
+    os.getenv("REDIS_TOKEN_TTL_ADMIN_ACTIVATE_ACCOUNT", "86400")
+)
+
 
 # not run cronjob in render
 # # CRONJOBS = [("0 0 * * *", "authenticate.management.commands.cleanup_expired_tokens")]

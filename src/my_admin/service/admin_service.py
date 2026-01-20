@@ -2,8 +2,8 @@ from typing import Optional
 
 from friend.schemas.request import OrderByUserSchema
 
-from .queries import Query
-from .schemas.request import UserFilter
+from ..orm.admin_orm import Query
+from ..schemas.request import UserFilter
 
 
 class AdminService:

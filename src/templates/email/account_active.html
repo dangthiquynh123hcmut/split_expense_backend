@@ -1,0 +1,15 @@
+{% extends "email/base.html" %}
+{% block title %}Kích hoạt tài khoản{% endblock %}
+{% block header_text %}Kích hoạt tài khoản{% endblock %}
+{% block content %}
+<p>Kính gửi bạn,</p>
+<p>Chúng tôi đã nhận được yêu cầu kích hoạt tài khoản cho tài khoản của bạn trên hệ thống Quản lý Dividex.</p>
+<p>Để kích hoạt tài khoản của bạn, vui lòng nhấp vào liên kết sau:</p>
+<div style="text-align: center;">
+  <h2 class="button" style="color: #ffffff;">{{ reset_link }}</h2>
+</div>
+<p>Sau khi kích hoạt tài khoản, bạn sẽ có thể đăng nhập vào hệ thống Quản lý Dividex với mật khẩu mới của mình. Link kích hoạt tài khoản sẽ hết hạn sau 24 giờ.</p>
+<p>Nếu bạn không yêu cầu kích hoạt tài khoản, vui lòng bỏ qua email này.</p>
+<p>Trân trọng!</p>
+<p>Đội ngũ hỗ trợ hệ thống Quản lý Dividex</p>
+{% endblock %}
