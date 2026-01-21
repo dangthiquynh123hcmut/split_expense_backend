@@ -119,8 +119,3 @@ class WalletAPI(Controller):
             filter=filter,
             filter_date_and_amount=filter_date_and_amount,
         )
-
-
-#     @get("/{group_uid}", response=TransactionResponse)
-#     def group_transactions_report(self, request: AuthenticatedRequest, group_uid: UUID):
-#         return self.service.group_transactions_report(user=request.user, group_uid=group_uid)

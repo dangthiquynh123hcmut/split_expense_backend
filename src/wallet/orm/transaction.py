@@ -1,8 +1,10 @@
+from datetime import timedelta
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
 from django.db.models import CharField, F, Q, Value
+from django.utils.timezone import now
 
 from authenticate.models import User
 from group.models import Group
@@ -90,3 +92,12 @@ class TransactionORM:
             .values_list("created_at", flat=True)
             .first()
         )
+
+    @staticmethod
+    def total_transactions_today():
+        today = now().date()
+        return Transaction.objects.filter(
+            created_at__date=today
+        ).count(), Transaction.objects.filter(
+            created_at__date=today - timedelta(days=1)
+        ).count()

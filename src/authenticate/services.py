@@ -61,6 +61,7 @@ class Service(BaseService):
 
         user = self.query.create_user(data=data)
         self.auth.login(request=request, user=user)
+        self.query.track_user_login(user=user)
         return (
             user,
             self.query.generate_access_token(user_uid=str(user.uid)),
@@ -75,6 +76,7 @@ class Service(BaseService):
             password=password,
         )
         self.auth.login(request=request, user=user)
+        self.query.track_user_login(user=user)
         return (
             user,
             self.query.generate_access_token(user_uid=str(user.uid)),
@@ -217,7 +219,7 @@ class Service(BaseService):
             balance=user.balance,
             currency=user.currency,
             total_transactions=total_transactions,
-            phone_number=user.phone_number,
-            full_name=user.full_name,
+            phone_number=user.phone_number or "",
+            full_name=user.full_name or "",
             latest_time=latest_time,
         )

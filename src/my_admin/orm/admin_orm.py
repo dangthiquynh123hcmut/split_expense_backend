@@ -1,8 +1,15 @@
-from typing import Optional
+from collections import defaultdict
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from django.db.models import Count
+from django.db.models.functions import ExtractMonth
+from django.utils.timezone import now
 
 from authenticate.models import User
 from friend.schemas.request import OrderByUserSchema
 
+from ..models import UserMonthlyActivity
 from ..schemas.request import UserFilter
 
 
@@ -19,3 +26,84 @@ class Query:
         if order_by:
             query = query.order_by(order_by.get_order_by_expression())
         return query
+
+    @staticmethod
+    def count_total_admins():
+        return User.objects.filter(
+            is_staff=True, role="ADMIN", is_active=True
+        ).count(), User.objects.filter(
+            is_staff=True,
+            role="ADMIN",
+            is_active=True,
+            date_joined__date__lt=now().date(),
+        ).count()
+
+    @staticmethod
+    def user_insights(year: int):
+        new_users_by_month = defaultdict(int)
+        new_users_qs = (
+            User.objects.filter(role="USER", is_active=True, date_joined__year=year)
+            .annotate(signup_month=ExtractMonth("date_joined"))
+            .values("signup_month")
+            .annotate(count=Count("uid"))
+        )
+
+        for item in new_users_qs:
+            new_users_by_month[item["signup_month"]] = item["count"]
+
+        activities = (
+            UserMonthlyActivity.objects.filter(
+                year=year, user__role="USER", user__is_active=True
+            )
+            .select_related("user")
+            .values("month", "user__uid", "user__date_joined", "login_count")
+        )
+
+        activity_by_month: Dict[int, Dict[Any, Dict[str, Any]]] = defaultdict(dict)
+
+        for activity in activities:
+            month = activity["month"]
+            user_uid = activity["user__uid"]
+            signup_date = activity["user__date_joined"]
+            login_count = activity["login_count"]
+
+            activity_by_month[month][user_uid] = {
+                "date_joined": signup_date,
+                "login_count": login_count,
+            }
+
+        insights_data = []
+
+        for month in range(1, 13):
+            signup_month_start = datetime(year, month, 1)
+
+            new_users = new_users_by_month.get(month, 0)
+
+            loyal_users = len(
+                [
+                    uid
+                    for uid, data in activity_by_month[month].items()
+                    if data["login_count"] >= 5
+                ]
+            )
+
+            return_users = len(
+                [
+                    uid
+                    for uid, data in activity_by_month[month].items()
+                    if data["date_joined"] < signup_month_start
+                ]
+            )
+
+            month_year = datetime(year, month, 1).strftime("%m/%Y")
+
+            insights_data.append(
+                {
+                    "month_year": month_year,
+                    "new_users": new_users,
+                    "loyal_users": loyal_users,
+                    "return_users": return_users,
+                }
+            )
+
+        return insights_data

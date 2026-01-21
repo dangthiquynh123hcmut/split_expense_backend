@@ -8,6 +8,7 @@ from utils.router.paginate import paginate
 from utils.router.permissions import IsAdminUser
 
 from ..schemas.request import UserFilter
+from ..schemas.response import TodayOverviewResponse, UserInsightsResponse
 from ..service.admin_service import AdminService
 
 
@@ -29,3 +30,11 @@ class AdminController(Controller):
         order_by: OrderByUserSchema = Query(...),
     ):
         return self.service.list_users(filter=filter, order_by=order_by)
+
+    @get("/today-overview", response=TodayOverviewResponse)
+    def today_overview(self):
+        return self.service.today_overview()
+
+    @get("/user-insights", response=list[UserInsightsResponse])
+    def user_insights(self, year: int = Query(...)):
+        return self.service.user_insights(year=year)

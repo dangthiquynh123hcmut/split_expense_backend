@@ -1,4 +1,7 @@
+from datetime import timedelta
 from uuid import UUID
+
+from django.utils.timezone import now
 
 from authenticate.models import User
 from bank_account.models import BankAccount
@@ -28,3 +31,12 @@ class WithdrawORM:
             .values_list("created_at", flat=True)
             .first()
         )
+
+    @staticmethod
+    def total_withdrawals_today():
+        today = now().date()
+        return Withdraw.objects.filter(
+            created_at__date=today
+        ).count(), Withdraw.objects.filter(
+            created_at__date=today - timedelta(days=1)
+        ).count()

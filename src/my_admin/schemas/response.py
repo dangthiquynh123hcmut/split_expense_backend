@@ -6,3 +6,21 @@ from ninja import Schema
 class AdminResponse(Schema):
     email: str
     uid: UUID
+
+
+class TodayOverviewResponse(Schema):
+    total_users: int
+    percent_increase_users: float
+    percent_increase_transactions: float
+    percent_increase_admins: float
+    percent_increase_new_users: float
+    total_transactions: int
+    new_users: int
+    total_admins: int
+
+
+class UserInsightsResponse(Schema):
+    month_year: str
+    new_users: int
+    loyal_users: int
+    return_users: int

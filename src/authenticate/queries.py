@@ -17,6 +17,7 @@ from authenticate.models import (
 from authenticate.schemas import PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
 from exceptions.users import EmailOrPasswordIncorrect
+from my_admin.models import UserMonthlyActivity
 from utils.types import TUser
 
 
@@ -196,3 +197,33 @@ class Query:
         user.fcm_token = fcm_token
         user.save(update_fields=["fcm_token"])
         return True
+
+    @staticmethod
+    def total_users_use_app():
+        today = now().date()
+        return User.objects.filter(
+            is_active=True, role="USER", last_login__date=today
+        ).count(), User.objects.filter(
+            is_active=True, role="USER", last_login__date=today - timedelta(days=1)
+        ).count()
+
+    @staticmethod
+    def count_new_users():
+        today = now().date()
+        return User.objects.filter(
+            is_active=True, role="USER", date_joined__date=today
+        ).count(), User.objects.filter(
+            is_active=True, role="USER", date_joined__date=today - timedelta(days=1)
+        ).count()
+
+    @staticmethod
+    def track_user_login(user: User):
+        today = now()
+        activity = UserMonthlyActivity.objects.create(
+            user=user,
+            year=today.year,
+            month=today.month,
+        )
+        activity.login_count += 1
+        activity.last_login_at = today
+        activity.save()

@@ -1,4 +1,7 @@
+from datetime import timedelta
 from uuid import UUID
+
+from django.utils.timezone import now
 
 from utils.types import TUser
 from wallet.models import WalletDeposit
@@ -20,6 +23,15 @@ class DepositORM:
     @staticmethod
     def get_total_deposit(user: TUser):
         return WalletDeposit.objects.filter(user=user).count()
+
+    @staticmethod
+    def total_deposit_today():
+        today = now().date()
+        return WalletDeposit.objects.filter(
+            created_at__date=today
+        ).count(), WalletDeposit.objects.filter(
+            created_at__date=today - timedelta(days=1)
+        ).count()
 
     @staticmethod
     def get_latest_deposits(user: TUser):
