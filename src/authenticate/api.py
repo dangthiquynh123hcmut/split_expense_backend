@@ -24,11 +24,13 @@ from .schemas import (
     PinNewRequest,
     RefreshRequest,
     RefreshResponse,
+    RegisterResponseSchema,
     RegisterSchema,
     ResetPasswordOTPRequest,
     TokenResponse,
     UpdateMeSchema,
     UpdatePinRequest,
+    UserLoginSchema,
     UserSchema,
     WalletInfoResponse,
 )
@@ -42,7 +44,7 @@ class AuthenticateAPI(Controller):
 
     @post(
         "/register",
-        response=LoginResponseSchema,
+        response=RegisterResponseSchema,
         exceptions=(
             EmailAlreadyExists,
             PhoneNumberAlreadyExists,
@@ -55,7 +57,7 @@ class AuthenticateAPI(Controller):
         user, access_token, refresh_token = self.service.register(
             request=request, data=data
         )
-        return LoginResponseSchema(
+        return RegisterResponseSchema(
             access_token=access_token,
             refresh_token=refresh_token,
             user=UserSchema.from_orm(user),
@@ -72,7 +74,7 @@ class AuthenticateAPI(Controller):
         return LoginResponseSchema(
             access_token=access_token,
             refresh_token=refresh_token,
-            user=UserSchema.from_orm(user),
+            user=UserLoginSchema.from_orm(user),
         )
 
     @post("/refresh", response=RefreshResponse, exceptions=(InvalidOrExpiredToken,))

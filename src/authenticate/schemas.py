@@ -53,7 +53,17 @@ class UpdateMeSchema(Schema):
     full_name: str
 
 
+class UserLoginSchema(UserSchema):
+    role: str
+
+
 class LoginResponseSchema(Schema):
+    access_token: str
+    refresh_token: str
+    user: UserLoginSchema
+
+
+class RegisterResponseSchema(Schema):
     access_token: str
     refresh_token: str
     user: UserSchema

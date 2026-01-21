@@ -9,6 +9,8 @@ from attachment.schemas.responses import AttachmentResponse
 
 class UserResponse(Schema):
     full_name: str
+    email: str
+    balance: float
     avatar_url: Optional[AttachmentResponse] = None
     uid: UUID
 

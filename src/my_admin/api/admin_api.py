@@ -1,6 +1,6 @@
 from ninja import Query
 
-from friend.schemas.request import OrderByUserSchema
+from my_admin.schemas.request import OrderByBalanceSchema
 from user.schemas.response import UserResponse
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, get
@@ -27,7 +27,7 @@ class AdminController(Controller):
     def list_users(
         self,
         filter: UserFilter = Query(...),
-        order_by: OrderByUserSchema = Query(...),
+        order_by: OrderByBalanceSchema = Query(...),
     ):
         return self.service.list_users(filter=filter, order_by=order_by)
 

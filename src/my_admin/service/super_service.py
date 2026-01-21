@@ -39,7 +39,13 @@ class SuperService(BaseService):
         return True
 
     def list_admins(self, filter: FilterAdminSchema):
-        return self.super_orm.list_admins(filter=filter)
+        list_admins = self.super_orm.list_admins(filter=filter)
+        for admin in list_admins:
+            if not admin.last_login:
+                setattr(admin, "status", "INACTIVE")
+            else:
+                setattr(admin, "status", "INACTIVE")
+        return list_admins
 
     def delete_admin(self, admin_uid: UUID):
         admin = self.auth_query.get_user_by_uid(uid=admin_uid)

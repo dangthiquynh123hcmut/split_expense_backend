@@ -6,6 +6,7 @@ from ninja import Schema
 class AdminResponse(Schema):
     email: str
     uid: UUID
+    status: str
 
 
 class TodayOverviewResponse(Schema):

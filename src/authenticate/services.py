@@ -61,7 +61,7 @@ class Service(BaseService):
 
         user = self.query.create_user(data=data)
         self.auth.login(request=request, user=user)
-        self.query.track_user_login(user=user)
+        self.query.track_user_register(user=user)
         return (
             user,
             self.query.generate_access_token(user_uid=str(user.uid)),

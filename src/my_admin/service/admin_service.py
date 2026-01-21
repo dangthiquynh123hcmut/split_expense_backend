@@ -1,7 +1,7 @@
 from typing import Optional
 
 from authenticate.queries import Query as Auth_Query
-from friend.schemas.request import OrderByUserSchema
+from my_admin.schemas.request import OrderByBalanceSchema
 from my_admin.schemas.response import TodayOverviewResponse, UserInsightsResponse
 from wallet.orm.deposit import DepositORM
 from wallet.orm.transaction import TransactionORM
@@ -22,7 +22,7 @@ class AdminService:
     def list_users(
         self,
         filter: Optional[UserFilter] = None,
-        order_by: Optional[OrderByUserSchema] = None,
+        order_by: Optional[OrderByBalanceSchema] = None,
     ):
         return self.query.list_users(filter=filter, order_by=order_by)
 

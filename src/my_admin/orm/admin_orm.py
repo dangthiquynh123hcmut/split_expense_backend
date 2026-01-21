@@ -7,7 +7,7 @@ from django.db.models.functions import ExtractMonth
 from django.utils.timezone import now
 
 from authenticate.models import User
-from friend.schemas.request import OrderByUserSchema
+from my_admin.schemas.request import OrderByBalanceSchema
 
 from ..models import UserMonthlyActivity
 from ..schemas.request import UserFilter
@@ -17,7 +17,7 @@ class Query:
     @staticmethod
     def list_users(
         filter: Optional[UserFilter] = None,
-        order_by: Optional[OrderByUserSchema] = None,
+        order_by: Optional[OrderByBalanceSchema] = None,
     ):
         query = User.objects.filter(is_staff=False)
 

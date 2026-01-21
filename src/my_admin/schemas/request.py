@@ -1,6 +1,8 @@
+from typing import Literal
+
 from ninja import FilterSchema, Schema
 
-from utils.schemas.fields import FilterField
+from utils.schemas.fields import FilterField, OrderBySchema
 
 
 class UserFilter(FilterSchema):
@@ -27,3 +29,7 @@ class FilterAdminSchema(FilterSchema):
         ],
         description="Exact match by email (using icontains)",
     )
+
+
+class OrderByBalanceSchema(OrderBySchema):
+    order_by: Literal["balance", "full_name", "updated_at"] = "full_name"
