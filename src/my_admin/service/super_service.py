@@ -4,8 +4,13 @@ from django.core.cache import cache
 
 from authenticate.models import generate_token
 from authenticate.queries import Query as AuthQuery
+from exceptions.auth import InvalidOrExpiredToken
 from exceptions.users import AdminCreateFail, UserNotFound
-from my_admin.schemas.request import AdminCreateRequest, FilterAdminSchema
+from my_admin.schemas.request import (
+    ActiveAdminRequest,
+    AdminCreateRequest,
+    FilterAdminSchema,
+)
 from split_expense_system import settings
 from utils.services.base import BaseService
 from utils.services.email.client import EmailClient
@@ -52,3 +57,13 @@ class SuperService(BaseService):
         if not admin or not admin.is_staff:
             raise UserNotFound
         self.auth_query.delete_user(user=admin)
+
+    def activate_admin(self, body: ActiveAdminRequest):
+        user_uid = cache.get(f"admin_activate_token:{body.token}")
+        if not user_uid:
+            raise InvalidOrExpiredToken
+        cache.delete(f"admin_activate_token:{body.token}")
+        user = self.auth_query.get_user_by_uid(uid=user_uid)
+        if not user or not user.is_staff:
+            raise UserNotFound
+        self.super_orm.activate_user(user=user, password=body.password)

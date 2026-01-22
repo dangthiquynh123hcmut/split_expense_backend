@@ -1,6 +1,7 @@
 from datetime import timedelta
 from uuid import UUID
 
+from django.db.models import Sum
 from django.utils.timezone import now
 
 from utils.types import TUser
@@ -41,3 +42,20 @@ class DepositORM:
             .values_list("created_at", flat=True)
             .first()
         )
+
+    @staticmethod
+    def total_deposit_money_today():
+        today = now().date()
+        total_deposits_today = (
+            WalletDeposit.objects.filter(created_at__date=today).aggregate(
+                total_amount=Sum("amount")
+            )["total_amount"]
+            or 0
+        )
+        total_deposits_yesterday = (
+            WalletDeposit.objects.filter(
+                created_at__date=today - timedelta(days=1)
+            ).aggregate(total_amount=Sum("amount"))["total_amount"]
+            or 0
+        )
+        return total_deposits_today, total_deposits_yesterday

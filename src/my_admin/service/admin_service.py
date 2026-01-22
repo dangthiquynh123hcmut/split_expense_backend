@@ -1,8 +1,13 @@
 from typing import Optional
 
 from authenticate.queries import Query as Auth_Query
+from expense.queries import Query as ExpenseQuery
 from my_admin.schemas.request import OrderByBalanceSchema
-from my_admin.schemas.response import TodayOverviewResponse, UserInsightsResponse
+from my_admin.schemas.response import (
+    ExpenseCategoryResponse,
+    TodayOverviewResponse,
+    UserInsightsResponse,
+)
 from wallet.orm.deposit import DepositORM
 from wallet.orm.transaction import TransactionORM
 from wallet.orm.withdraw import WithdrawORM
@@ -18,6 +23,7 @@ class AdminService:
         self.withdraw_query = WithdrawORM()
         self.deposit_query = DepositORM()
         self.transaction_query = TransactionORM()
+        self.expense_query = ExpenseQuery()
 
     def list_users(
         self,
@@ -34,24 +40,29 @@ class AdminService:
         total_deposit_today, total_deposit_yesterday = (
             self.deposit_query.total_deposit_today()
         )
-        total_withdrawals_today, total_withdrawals_yesterday = (
-            self.withdraw_query.total_withdrawals_today()
+        total_withdraw_today, total_withdraw_yesterday = (
+            self.withdraw_query.total_withdraw_today()
         )
         total_transactions_today = (
-            total_deposit_today + total_withdrawals_today + total_tranfer_today
+            total_deposit_today + total_withdraw_today + total_tranfer_today
         )
         total_transactions_yesterday = (
-            total_deposit_yesterday
-            + total_withdrawals_yesterday
-            + total_tranfer_yesterday
+            total_deposit_yesterday + total_withdraw_yesterday + total_tranfer_yesterday
         )
-        total_admins_today, total_admins_yesterday = self.query.count_total_admins()
+        total_withdraw_money_today, total_withdraw_money_yesterday = (
+            self.withdraw_query.total_withdraw_money_today()
+        )
+        total_deposit_today, total_deposit_yesterday = (
+            self.deposit_query.total_deposit_money_today()
+        )
+        total_money_today = total_deposit_today + total_withdraw_money_today
+        total_money_yesterday = total_deposit_yesterday + total_withdraw_money_yesterday
         new_users_today, new_users_yesterday = self.auth_query.count_new_users()
 
         return TodayOverviewResponse(
             total_users=total_users_today,
             total_transactions=total_transactions_today,
-            total_admins=total_admins_today,
+            total_money=total_money_today,
             new_users=new_users_today,
             percent_increase_users=(
                 (total_users_today - total_users_yesterday)
@@ -67,11 +78,11 @@ class AdminService:
                 if total_transactions_yesterday > 0
                 else 100.0
             ),
-            percent_increase_admins=(
-                (total_admins_today - total_admins_yesterday)
-                / total_admins_yesterday
+            percent_increase_money=(
+                (total_money_today - total_money_yesterday)
+                / total_money_yesterday
                 * 100
-                if total_admins_yesterday > 0
+                if total_money_yesterday > 0
                 else 100.0
             ),
             percent_increase_new_users=(
@@ -92,4 +103,15 @@ class AdminService:
                 return_users=insight["return_users"],
             )
             for insight in insights_data
+        ]
+
+    def expense_categories(self) -> list[ExpenseCategoryResponse]:
+        categories_data = self.expense_query.expense_categories()
+
+        return [
+            ExpenseCategoryResponse(
+                category=category["category"],
+                total_amount=category["total_amount"],
+            )
+            for category in categories_data
         ]

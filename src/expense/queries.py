@@ -210,3 +210,11 @@ class Query:
             .annotate(total_amount=Sum("amount"))
             .order_by("created_at__month")
         )
+
+    @staticmethod
+    def expense_categories():
+        return (
+            Expense.objects.filter(status="ACTIVE")
+            .values("category")
+            .annotate(total_amount=Sum("total_amount"))
+        )

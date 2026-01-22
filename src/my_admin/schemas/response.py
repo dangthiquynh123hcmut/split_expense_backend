@@ -13,11 +13,11 @@ class TodayOverviewResponse(Schema):
     total_users: int
     percent_increase_users: float
     percent_increase_transactions: float
-    percent_increase_admins: float
+    percent_increase_money: float
     percent_increase_new_users: float
     total_transactions: int
     new_users: int
-    total_admins: int
+    total_money: int
 
 
 class UserInsightsResponse(Schema):
@@ -25,3 +25,8 @@ class UserInsightsResponse(Schema):
     new_users: int
     loyal_users: int
     return_users: int
+
+
+class ExpenseCategoryResponse(Schema):
+    category: str
+    total_amount: float

@@ -33,3 +33,8 @@ class FilterAdminSchema(FilterSchema):
 
 class OrderByBalanceSchema(OrderBySchema):
     order_by: Literal["balance", "full_name", "updated_at"] = "full_name"
+
+
+class ActiveAdminRequest(Schema):
+    password: str
+    token: str

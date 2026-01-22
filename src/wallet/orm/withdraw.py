@@ -1,6 +1,7 @@
 from datetime import timedelta
 from uuid import UUID
 
+from django.db.models import Sum
 from django.utils.timezone import now
 
 from authenticate.models import User
@@ -33,10 +34,27 @@ class WithdrawORM:
         )
 
     @staticmethod
-    def total_withdrawals_today():
+    def total_withdraw_today():
         today = now().date()
         return Withdraw.objects.filter(
             created_at__date=today
         ).count(), Withdraw.objects.filter(
             created_at__date=today - timedelta(days=1)
         ).count()
+
+    @staticmethod
+    def total_withdraw_money_today():
+        today = now().date()
+        total_withdrawals_today = (
+            Withdraw.objects.filter(created_at__date=today).aggregate(
+                total_amount=Sum("amount")
+            )["total_amount"]
+            or 0
+        )
+        total_withdrawals_yesterday = (
+            Withdraw.objects.filter(
+                created_at__date=today - timedelta(days=1)
+            ).aggregate(total_amount=Sum("amount"))["total_amount"]
+            or 0
+        )
+        return total_withdrawals_today, total_withdrawals_yesterday

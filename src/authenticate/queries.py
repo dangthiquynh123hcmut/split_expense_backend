@@ -217,21 +217,9 @@ class Query:
         ).count()
 
     @staticmethod
-    def track_user_register(user: User):
+    def track_user_activity(user: User):
         today = now()
-        activity = UserMonthlyActivity.objects.create(
-            user=user,
-            year=today.year,
-            month=today.month,
-        )
-        activity.login_count += 1
-        activity.last_login_at = today
-        activity.save()
-
-    @staticmethod
-    def track_user_login(user: User):
-        today = now()
-        activity = UserMonthlyActivity.objects.get(
+        activity, _ = UserMonthlyActivity.objects.get_or_create(
             user=user,
             year=today.year,
             month=today.month,
