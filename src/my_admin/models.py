@@ -23,3 +23,20 @@ class UserMonthlyActivity(BaseModel):
 
     class Meta:
         unique_together = ("user", "month", "year")
+
+
+class RatingMonthly(BaseModel):
+    user = models.OneToOneField(
+        to="authenticate.User",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="rating_monthlies",
+        db_constraint=True,
+        db_index=True,
+        null=True,
+        blank=True,
+        unique=True,
+    )
+    creat_date = models.DateField(auto_now_add=True)
+    rate = models.IntegerField(default=0, null=False)

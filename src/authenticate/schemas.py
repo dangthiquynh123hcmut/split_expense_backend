@@ -55,6 +55,7 @@ class UpdateMeSchema(Schema):
 
 class UserLoginSchema(UserSchema):
     role: str
+    count_use_app: int
 
 
 class LoginResponseSchema(Schema):

@@ -5,9 +5,11 @@ from expense.queries import Query as ExpenseQuery
 from my_admin.schemas.request import OrderByBalanceSchema
 from my_admin.schemas.response import (
     ExpenseCategoryResponse,
+    RatingResponse,
     TodayOverviewResponse,
     UserInsightsResponse,
 )
+from utils.schemas.filter_and_order_by import FilterDateSchema
 from wallet.orm.deposit import DepositORM
 from wallet.orm.transaction import TransactionORM
 from wallet.orm.withdraw import WithdrawORM
@@ -114,4 +116,15 @@ class AdminService:
                 total_amount=category["total_amount"],
             )
             for category in categories_data
+        ]
+
+    def rating(self, filter: FilterDateSchema) -> list[RatingResponse]:
+        rating_data = self.query.rating(filter=filter)
+
+        return [
+            RatingResponse(
+                date=rating["date"],
+                rate=rating["avg_rate"],
+            )
+            for rating in rating_data
         ]

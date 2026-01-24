@@ -1,11 +1,13 @@
 from ninja import Query
 
 from my_admin.schemas.request import OrderByBalanceSchema
+from my_admin.schemas.response import RatingResponse
 from user.schemas.response import UserResponse
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, get
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAdminUser
+from utils.schemas.filter_and_order_by import FilterDateSchema
 
 from ..schemas.request import UserFilter
 from ..schemas.response import (
@@ -46,3 +48,7 @@ class AdminController(Controller):
     @get("/expense-categories", response=list[ExpenseCategoryResponse])
     def expense_categories(self):
         return self.service.expense_categories()
+
+    @get("/rating", response=list[RatingResponse])
+    def rating(self, filter: FilterDateSchema = Query(...)):
+        return self.service.rating(filter=filter)

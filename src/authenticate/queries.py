@@ -226,4 +226,6 @@ class Query:
         )
         activity.login_count += 1
         activity.last_login_at = today
+        user.count_use_app += 1
+        user.save(update_fields=["count_use_app"])
         activity.save()

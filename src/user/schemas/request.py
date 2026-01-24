@@ -1,4 +1,5 @@
 from ninja import FilterSchema, Schema
+from pydantic import Field
 
 from attachment.schemas.responses import AttachmentResponse
 from utils.schemas.fields import FilterField
@@ -19,3 +20,7 @@ class UserFilterSchema(FilterSchema):
         ],
         description="Exact match by email, phone_number and full_name (using icontains)",
     )
+
+
+class ReviewUserRequest(Schema):
+    rate: int = Field(..., ge=0, le=5)

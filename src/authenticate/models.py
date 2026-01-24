@@ -94,6 +94,7 @@ class User(AbstractUser):
         choices=RoleEnum.choices,
         default=RoleEnum.USER,
     )
+    count_use_app = models.IntegerField(default=0)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["full_name"]

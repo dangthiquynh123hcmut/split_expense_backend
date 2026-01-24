@@ -2,14 +2,15 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from django.db.models import Count
-from django.db.models.functions import ExtractMonth
+from django.db.models import Avg, Count, F
+from django.db.models.functions import ExtractMonth, TruncDate
 from django.utils.timezone import now
 
 from authenticate.models import User
 from my_admin.schemas.request import OrderByBalanceSchema
+from utils.schemas.filter_and_order_by import FilterDateSchema
 
-from ..models import UserMonthlyActivity
+from ..models import RatingMonthly, UserMonthlyActivity
 from ..schemas.request import UserFilter
 
 
@@ -107,3 +108,18 @@ class Query:
             )
 
         return insights_data
+
+    @staticmethod
+    def rating(filter: FilterDateSchema):
+        return (
+            RatingMonthly.objects.filter(filter.get_filter_expression())
+            .annotate(date=TruncDate(F("creat_date")))  # type: ignore
+            .values("date")
+            .annotate(avg_rate=Avg("rate"))
+            .order_by("date")
+        )
+
+    @staticmethod
+    def update_rating_monthly(user: User, rate: int):
+        RatingMonthly.objects.update_or_create(user=user, creat_date=now(), rate=rate)
+        return

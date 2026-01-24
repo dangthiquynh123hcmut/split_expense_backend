@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from ninja import Schema
@@ -30,3 +31,8 @@ class UserInsightsResponse(Schema):
 class ExpenseCategoryResponse(Schema):
     category: str
     total_amount: float
+
+
+class RatingResponse(Schema):
+    date: datetime
+    rate: float
