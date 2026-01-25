@@ -1,10 +1,12 @@
 from collections import defaultdict
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any, DefaultDict, Dict, List
 from uuid import UUID
 
 from django.db.models import DecimalField, ExpressionWrapper, F
 from django.db.models.functions import Round
+from django.utils.timezone import now
 
 from attachment.schemas.responses import AttachmentResponse
 from event.models import Event, EventMember
@@ -174,3 +176,50 @@ class Query:
     @staticmethod
     def get_event_members(event: Event):
         return EventMember.objects.filter(event=event, status="ACTIVE")
+
+    @staticmethod
+    def count_events():
+        yesterday = now().date() - timedelta(days=1)
+
+        return Event.objects.count(), Event.objects.filter(
+            created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def count_event_members():
+        yesterday = now().date() - timedelta(days=1)
+
+        return EventMember.objects.count(), EventMember.objects.filter(
+            created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def count_active_events():
+        yesterday = now().date() - timedelta(days=1)
+
+        return Event.objects.filter(
+            status="ACTIVE", event_end__gte=now()
+        ).count(), Event.objects.filter(
+            status="ACTIVE", event_end__gte=now(), created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def count_finished_events():
+        yesterday = now().date() - timedelta(days=1)
+
+        return Event.objects.filter(
+            status="ACTIVE", event_end__lt=now()
+        ).count(), Event.objects.filter(
+            status="ACTIVE", event_end__lt=now(), created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def list_events_admin(filter: FilterNameSchema):
+        return Event.objects.filter(filter.get_filter_expression())
+
+    @staticmethod
+    def list_event_members_admin(filter: FilterNameSchema):
+        return EventMember.objects.filter(filter.get_filter_expression()).annotate(
+            event_member_uid=F("uid"),
+            user=F("user"),
+        )

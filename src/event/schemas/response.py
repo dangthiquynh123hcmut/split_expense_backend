@@ -19,14 +19,14 @@ class EventResponse(ModelSchema):
 class EventGroup(Schema):
     event_uid: UUID
     event_name: str
-    event_description: Optional[str]
+    event_description: Optional[str] = None
     event_start: date
     event_end: date
 
 
 class ListEventGroup(Schema):
     group_name: str
-    group_avatar_url: Optional[AttachmentResponse]
+    group_avatar_url: Optional[AttachmentResponse] = None
     list_event: List[EventGroup]
 
 

@@ -1,21 +1,38 @@
 from typing import Optional
+from uuid import UUID
 
 from authenticate.queries import Query as Auth_Query
+from event.queries import Query as EventQuery
 from expense.queries import Query as ExpenseQuery
+from group.queries import Query as GroupQuery
+from group.schemas.response import GroupName
 from my_admin.schemas.request import OrderByBalanceSchema
 from my_admin.schemas.response import (
+    AdminGroupResponse,
     ExpenseCategoryResponse,
+    GroupStatisticsResponse,
     RatingResponse,
     TodayOverviewResponse,
     UserInsightsResponse,
 )
-from utils.schemas.filter_and_order_by import FilterDateSchema
+from utils.schemas.filter_and_order_by import (
+    FilterDateSchema,
+    FilterEventAdminSchema,
+    FilterNameSchema,
+)
 from wallet.orm.deposit import DepositORM
 from wallet.orm.transaction import TransactionORM
 from wallet.orm.withdraw import WithdrawORM
 
 from ..orm.admin_orm import Query
 from ..schemas.request import UserFilter
+from ..schemas.response import (
+    EventManagementResponse,
+    ListEventMemberResponse,
+    ListEventResponse,
+    UserCreator,
+    UserEventSchema,
+)
 
 
 class AdminService:
@@ -26,6 +43,8 @@ class AdminService:
         self.deposit_query = DepositORM()
         self.transaction_query = TransactionORM()
         self.expense_query = ExpenseQuery()
+        self.group_query = GroupQuery()
+        self.events_query = EventQuery()
 
     def list_users(
         self,
@@ -127,4 +146,109 @@ class AdminService:
                 rate=rating["avg_rate"],
             )
             for rating in rating_data
+        ]
+
+    def group_statistics(self) -> GroupStatisticsResponse:
+        total_groups, total_groups_yesterday = self.group_query.count_groups()
+        total_members, total_members_yesterday = self.group_query.count_members()
+        active_groups, active_groups_yesterday = self.group_query.count_active_groups()
+        return GroupStatisticsResponse(
+            total_groups=total_groups,
+            total_members=total_members,
+            active_groups=active_groups,
+            percent_increase_groups=(
+                (total_groups - total_groups_yesterday) / total_groups_yesterday * 100
+                if total_groups_yesterday > 0
+                else 100.0
+            ),
+            percent_increase_members=(
+                (total_members - total_members_yesterday)
+                / total_members_yesterday
+                * 100
+                if total_members_yesterday > 0
+                else 100.0
+            ),
+            percent_increase_active_groups=(
+                (active_groups - active_groups_yesterday)
+                / active_groups_yesterday
+                * 100
+                if active_groups_yesterday > 0
+                else 100.0
+            ),
+        )
+
+    def deactivate_group(self, group_uid: UUID) -> bool:
+        self.group_query.deactivate_inactive_groups(group_uid=group_uid)
+        return True
+
+    def list_groups(self, filter: FilterNameSchema) -> list[AdminGroupResponse]:
+        return self.group_query.list_groups_admin(filter=filter)
+
+    def events_management(self) -> EventManagementResponse:
+        total_events, total_events_yesterday = self.events_query.count_events()
+        total_members, total_members_yesterday = self.events_query.count_event_members()
+        active_events, active_events_yesterday = self.events_query.count_active_events()
+        total_finished_events, total_finished_events_yesterday = (
+            self.events_query.count_finished_events()
+        )
+        return EventManagementResponse(
+            total_events=total_events,
+            total_members=total_members,
+            active_events=active_events,
+            total_finished_events=total_finished_events,
+            percent_increase_events=(
+                (total_events - total_events_yesterday) / total_events_yesterday * 100
+                if total_events_yesterday > 0
+                else 100.0
+            ),
+            percent_increase_members=(
+                (total_members - total_members_yesterday)
+                / total_members_yesterday
+                * 100
+                if total_members_yesterday > 0
+                else 100.0
+            ),
+            percent_increase_active_events=(
+                (active_events - active_events_yesterday)
+                / active_events_yesterday
+                * 100
+                if active_events_yesterday > 0
+                else 100.0
+            ),
+            percent_increase_finished_events=(
+                (total_finished_events - total_finished_events_yesterday)
+                / total_finished_events_yesterday
+                * 100
+                if total_finished_events_yesterday > 0
+                else 100.0
+            ),
+        )
+
+    def list_events(self, filter: FilterEventAdminSchema) -> list[ListEventResponse]:
+        query = self.events_query.list_events_admin(filter=filter)
+        return [
+            ListEventResponse(
+                event_uid=query.uid,
+                event_name=query.name,
+                event_description=query.description,
+                event_start=query.event_start,
+                event_end=query.event_end,
+                status=query.status,
+                creator=UserCreator.from_orm(query.creator),
+                group=GroupName.from_orm(query.group),
+            )
+            for query in query
+        ]
+
+    def list_event_members(
+        self, filter: FilterNameSchema
+    ) -> list[ListEventMemberResponse]:
+        query = self.events_query.list_event_members_admin(filter=filter)
+        return [
+            ListEventMemberResponse(
+                event_member_uid=member.event_member_uid,
+                user=UserEventSchema.from_orm(member.user),
+                status=member.status,
+            )
+            for member in query
         ]

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 from typing import List
 from uuid import UUID
@@ -5,6 +6,7 @@ from uuid import UUID
 from channels.db import database_sync_to_async
 from django.db.models import (
     Case,
+    Count,
     DecimalField,
     F,
     IntegerField,
@@ -15,6 +17,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.functions import Abs, Coalesce
+from django.utils.timezone import now
 
 from attachment.models import Attachment
 from authenticate.models import User
@@ -460,3 +463,46 @@ class Query:
             {"user_uid": member.user.uid, "fcm_token": member.user.fcm_token}
             for member in member_qs
         ]
+
+    @staticmethod
+    def count_groups():
+        yesterday = now().date() - timedelta(days=1)
+        return Group.objects.count(), Group.objects.filter(
+            created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def count_members():
+        yesterday = now().date() - timedelta(days=1)
+        return GroupMember.objects.count(), GroupMember.objects.filter(
+            joined_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def count_active_groups():
+        yesterday = now().date() - timedelta(days=1)
+        return Group.objects.filter(status="ACTIVE").count(), Group.objects.filter(
+            status="ACTIVE", created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def deactivate_inactive_groups(group_uid: UUID):
+        Group.objects.filter(
+            uid=group_uid,
+        ).update(status="INACTIVE")
+
+    @staticmethod
+    def list_groups_admin(filter: FilterNameSchema):
+        query = (
+            Group.objects.all()
+            .annotate(
+                total_members=Count(
+                    "group_member_fk_group",
+                    filter=Q(group_member_fk_group__status="ACTIVE"),
+                )
+            )
+            .select_related("leader")
+        )
+        if filter:
+            query = query.filter(filter.get_filter_expression())
+        return query

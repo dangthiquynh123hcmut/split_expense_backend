@@ -133,7 +133,7 @@ class Service:
         if not event:
             raise EventNotFound
         is_member_in_event = self.query.get_event_has_user(user=user, event=event)
-        if not is_member_in_event:
+        if not is_member_in_event and not user.is_staff:
             raise GetIsDenied
         return self.query.list_event_members(
             event=event, filter=filter, order_by=order_by

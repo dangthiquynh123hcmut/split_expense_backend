@@ -148,3 +148,20 @@ class OrderByNameAndUpdatedAtSchema(OrderBySchema):
 
 class OrderByFullNameAndUpdatedAtSchema(OrderBySchema):
     order_by: Literal["updated_at", "full_name"] = "full_name"
+
+
+class FilterEventAdminSchema(FilterSchema):
+    search: Optional[str] = FilterField(default=None, description="Search by name")
+    type: Optional[str] = FilterField(
+        default=None, description="Filter by event type is all, active or finished"
+    )
+
+    def get_filter_expression(self) -> Q:
+        q = Q()
+        if self.search:
+            q &= Q(name_no_accent__icontains=remove_accents(self.search))
+        if self.type == "active":
+            q &= Q(status="active")
+        elif self.type == "finished":
+            q &= Q(event_end__lt=datetime.now())
+        return q

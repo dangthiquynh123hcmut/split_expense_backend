@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 
 from ninja import Query
@@ -102,7 +101,7 @@ class EventAPI(Controller):
 
     @get(
         "/{event_uid}/spending",
-        response=List[GroupMembersReport],
+        response=list[GroupMembersReport],
         exceptions=(EventNotFound,),
     )
     def get_event_spending(
@@ -124,7 +123,7 @@ class EventAPI(Controller):
 
     @get(
         "/{event_uid}/chart",
-        response=List[GroupChart],
+        response=list[GroupChart],
         exceptions=(EventNotFound, GetIsDenied),
     )
     def chart_expenses_in_event(
@@ -148,7 +147,7 @@ class EventGroupAPI(Controller):
     def __init__(self, service: Service):
         self.service = service
 
-    @get("", response=List[ListEventGroup])
+    @get("", response=list[ListEventGroup])
     def list_events_groups(
         self,
         request: AuthenticatedRequest,
