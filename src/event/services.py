@@ -109,7 +109,7 @@ class Service:
         event = self.query.get_event(event_uid=event_uid)
         if not event:
             raise EventNotFound
-        if user != event.creator:
+        if user != event.creator and not user.is_staff:
             raise DeleteIsDenied
         result = self.query.delete_event(event_uid=event_uid)
         event_members = self.query.get_event_members(event=event)

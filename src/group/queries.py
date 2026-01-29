@@ -486,10 +486,16 @@ class Query:
         ).count()
 
     @staticmethod
-    def deactivate_inactive_groups(group_uid: UUID):
+    def deactivate_groups(group_uid: UUID):
         Group.objects.filter(
             uid=group_uid,
         ).update(status="INACTIVE")
+
+    @staticmethod
+    def active_groups(group_uid: UUID):
+        Group.objects.filter(
+            uid=group_uid,
+        ).update(status="ACTIVE")
 
     @staticmethod
     def list_groups_admin(filter: FilterNameSchema):

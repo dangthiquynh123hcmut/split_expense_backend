@@ -3,6 +3,7 @@ from uuid import UUID
 
 from authenticate.queries import Query as Auth_Query
 from event.queries import Query as EventQuery
+from expense.models import Expense
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
 from group.schemas.response import GroupName
@@ -28,10 +29,18 @@ from ..orm.admin_orm import Query
 from ..schemas.request import UserFilter
 from ..schemas.response import (
     EventManagementResponse,
+    ExpenseAttachmentResponse,
+    ExpenseDetailResponse,
+    ExpenseInEventResponse,
+    ExpenseItemResponse,
+    ExpenseManagementResponse,
     ListEventMemberResponse,
     ListEventResponse,
+    NameEvent,
+    SplitExpenseResponse,
     UserCreator,
     UserEventSchema,
+    UserSharesInExpenseResponse,
 )
 
 
@@ -178,13 +187,17 @@ class AdminService:
         )
 
     def deactivate_group(self, group_uid: UUID) -> bool:
-        self.group_query.deactivate_inactive_groups(group_uid=group_uid)
+        self.group_query.deactivate_groups(group_uid=group_uid)
+        return True
+
+    def active_groups(self, group_uid: UUID) -> bool:
+        self.group_query.active_groups(group_uid=group_uid)
         return True
 
     def list_groups(self, filter: FilterNameSchema) -> list[AdminGroupResponse]:
         return self.group_query.list_groups_admin(filter=filter)
 
-    def events_management(self) -> EventManagementResponse:
+    def event_management(self) -> EventManagementResponse:
         total_events, total_events_yesterday = self.events_query.count_events()
         total_members, total_members_yesterday = self.events_query.count_event_members()
         active_events, active_events_yesterday = self.events_query.count_active_events()
@@ -241,14 +254,147 @@ class AdminService:
         ]
 
     def list_event_members(
-        self, filter: FilterNameSchema
+        self, event_uid: UUID, filter: FilterNameSchema
     ) -> list[ListEventMemberResponse]:
-        query = self.events_query.list_event_members_admin(filter=filter)
+        query = self.events_query.list_event_members_admin(
+            event_uid=event_uid, filter=filter
+        )
         return [
             ListEventMemberResponse(
                 event_member_uid=member.event_member_uid,
-                user=UserEventSchema.from_orm(member.user),
+                user_infor=UserEventSchema.from_orm(member.user),
                 status=member.status,
             )
             for member in query
         ]
+
+    def get_expenses_in_event(self, event_uid: UUID) -> ExpenseInEventResponse:
+        expenses_data = self.expense_query.get_expenses_in_event(event_uid=event_uid)
+        total_amount = sum(expense.total_amount for expense in expenses_data)
+        expenses_list = [
+            ExpenseDetailResponse(
+                expense_uid=expense.uid,
+                amount=expense.total_amount,
+                currency=expense.currency,
+                created_at=expense.created_at,
+                paid_by=UserEventSchema.from_orm(expense.paid_by),
+                name=expense.name,
+            )
+            for expense in expenses_data
+        ]
+        return ExpenseInEventResponse(
+            total_amount=total_amount,
+            expenses=expenses_list,
+        )
+
+    def deactivate_event(self, event_uid: UUID) -> bool:
+        self.events_query.deactivate_event(event_uid=event_uid)
+        return True
+
+    def active_event(self, event_uid: UUID) -> bool:
+        self.events_query.active_event(event_uid=event_uid)
+        return True
+
+    def expense_management(self) -> ExpenseManagementResponse:
+        total_expenses, total_expenses_yesterday = self.expense_query.count_expenses()
+        active_expenses, active_expenses_yesterday = (
+            self.expense_query.count_active_expenses()
+        )
+        total_expired_expenses, total_expired_expenses_yesterday = (
+            self.expense_query.count_expired_expenses()
+        )
+        total_expense_amount, total_expense_amount_yesterday = (
+            self.expense_query.count_expense_amount()
+        )
+        total_expense_members, total_expense_members_yesterday = (
+            self.expense_query.count_expense_members()
+        )
+
+        return ExpenseManagementResponse(
+            total_expenses=total_expenses,
+            total_avg_amount=(total_expense_amount / total_expense_members)
+            if total_expense_members > 0
+            else 0,
+            active_expenses=active_expenses,
+            total_expired_expenses=total_expired_expenses,
+            percent_increase_expenses=(
+                (total_expenses - total_expenses_yesterday)
+                / total_expenses_yesterday
+                * 100
+                if total_expenses_yesterday > 0
+                else 100.0
+            ),
+            percent_increase_active_expenses=(
+                (active_expenses - active_expenses_yesterday)
+                / active_expenses_yesterday
+                * 100
+                if active_expenses_yesterday > 0
+                else 100.0
+            ),
+            percent_increase_avg_amount=(
+                (total_expense_amount - total_expense_amount_yesterday)
+                / (total_expense_members - total_expense_members_yesterday)
+                * 100
+                if (total_expense_members - total_expense_members_yesterday) > 0
+                else 100.0
+            ),
+            percent_increase_expired_expenses=(
+                (total_expired_expenses - total_expired_expenses_yesterday)
+                / total_expired_expenses_yesterday
+                * 100
+                if total_expired_expenses_yesterday > 0
+                else 100.0
+            ),
+        )
+
+    def get_all_expenses(self) -> list[ExpenseItemResponse]:
+        expenses_data = self.expense_query.get_all_expenses()
+        return [
+            ExpenseItemResponse(  # type: ignore
+                status=expense.status,
+                category=expense.category,
+                total_amount=expense.total_amount,
+                currency=expense.currency,
+                created_at=expense.created_at,
+                paid_by=UserEventSchema.from_orm(expense.paid_by),
+                creator=UserEventSchema.from_orm(expense.creator),
+                name=expense.name,
+                expense_date=expense.expense_date,
+                event=NameEvent(uid=expense.event.uid, name=expense.event.name),
+                split_type=expense.split_type,
+                uid=expense.uid,
+                note=expense.note,
+                create_at=expense.created_at,
+            )
+            for expense in expenses_data
+        ]
+
+    def deactivate_expense(self, expense_uid: UUID) -> bool:
+        self.expense_query.deactivate_expense(expense_uid=expense_uid)
+        return True
+
+    def active_expense(self, expense_uid: UUID) -> bool:
+        self.expense_query.active_expense(expense_uid=expense_uid)
+        return True
+
+    def get_split_expense(self, expense_uid: UUID) -> SplitExpenseResponse:
+        expense_data = self.expense_query.get_expense_by_uid(expense_uid=expense_uid)
+        user_shares_data = self.expense_query.get_user_shares_in_expense(
+            expense=expense_data
+        )
+        list_user_shares = [
+            UserSharesInExpenseResponse(
+                user=UserEventSchema.from_orm(user_share.user),
+                amount=user_share.amount,
+            )
+            for user_share in user_shares_data
+        ]
+        return SplitExpenseResponse(
+            total_amount=expense_data.total_amount,
+            currency=expense_data.currency,
+            split_type=expense_data.split_type,
+            list_user_shares=list_user_shares,
+        )
+
+    def get_expense_attachments(self, expense: Expense) -> ExpenseAttachmentResponse:
+        return self.expense_query.get_expense_attachments(expense=expense)

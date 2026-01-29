@@ -19,10 +19,15 @@ from ..schemas.request import UserFilter
 from ..schemas.response import (
     AdminGroupResponse,
     EventManagementResponse,
+    ExpenseAttachmentResponse,
     ExpenseCategoryResponse,
+    ExpenseInEventResponse,
+    ExpenseItemResponse,
+    ExpenseManagementResponse,
     GroupStatisticsResponse,
     ListEventMemberResponse,
     ListEventResponse,
+    SplitExpenseResponse,
     TodayOverviewResponse,
     UserInsightsResponse,
 )
@@ -72,6 +77,10 @@ class AdminController(Controller):
     def deactivate_group(self, group_uid: UUID):
         return self.service.deactivate_group(group_uid=group_uid)
 
+    @patch("/group/active/{group_uid}", response=bool)
+    def active_group(self, group_uid: UUID):
+        return self.service.active_groups(group_uid=group_uid)
+
     @get("/groups", response=AdminGroupResponse, paginate=True)
     @paginate
     def list_groups(
@@ -80,9 +89,9 @@ class AdminController(Controller):
     ):
         return self.service.list_groups(filter=filter)
 
-    @get("/events-management", response=EventManagementResponse)
-    def events_management(self):
-        return self.service.events_management()
+    @get("/event-management", response=EventManagementResponse)
+    def event_management(self):
+        return self.service.event_management()
 
     @get("/events", response=ListEventResponse, paginate=True)
     @paginate
@@ -92,14 +101,58 @@ class AdminController(Controller):
     ):
         return self.service.list_events(filter=filter)
 
-    @get("/event-members", response=ListEventMemberResponse, paginate=True)
+    @get(
+        "/event/{event_uid}/event-members",
+        response=ListEventMemberResponse,
+        paginate=True,
+    )
     @paginate
     def list_event_members(
         self,
+        event_uid: UUID,
         filter: FilterNameSchema = Query(...),
     ):
-        return self.service.list_event_members(filter=filter)
+        return self.service.list_event_members(event_uid=event_uid, filter=filter)
 
-    # @get("/expense/{event_member_uid}", response=)
-    # def get_event_member_detail(self, event_member_uid: UUID):
-    #     return self.service.get_event_member_detail(event_member_uid=event_member_uid)
+    @get("/expense/{event_uid}", response=ExpenseInEventResponse)
+    def get_expenses_in_event(self, event_uid: UUID):
+        return self.service.get_expenses_in_event(event_uid=event_uid)
+
+    @patch("/event/{event_uid}", response=bool)
+    def deactivate_event(self, event_uid: UUID):
+        return self.service.deactivate_event(event_uid=event_uid)
+
+    @patch("/event/active/{event_uid}", response=bool)
+    def active_event(self, event_uid: UUID):
+        return self.service.active_event(event_uid=event_uid)
+
+    @get("/expense-management", response=ExpenseManagementResponse)
+    def expense_management(self):
+        return self.service.expense_management()
+
+    @get("/expenses", response=list[ExpenseItemResponse], paginate=True)
+    @paginate
+    def get_all_expenses(self):
+        return self.service.get_all_expenses()
+
+    @patch("/expense/deactivate/{expense_uid}", response=bool)
+    def deactivate_expense(self, expense_uid: UUID):
+        return self.service.deactivate_expense(expense_uid=expense_uid)
+
+    @patch("/expense/active/{expense_uid}", response=bool)
+    def active_expense(self, expense_uid: UUID):
+        return self.service.active_expense(expense_uid=expense_uid)
+
+    @get("/expenses/{expense_uid}", response=SplitExpenseResponse)
+    def get_split_expense(self, expense_uid: UUID):
+        return self.service.get_split_expense(expense_uid=expense_uid)
+
+    @get(
+        "/expense/{expense_uid}/attachments",
+        response=ExpenseAttachmentResponse,
+        paginate=True,
+    )
+    @paginate
+    def get_expense_attachments(self, expense_uid: UUID):
+        expense = self.service.expense_query.get_expense_by_uid(expense_uid=expense_uid)
+        return self.service.get_expense_attachments(expense=expense)

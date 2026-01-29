@@ -71,6 +71,7 @@ class AdminGroupResponse(Schema):
     created_at: datetime
     total_members: int
     leader: UserSchema
+    avatar: Optional[AttachmentResponse] = None
 
 
 class UserCreator(Schema):
@@ -91,5 +92,68 @@ class UserEventSchema(UserCreator):
 
 class ListEventMemberResponse(Schema):
     event_member_uid: UUID
-    user: UserEventSchema
+    user_infor: UserEventSchema
     status: str
+
+
+class ExpenseDetailResponse(Schema):
+    expense_uid: UUID
+    amount: float
+    currency: str
+    created_at: datetime
+    paid_by: UserEventSchema
+    name: str
+
+
+class ExpenseInEventResponse(Schema):
+    total_amount: float
+    expenses: Optional[list[ExpenseDetailResponse]] = None
+
+
+class ExpenseManagementResponse(Schema):
+    total_expenses: int
+    total_avg_amount: float
+    active_expenses: int
+    total_expired_expenses: int
+    percent_increase_expenses: float
+    percent_increase_avg_amount: float
+    percent_increase_active_expenses: float
+    percent_increase_expired_expenses: float
+
+
+class NameEvent(Schema):
+    uid: UUID
+    name: str
+
+
+class ExpenseItemResponse(Schema):
+    name: str
+    status: str
+    category: str
+    total_amount: float
+    currency: str
+    expense_date: datetime
+    paid_by: UserEventSchema
+    creator: UserEventSchema
+    event: NameEvent
+    split_type: str
+    uid: UUID
+    note: Optional[str] = None
+    create_at: datetime
+
+
+class UserSharesInExpenseResponse(Schema):
+    user: UserEventSchema
+    amount: float
+
+
+class SplitExpenseResponse(Schema):
+    total_amount: float
+    currency: str
+    split_type: str
+    list_user_shares: Optional[list[UserSharesInExpenseResponse]] = None
+
+
+class ExpenseAttachmentResponse(AttachmentResponse):
+    size: int
+    created_at: datetime

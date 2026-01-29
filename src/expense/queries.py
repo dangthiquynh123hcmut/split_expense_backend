@@ -1,7 +1,9 @@
+from datetime import timedelta
 from typing import List, Literal, Optional
 from uuid import UUID
 
 from django.db.models import Count, Sum
+from django.utils.timezone import now
 
 from authenticate.models import User
 from event.models import Event
@@ -218,3 +220,77 @@ class Query:
             .values("category")
             .annotate(total_amount=Sum("total_amount"))
         )
+
+    @staticmethod
+    def get_expenses_in_event(event_uid: UUID):
+        return Expense.objects.filter(event__uid=event_uid, status="ACTIVE")
+
+    @staticmethod
+    def count_expenses():
+        yesterday = now().date() - timedelta(days=1)
+        return Expense.objects.filter().count(), Expense.objects.filter(
+            created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def count_active_expenses():
+        yesterday = now().date() - timedelta(days=1)
+        return Expense.objects.filter(status="ACTIVE").count(), Expense.objects.filter(
+            status="ACTIVE", created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def count_expense_amount():
+        yesterday = now().date() - timedelta(days=1)
+        return Expense.objects.aggregate(total_amount=Sum("total_amount"))[
+            "total_amount"
+        ], Expense.objects.filter(created_at__date__lte=yesterday).aggregate(
+            total_amount=Sum("total_amount")
+        )["total_amount"]
+
+    @staticmethod
+    def total_expenses_members():
+        return UserSharesInExpense.objects.count(), UserSharesInExpense.objects.filter(
+            created_at__date__lte=now().date() - timedelta(days=1)
+        ).count()
+
+    @staticmethod
+    def count_expired_expenses():
+        yesterday = now().date() - timedelta(days=1)
+        return Expense.objects.filter(
+            end_date__lte=now().date()
+        ).count(), Expense.objects.filter(
+            end_date__lte=yesterday, created_at__date__lte=yesterday
+        ).count()
+
+    @staticmethod
+    def count_expense_members():
+        return UserSharesInExpense.objects.count(), UserSharesInExpense.objects.filter(
+            created_at__date__lte=now().date() - timedelta(days=1)
+        ).count()
+
+    @staticmethod
+    def get_all_expenses():
+        return Expense.objects.filter()
+
+    @staticmethod
+    def deactivate_expense(expense_uid: UUID):
+        Expense.objects.filter(uid=expense_uid).update(status="DELETED")
+        return
+
+    @staticmethod
+    def active_expense(expense_uid: UUID):
+        Expense.objects.filter(uid=expense_uid).update(status="ACTIVE")
+        return
+
+    @staticmethod
+    def get_expense_by_uid(expense_uid: UUID):
+        return Expense.objects.filter(uid=expense_uid).first()
+
+    @staticmethod
+    def get_user_shares_in_expense(expense: Expense):
+        return UserSharesInExpense.objects.filter(expense=expense)
+
+    @staticmethod
+    def get_expense_attachments(expense: Expense):
+        return ExpenseAttachment.objects.filter(expense=expense)

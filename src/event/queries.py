@@ -218,8 +218,23 @@ class Query:
         return Event.objects.filter(filter.get_filter_expression())
 
     @staticmethod
-    def list_event_members_admin(filter: FilterNameSchema):
-        return EventMember.objects.filter(filter.get_filter_expression()).annotate(
-            event_member_uid=F("uid"),
-            user=F("user"),
+    def list_event_members_admin(event_uid: UUID, filter: FilterNameSchema):
+        return (
+            EventMember.objects.filter(event_id=event_uid)
+            .filter(filter.get_filter_expression())
+            .annotate(
+                event_member_uid=F("uid"),
+            )
         )
+
+    @staticmethod
+    def deactivate_event(event_uid: UUID):
+        Event.objects.filter(
+            uid=event_uid,
+        ).update(status="INACTIVE")
+
+    @staticmethod
+    def active_event(event_uid: UUID):
+        Event.objects.filter(
+            uid=event_uid,
+        ).update(status="ACTIVE")
