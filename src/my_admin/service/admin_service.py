@@ -19,6 +19,8 @@ from my_admin.schemas.response import (
 from utils.schemas.filter_and_order_by import (
     FilterDateSchema,
     FilterEventAdminSchema,
+    FilterExpenseAdminSchema,
+    FilterFullNameSchema,
     FilterNameSchema,
 )
 from wallet.orm.deposit import DepositORM
@@ -30,7 +32,6 @@ from ..schemas.request import UserFilter
 from ..schemas.response import (
     EventManagementResponse,
     ExpenseAttachmentResponse,
-    ExpenseDetailResponse,
     ExpenseInEventResponse,
     ExpenseItemResponse,
     ExpenseManagementResponse,
@@ -254,7 +255,7 @@ class AdminService:
         ]
 
     def list_event_members(
-        self, event_uid: UUID, filter: FilterNameSchema
+        self, event_uid: UUID, filter: FilterFullNameSchema
     ) -> list[ListEventMemberResponse]:
         query = self.events_query.list_event_members_admin(
             event_uid=event_uid, filter=filter
@@ -272,13 +273,19 @@ class AdminService:
         expenses_data = self.expense_query.get_expenses_in_event(event_uid=event_uid)
         total_amount = sum(expense.total_amount for expense in expenses_data)
         expenses_list = [
-            ExpenseDetailResponse(
-                expense_uid=expense.uid,
-                amount=expense.total_amount,
-                currency=expense.currency,
-                created_at=expense.created_at,
-                paid_by=UserEventSchema.from_orm(expense.paid_by),
+            ExpenseItemResponse(
                 name=expense.name,
+                status=expense.status,
+                category=expense.category,
+                total_amount=expense.total_amount,
+                currency=expense.currency,
+                expense_date=expense.expense_date,
+                paid_by=UserEventSchema.from_orm(expense.paid_by),
+                creator=UserEventSchema.from_orm(expense.creator),
+                event=NameEvent(uid=expense.event.uid, name=expense.event.name),
+                split_type=expense.split_type,
+                uid=expense.uid,
+                note=expense.note,
             )
             for expense in expenses_data
         ]
@@ -347,24 +354,22 @@ class AdminService:
             ),
         )
 
-    def get_all_expenses(self) -> list[ExpenseItemResponse]:
-        expenses_data = self.expense_query.get_all_expenses()
+    def get_all_expenses(self, filter: FilterExpenseAdminSchema) -> ExpenseItemResponse:
+        expenses_data = self.expense_query.get_all_expenses(filter=filter)
         return [
             ExpenseItemResponse(  # type: ignore
                 status=expense.status,
                 category=expense.category,
                 total_amount=expense.total_amount,
                 currency=expense.currency,
-                created_at=expense.created_at,
+                expense_date=expense.expense_date,
                 paid_by=UserEventSchema.from_orm(expense.paid_by),
                 creator=UserEventSchema.from_orm(expense.creator),
                 name=expense.name,
-                expense_date=expense.expense_date,
                 event=NameEvent(uid=expense.event.uid, name=expense.event.name),
                 split_type=expense.split_type,
                 uid=expense.uid,
                 note=expense.note,
-                create_at=expense.created_at,
             )
             for expense in expenses_data
         ]

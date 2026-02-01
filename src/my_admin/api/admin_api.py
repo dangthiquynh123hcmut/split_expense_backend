@@ -12,6 +12,8 @@ from utils.router.permissions import IsAdminUser
 from utils.schemas.filter_and_order_by import (
     FilterDateSchema,
     FilterEventAdminSchema,
+    FilterExpenseAdminSchema,
+    FilterFullNameSchema,
     FilterNameSchema,
 )
 
@@ -110,7 +112,7 @@ class AdminController(Controller):
     def list_event_members(
         self,
         event_uid: UUID,
-        filter: FilterNameSchema = Query(...),
+        filter: FilterFullNameSchema = Query(...),
     ):
         return self.service.list_event_members(event_uid=event_uid, filter=filter)
 
@@ -130,10 +132,10 @@ class AdminController(Controller):
     def expense_management(self):
         return self.service.expense_management()
 
-    @get("/expenses", response=list[ExpenseItemResponse], paginate=True)
+    @get("/expenses", response=ExpenseItemResponse, paginate=True)
     @paginate
-    def get_all_expenses(self):
-        return self.service.get_all_expenses()
+    def get_all_expenses(self, filter: FilterExpenseAdminSchema = Query(...)):
+        return self.service.get_all_expenses(filter=filter)
 
     @patch("/expense/deactivate/{expense_uid}", response=bool)
     def deactivate_expense(self, expense_uid: UUID):

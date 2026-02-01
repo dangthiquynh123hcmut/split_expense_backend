@@ -11,7 +11,11 @@ from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
 from expense.schemas.request import UpdateExpenseRequest
 from expense.schemas.response import NameExpense
 from group.models import Group
-from utils.schemas.filter_and_order_by import FilterDateSchema, FilterEventSchema
+from utils.schemas.filter_and_order_by import (
+    FilterDateSchema,
+    FilterEventSchema,
+    FilterExpenseAdminSchema,
+)
 from utils.types import TUser
 
 
@@ -270,8 +274,8 @@ class Query:
         ).count()
 
     @staticmethod
-    def get_all_expenses():
-        return Expense.objects.filter()
+    def get_all_expenses(filter: FilterExpenseAdminSchema):
+        return Expense.objects.filter(filter.get_filter_expression())
 
     @staticmethod
     def deactivate_expense(expense_uid: UUID):

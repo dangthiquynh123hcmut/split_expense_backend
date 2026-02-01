@@ -5,6 +5,7 @@ from uuid import UUID
 from django.db.models import Q
 from ninja import FilterSchema
 
+from utils.enums import StatusEnum
 from utils.functions.remove_accents import remove_accents
 from utils.schemas.fields import FilterField, OrderBySchema
 
@@ -161,7 +162,27 @@ class FilterEventAdminSchema(FilterSchema):
         if self.search:
             q &= Q(name_no_accent__icontains=remove_accents(self.search))
         if self.type == "active":
-            q &= Q(status="active")
+            q &= Q(status=StatusEnum.ACTIVE)
         elif self.type == "finished":
             q &= Q(event_end__lt=datetime.now())
+        return q
+
+
+class FilterExpenseAdminSchema(FilterSchema):
+    search: Optional[str] = FilterField(default=None, description="Search by name")
+    category: Optional[str] = FilterField(
+        default=None, description="Filter by category name"
+    )
+    type: Optional[str] = FilterField(
+        default=None, description="Filter by expense type is all or active, default all"
+    )
+
+    def get_filter_expression(self) -> Q:
+        q = Q()
+        if self.search:
+            q &= Q(name_no_accent__icontains=remove_accents(self.search))
+        if self.category:
+            q &= Q(category__icontains=self.category)
+        if self.type == "active":
+            q &= Q(status=StatusEnum.ACTIVE)
         return q

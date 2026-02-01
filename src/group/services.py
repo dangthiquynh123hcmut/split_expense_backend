@@ -212,7 +212,7 @@ class Service:
         if not group:
             raise GroupNotFound
         member = self.query.get_group_has_user(user=user, group=group)
-        if not member:
+        if not member and not user.is_staff:
             raise GetIsDenied
         return self.query.list_events_in_a_group(
             group=group, filter=filter, order_by=order_by

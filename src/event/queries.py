@@ -14,6 +14,7 @@ from event.schemas.request import EventUpdateRequest
 from expense.models import UserSharesInExpense
 from group.models import Group
 from utils.schemas.filter_and_order_by import (
+    FilterEventAdminSchema,
     FilterFullNameSchema,
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
@@ -214,14 +215,14 @@ class Query:
         ).count()
 
     @staticmethod
-    def list_events_admin(filter: FilterNameSchema):
+    def list_events_admin(filter: FilterEventAdminSchema):
         return Event.objects.filter(filter.get_filter_expression())
 
     @staticmethod
-    def list_event_members_admin(event_uid: UUID, filter: FilterNameSchema):
+    def list_event_members_admin(event_uid: UUID, filter: FilterFullNameSchema):
         return (
             EventMember.objects.filter(event_id=event_uid)
-            .filter(filter.get_filter_expression())
+            .filter(filter.filter_search(filter.search))
             .annotate(
                 event_member_uid=F("uid"),
             )

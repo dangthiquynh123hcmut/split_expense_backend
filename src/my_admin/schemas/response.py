@@ -96,20 +96,6 @@ class ListEventMemberResponse(Schema):
     status: str
 
 
-class ExpenseDetailResponse(Schema):
-    expense_uid: UUID
-    amount: float
-    currency: str
-    created_at: datetime
-    paid_by: UserEventSchema
-    name: str
-
-
-class ExpenseInEventResponse(Schema):
-    total_amount: float
-    expenses: Optional[list[ExpenseDetailResponse]] = None
-
-
 class ExpenseManagementResponse(Schema):
     total_expenses: int
     total_avg_amount: float
@@ -139,7 +125,11 @@ class ExpenseItemResponse(Schema):
     split_type: str
     uid: UUID
     note: Optional[str] = None
-    create_at: datetime
+
+
+class ExpenseInEventResponse(Schema):
+    total_amount: float
+    expenses: Optional[list[ExpenseItemResponse]] = None
 
 
 class UserSharesInExpenseResponse(Schema):

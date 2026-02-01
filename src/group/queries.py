@@ -79,7 +79,7 @@ class Query:
         try:
             return GroupMember.objects.get(user=user, group=group)
         except GroupMember.DoesNotExist:
-            return None
+            return False
 
     @staticmethod
     def update_group(group: Group, name: str):
