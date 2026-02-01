@@ -11,6 +11,7 @@ from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
 from expense.schemas.request import UpdateExpenseRequest
 from expense.schemas.response import NameExpense
 from group.models import Group
+from utils.functions.get_last_month import get_last_month
 from utils.schemas.filter_and_order_by import (
     FilterDateSchema,
     FilterEventSchema,
@@ -231,26 +232,41 @@ class Query:
 
     @staticmethod
     def count_expenses():
-        yesterday = now().date() - timedelta(days=1)
-        return Expense.objects.filter().count(), Expense.objects.filter(
-            created_at__date__lte=yesterday
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return Expense.objects.filter(
+            created_at__date__gte=start_this_month
+        ).count(), Expense.objects.filter(
+            created_at__date__gte=start_last_month, created_at__date__lte=end_last_month
         ).count()
 
     @staticmethod
     def count_active_expenses():
-        yesterday = now().date() - timedelta(days=1)
-        return Expense.objects.filter(status="ACTIVE").count(), Expense.objects.filter(
-            status="ACTIVE", created_at__date__lte=yesterday
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return Expense.objects.filter(
+            status="ACTIVE", created_at__date__gte=start_this_month
+        ).count(), Expense.objects.filter(
+            status="ACTIVE",
+            created_at__date__gte=start_last_month,
+            created_at__date__lte=end_last_month,
         ).count()
 
     @staticmethod
     def count_expense_amount():
-        yesterday = now().date() - timedelta(days=1)
-        return Expense.objects.aggregate(total_amount=Sum("total_amount"))[
-            "total_amount"
-        ], Expense.objects.filter(created_at__date__lte=yesterday).aggregate(
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return Expense.objects.filter(created_at__date__gte=start_this_month).aggregate(
             total_amount=Sum("total_amount")
-        )["total_amount"]
+        )["total_amount"], Expense.objects.filter(
+            created_at__date__gte=start_last_month, created_at__date__lte=end_last_month
+        ).aggregate(total_amount=Sum("total_amount"))["total_amount"]
 
     @staticmethod
     def total_expenses_members():
@@ -260,17 +276,28 @@ class Query:
 
     @staticmethod
     def count_expired_expenses():
-        yesterday = now().date() - timedelta(days=1)
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
         return Expense.objects.filter(
-            end_date__lte=now().date()
+            end_date__lte=now().date(), created_at__date__gte=start_this_month
         ).count(), Expense.objects.filter(
-            end_date__lte=yesterday, created_at__date__lte=yesterday
+            end_date__lte=end_last_month,
+            created_at__date__lte=end_last_month,
+            created_at__date__gte=start_last_month,
         ).count()
 
     @staticmethod
     def count_expense_members():
-        return UserSharesInExpense.objects.count(), UserSharesInExpense.objects.filter(
-            created_at__date__lte=now().date() - timedelta(days=1)
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return UserSharesInExpense.objects.filter(
+            created_at__date__gte=start_this_month
+        ).count(), UserSharesInExpense.objects.filter(
+            created_at__date__gte=start_last_month, created_at__date__lte=end_last_month
         ).count()
 
     @staticmethod

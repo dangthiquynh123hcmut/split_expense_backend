@@ -1,4 +1,3 @@
-from datetime import timedelta
 from decimal import Decimal
 from typing import List
 from uuid import UUID
@@ -25,6 +24,7 @@ from event.models import Event
 from expense.models import Expense, UserSharesInExpense
 from expense.schemas.response import NameExpense
 from utils.enums import StatusEnum
+from utils.functions.get_last_month import get_last_month
 from utils.schemas.filter_and_order_by import (
     FilterCurrencySchema,
     FilterFullNameSchema,
@@ -466,23 +466,40 @@ class Query:
 
     @staticmethod
     def count_groups():
-        yesterday = now().date() - timedelta(days=1)
-        return Group.objects.count(), Group.objects.filter(
-            created_at__date__lte=yesterday
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return Group.objects.filter(
+            created_at__gte=start_this_month
+        ).count(), Group.objects.filter(
+            created_at__gte=start_last_month, created_at__lte=end_last_month
         ).count()
 
     @staticmethod
     def count_members():
-        yesterday = now().date() - timedelta(days=1)
-        return GroupMember.objects.count(), GroupMember.objects.filter(
-            joined_at__date__lte=yesterday
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return GroupMember.objects.filter(
+            joined_at__gte=start_this_month
+        ).count(), GroupMember.objects.filter(
+            joined_at__gte=start_last_month, joined_at__lte=end_last_month
         ).count()
 
     @staticmethod
     def count_active_groups():
-        yesterday = now().date() - timedelta(days=1)
-        return Group.objects.filter(status="ACTIVE").count(), Group.objects.filter(
-            status="ACTIVE", created_at__date__lte=yesterday
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        start_last_month, end_last_month = get_last_month(now())
+        return Group.objects.filter(
+            status="ACTIVE", created_at__gte=start_this_month
+        ).count(), Group.objects.filter(
+            status="ACTIVE",
+            created_at__gte=start_last_month,
+            created_at__lte=end_last_month,
         ).count()
 
     @staticmethod

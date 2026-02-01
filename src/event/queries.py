@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import timedelta
 from decimal import Decimal
 from typing import Any, DefaultDict, Dict, List
 from uuid import UUID
@@ -13,6 +12,7 @@ from event.models import Event, EventMember
 from event.schemas.request import EventUpdateRequest
 from expense.models import UserSharesInExpense
 from group.models import Group
+from utils.functions.get_last_month import get_last_month
 from utils.schemas.filter_and_order_by import (
     FilterEventAdminSchema,
     FilterFullNameSchema,
@@ -180,38 +180,62 @@ class Query:
 
     @staticmethod
     def count_events():
-        yesterday = now().date() - timedelta(days=1)
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
 
-        return Event.objects.count(), Event.objects.filter(
-            created_at__date__lte=yesterday
+        return Event.objects.filter(
+            created_at__date__gte=start_this_month
+        ).count(), Event.objects.filter(
+            created_at__date__gte=start_last_month, created_at__date__lte=end_last_month
         ).count()
 
     @staticmethod
     def count_event_members():
-        yesterday = now().date() - timedelta(days=1)
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
 
-        return EventMember.objects.count(), EventMember.objects.filter(
-            created_at__date__lte=yesterday
+        return EventMember.objects.filter(
+            created_at__date__gte=start_this_month
+        ).count(), EventMember.objects.filter(
+            created_at__date__gte=start_last_month, created_at__date__lte=end_last_month
         ).count()
 
     @staticmethod
     def count_active_events():
-        yesterday = now().date() - timedelta(days=1)
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
 
         return Event.objects.filter(
-            status="ACTIVE", event_end__gte=now()
+            status="ACTIVE",
+            event_end__gte=now(),
+            created_at__date__gte=start_this_month,
         ).count(), Event.objects.filter(
-            status="ACTIVE", event_end__gte=now(), created_at__date__lte=yesterday
+            status="ACTIVE",
+            event_end__gte=now(),
+            created_at__date__lte=end_last_month,
+            created_at__date__gte=start_last_month,
         ).count()
 
     @staticmethod
     def count_finished_events():
-        yesterday = now().date() - timedelta(days=1)
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
 
         return Event.objects.filter(
-            status="ACTIVE", event_end__lt=now()
+            status="ACTIVE", event_end__lt=now(), created_at__date__gte=start_this_month
         ).count(), Event.objects.filter(
-            status="ACTIVE", event_end__lt=now(), created_at__date__lte=yesterday
+            status="ACTIVE",
+            event_end__lt=now(),
+            created_at__date__lte=end_last_month,
+            created_at__date__gte=start_last_month,
         ).count()
 
     @staticmethod

@@ -159,30 +159,30 @@ class AdminService:
         ]
 
     def group_statistics(self) -> GroupStatisticsResponse:
-        total_groups, total_groups_yesterday = self.group_query.count_groups()
-        total_members, total_members_yesterday = self.group_query.count_members()
-        active_groups, active_groups_yesterday = self.group_query.count_active_groups()
+        total_groups, total_groups_last_month = self.group_query.count_groups()
+        total_members, total_members_last_month = self.group_query.count_members()
+        active_groups, active_groups_last_month = self.group_query.count_active_groups()
         return GroupStatisticsResponse(
             total_groups=total_groups,
             total_members=total_members,
             active_groups=active_groups,
             percent_increase_groups=(
-                (total_groups - total_groups_yesterday) / total_groups_yesterday * 100
-                if total_groups_yesterday > 0
+                (total_groups - total_groups_last_month) / total_groups_last_month * 100
+                if total_groups_last_month > 0
                 else 100.0
             ),
             percent_increase_members=(
-                (total_members - total_members_yesterday)
-                / total_members_yesterday
+                (total_members - total_members_last_month)
+                / total_members_last_month
                 * 100
-                if total_members_yesterday > 0
+                if total_members_last_month > 0
                 else 100.0
             ),
             percent_increase_active_groups=(
-                (active_groups - active_groups_yesterday)
-                / active_groups_yesterday
+                (active_groups - active_groups_last_month)
+                / active_groups_last_month
                 * 100
-                if active_groups_yesterday > 0
+                if active_groups_last_month > 0
                 else 100.0
             ),
         )
@@ -199,10 +199,14 @@ class AdminService:
         return self.group_query.list_groups_admin(filter=filter)
 
     def event_management(self) -> EventManagementResponse:
-        total_events, total_events_yesterday = self.events_query.count_events()
-        total_members, total_members_yesterday = self.events_query.count_event_members()
-        active_events, active_events_yesterday = self.events_query.count_active_events()
-        total_finished_events, total_finished_events_yesterday = (
+        total_events, total_events_last_month = self.events_query.count_events()
+        total_members, total_members_last_month = (
+            self.events_query.count_event_members()
+        )
+        active_events, active_events_last_month = (
+            self.events_query.count_active_events()
+        )
+        total_finished_events, total_finished_events_last_month = (
             self.events_query.count_finished_events()
         )
         return EventManagementResponse(
@@ -211,29 +215,29 @@ class AdminService:
             active_events=active_events,
             total_finished_events=total_finished_events,
             percent_increase_events=(
-                (total_events - total_events_yesterday) / total_events_yesterday * 100
-                if total_events_yesterday > 0
+                (total_events - total_events_last_month) / total_events_last_month * 100
+                if total_events_last_month > 0
                 else 100.0
             ),
             percent_increase_members=(
-                (total_members - total_members_yesterday)
-                / total_members_yesterday
+                (total_members - total_members_last_month)
+                / total_members_last_month
                 * 100
-                if total_members_yesterday > 0
+                if total_members_last_month > 0
                 else 100.0
             ),
             percent_increase_active_events=(
-                (active_events - active_events_yesterday)
-                / active_events_yesterday
+                (active_events - active_events_last_month)
+                / active_events_last_month
                 * 100
-                if active_events_yesterday > 0
+                if active_events_last_month > 0
                 else 100.0
             ),
             percent_increase_finished_events=(
-                (total_finished_events - total_finished_events_yesterday)
-                / total_finished_events_yesterday
+                (total_finished_events - total_finished_events_last_month)
+                / total_finished_events_last_month
                 * 100
-                if total_finished_events_yesterday > 0
+                if total_finished_events_last_month > 0
                 else 100.0
             ),
         )
@@ -303,17 +307,17 @@ class AdminService:
         return True
 
     def expense_management(self) -> ExpenseManagementResponse:
-        total_expenses, total_expenses_yesterday = self.expense_query.count_expenses()
-        active_expenses, active_expenses_yesterday = (
+        total_expenses, total_expenses_last_month = self.expense_query.count_expenses()
+        active_expenses, active_expenses_last_month = (
             self.expense_query.count_active_expenses()
         )
-        total_expired_expenses, total_expired_expenses_yesterday = (
+        total_expired_expenses, total_expired_expenses_last_month = (
             self.expense_query.count_expired_expenses()
         )
-        total_expense_amount, total_expense_amount_yesterday = (
+        total_expense_amount, total_expense_amount_last_month = (
             self.expense_query.count_expense_amount()
         )
-        total_expense_members, total_expense_members_yesterday = (
+        total_expense_members, total_expense_members_last_month = (
             self.expense_query.count_expense_members()
         )
 
@@ -325,31 +329,31 @@ class AdminService:
             active_expenses=active_expenses,
             total_expired_expenses=total_expired_expenses,
             percent_increase_expenses=(
-                (total_expenses - total_expenses_yesterday)
-                / total_expenses_yesterday
+                (total_expenses - total_expenses_last_month)
+                / total_expenses_last_month
                 * 100
-                if total_expenses_yesterday > 0
+                if total_expenses_last_month > 0
                 else 100.0
             ),
             percent_increase_active_expenses=(
-                (active_expenses - active_expenses_yesterday)
-                / active_expenses_yesterday
+                (active_expenses - active_expenses_last_month)
+                / active_expenses_last_month
                 * 100
-                if active_expenses_yesterday > 0
+                if active_expenses_last_month > 0
                 else 100.0
             ),
             percent_increase_avg_amount=(
-                (total_expense_amount - total_expense_amount_yesterday)
-                / (total_expense_members - total_expense_members_yesterday)
+                (total_expense_amount - total_expense_amount_last_month)
+                / (total_expense_members - total_expense_members_last_month)
                 * 100
-                if (total_expense_members - total_expense_members_yesterday) > 0
+                if (total_expense_members - total_expense_members_last_month) > 0
                 else 100.0
             ),
             percent_increase_expired_expenses=(
-                (total_expired_expenses - total_expired_expenses_yesterday)
-                / total_expired_expenses_yesterday
+                (total_expired_expenses - total_expired_expenses_last_month)
+                / total_expired_expenses_last_month
                 * 100
-                if total_expired_expenses_yesterday > 0
+                if total_expired_expenses_last_month > 0
                 else 100.0
             ),
         )
