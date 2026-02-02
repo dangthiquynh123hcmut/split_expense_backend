@@ -66,6 +66,7 @@ class GroupMember(BaseModel):
         null=False,
         blank=False,
     )
+    last_read_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=20,
         choices=StatusEnum.choices,

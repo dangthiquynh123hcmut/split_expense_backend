@@ -2,6 +2,7 @@ from uuid import UUID
 
 from ninja import Query
 
+from message.schemas.request import MessageFilter
 from my_admin.schemas.request import OrderByBalanceSchema
 from my_admin.schemas.response import RatingResponse
 from user.schemas.response import UserResponse
@@ -29,6 +30,9 @@ from ..schemas.response import (
     GroupStatisticsResponse,
     ListEventMemberResponse,
     ListEventResponse,
+    MessageGroupResponse,
+    MessageInGroupResponse,
+    MessageManagementResponse,
     SplitExpenseResponse,
     TodayOverviewResponse,
     UserInsightsResponse,
@@ -158,3 +162,19 @@ class AdminController(Controller):
     def get_expense_attachments(self, expense_uid: UUID):
         expense = self.service.expense_query.get_expense_by_uid(expense_uid=expense_uid)
         return self.service.get_expense_attachments(expense=expense)
+
+    @get("/message/group/{group_uid}", response=MessageInGroupResponse, paginate=True)
+    @paginate
+    def get_messages_in_group(
+        self, group_uid: UUID, filter: MessageFilter = Query(...)
+    ):
+        return self.service.get_messages_in_group(group_uid=group_uid, filter=filter)
+
+    @get("/message-management", response=MessageManagementResponse)
+    def message_management(self):
+        return self.service.message_management()
+
+    @get("/messages/group", response=MessageGroupResponse, paginate=True)
+    @paginate
+    def list_messages_group(self):
+        return self.service.list_messages_group()

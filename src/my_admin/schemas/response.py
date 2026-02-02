@@ -147,3 +147,41 @@ class SplitExpenseResponse(Schema):
 class ExpenseAttachmentResponse(AttachmentResponse):
     size: int
     created_at: datetime
+
+
+class MessageManagementResponse(Schema):
+    total_messages: int
+    active_groups: int
+    message_today: int
+    attachments: int
+    percent_increase_messages: float
+    percent_increase_active_groups: float
+    percent_increase_message_today: float
+    percent_increase_attachments: float
+
+
+class MessageGroupResponse(Schema):
+    uid: UUID
+    group_name: str
+    total_members: int
+    total_messages: int
+    total_messages_unread: int
+    last_message: Optional[datetime] = None
+    last_message_content: Optional[str] = None
+
+
+class MessageItemResponse(Schema):
+    uid: UUID
+    sender: UserCreator
+    content: str
+    created_at: datetime
+    status: str
+    attachments: Optional[list[AttachmentResponse]] = None
+
+
+class MessageInGroupResponse(Schema):
+    name: str
+    total_members: int
+    total_messages: int
+    messages: Optional[list[MessageItemResponse]] = None
+    avatar_url: Optional[AttachmentResponse] = None

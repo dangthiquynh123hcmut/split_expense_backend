@@ -529,3 +529,6 @@ class Query:
         if filter:
             query = query.filter(filter.get_filter_expression())
         return query
+
+    def get_group_by_uid(self, group_uid: UUID):
+        return Group.objects.filter(uid=group_uid).first()

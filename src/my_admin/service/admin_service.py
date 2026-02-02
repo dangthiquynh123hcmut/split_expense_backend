@@ -1,12 +1,15 @@
 from typing import Optional
 from uuid import UUID
 
+from attachment.schemas.responses import AttachmentResponse
 from authenticate.queries import Query as Auth_Query
 from event.queries import Query as EventQuery
 from expense.models import Expense
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
 from group.schemas.response import GroupName
+from message.orm.message_queries import MessageORM
+from message.schemas.request import MessageFilter
 from my_admin.schemas.request import OrderByBalanceSchema
 from my_admin.schemas.response import (
     AdminGroupResponse,
@@ -37,6 +40,10 @@ from ..schemas.response import (
     ExpenseManagementResponse,
     ListEventMemberResponse,
     ListEventResponse,
+    MessageGroupResponse,
+    MessageInGroupResponse,
+    MessageItemResponse,
+    MessageManagementResponse,
     NameEvent,
     SplitExpenseResponse,
     UserCreator,
@@ -55,6 +62,7 @@ class AdminService:
         self.expense_query = ExpenseQuery()
         self.group_query = GroupQuery()
         self.events_query = EventQuery()
+        self.message_query = MessageORM()
 
     def list_users(
         self,
@@ -407,3 +415,98 @@ class AdminService:
 
     def get_expense_attachments(self, expense: Expense) -> ExpenseAttachmentResponse:
         return self.expense_query.get_expense_attachments(expense=expense)
+
+    def message_management(self) -> MessageManagementResponse:
+        total_message, total_message_last_month = (
+            self.message_query.message_management()
+        )
+        total_group, total_group_last_month = self.group_query.count_active_groups()
+        message_today, message_yesterday = self.message_query.total_messages_today()
+        total_attachments, total_attachments_last_month = (
+            self.message_query.total_attachments()
+        )
+        return MessageManagementResponse(
+            total_messages=total_message,
+            active_groups=total_group,
+            message_today=message_today,
+            attachments=total_attachments,
+            percent_increase_messages=(
+                (total_message - total_message_last_month)
+                / total_message_last_month
+                * 100
+                if total_message_last_month > 0
+                else 100.0
+            ),
+            percent_increase_active_groups=(
+                (total_group - total_group_last_month) / total_group_last_month * 100
+                if total_group_last_month > 0
+                else 100.0
+            ),
+            percent_increase_attachments=(
+                (total_attachments - total_attachments_last_month)
+                / total_attachments_last_month
+                * 100
+                if total_attachments_last_month > 0
+                else 100.0
+            ),
+            percent_increase_message_today=(
+                (message_today - message_yesterday) / message_yesterday * 100
+                if message_yesterday > 0
+                else 100.0
+            ),
+        )
+
+    def list_messages_group(self) -> MessageGroupResponse:
+        groups = self.message_query.list_messages_group()
+
+        return [
+            MessageGroupResponse(  # type: ignore
+                uid=group.uid,
+                group_name=group.name,
+                total_members=group.total_members,
+                total_messages=group.total_messages,
+                total_messages_unread=group.total_messages_unread,
+                last_message=group.last_message.isoformat()
+                if group.last_message
+                else None,
+                last_message_content=group.last_message_content
+                if group.last_message_content
+                else None,
+            )
+            for group in groups
+        ]
+
+    def get_messages_in_group(
+        self, group_uid: UUID, filter: MessageFilter
+    ) -> MessageInGroupResponse:
+        group = self.group_query.get_group_by_uid(group_uid=group_uid)
+        messages = self.message_query.get_messages_in_group(
+            group_uid=group_uid, filter=filter
+        )
+        total_messages = len(messages)
+        return [
+            MessageInGroupResponse(  # type: ignore
+                total_messages=total_messages,
+                name=group.name,
+                total_members=group.group_member_fk_group.count(),
+                messages=[
+                    MessageItemResponse(
+                        uid=msg.uid,
+                        sender=UserCreator.from_orm(msg.sender),
+                        content=msg.content,
+                        created_at=msg.created_at,
+                        status=msg.status,
+                        attachments=[
+                            AttachmentResponse.from_orm(attachment.attachment)
+                            for attachment in msg.message_attachment_fk_message.all()
+                        ]
+                        if msg.message_attachment_fk_message.exists()
+                        else None,
+                    )
+                    for msg in messages
+                ],
+                avatar_url=AttachmentResponse.from_orm(group.avatar_url)
+                if group.avatar_url
+                else None,
+            )
+        ]
