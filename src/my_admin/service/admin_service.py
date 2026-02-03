@@ -4,6 +4,7 @@ from uuid import UUID
 from attachment.schemas.responses import AttachmentResponse
 from authenticate.queries import Query as Auth_Query
 from event.queries import Query as EventQuery
+from exceptions.users import UserNotFound
 from expense.models import Expense
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
@@ -15,6 +16,7 @@ from my_admin.schemas.response import (
     AdminGroupResponse,
     ExpenseCategoryResponse,
     GroupStatisticsResponse,
+    ParticipatingGroupsResponse,
     RatingResponse,
     TodayOverviewResponse,
     UserInsightsResponse,
@@ -40,6 +42,7 @@ from ..schemas.response import (
     ExpenseManagementResponse,
     ListEventMemberResponse,
     ListEventResponse,
+    ListExpenseResponse,
     MessageGroupResponse,
     MessageInGroupResponse,
     MessageItemResponse,
@@ -48,6 +51,7 @@ from ..schemas.response import (
     SplitExpenseResponse,
     UserCreator,
     UserEventSchema,
+    UserInforResponse,
     UserSharesInExpenseResponse,
 )
 
@@ -492,7 +496,7 @@ class AdminService:
                 messages=[
                     MessageItemResponse(
                         uid=msg.uid,
-                        sender=UserCreator.from_orm(msg.sender),
+                        sender=UserCreator.from_orm(msg.user),
                         content=msg.content,
                         created_at=msg.created_at,
                         status=msg.status,
@@ -509,4 +513,70 @@ class AdminService:
                 if group.avatar_url
                 else None,
             )
+        ]
+
+    def get_info_user(self, user_uid: UUID) -> UserInforResponse:
+        user = self.auth_query.get_info_user(user_uid=user_uid)
+        return UserInforResponse(
+            uid=user.uid,
+            email=user.email,
+            full_name=user.full_name,
+            phone_number=user.phone_number,
+            avatar_url=AttachmentResponse.from_orm(user.avatar_url)
+            if user.avatar_url
+            else None,
+            status=user.is_active,
+            joined=user.date_joined,
+            role=user.role,
+            last_login=user.last_login,
+            total_expenses=self.expense_query.total_expenses_by_user(user_uid=user_uid),
+            total_groups=self.group_query.total_groups_by_user(user_uid=user_uid),
+            total_balance=self.group_query.total_balances_by_user(user_uid=user_uid),
+        )
+
+    def activate_user(self, user_uid: UUID) -> bool:
+        user = self.auth_query.get_info_user(user_uid=user_uid)
+        if not user:
+            raise UserNotFound
+        self.auth_query.activate_user(user=user)
+        return True
+
+    def list_participating_groups(
+        self,
+        user_uid: UUID,
+        filter: FilterNameSchema,
+    ) -> list[ParticipatingGroupsResponse]:
+        groups = self.group_query.list_participating_groups(
+            user_uid=user_uid,
+            filter=filter,
+        )
+        return [
+            ParticipatingGroupsResponse(
+                group_uid=group.uid,
+                group_name=group.name,
+                role="Leader" if group.leader.uid == user_uid else "Member",
+                joined_at=group.joined_at,
+            )
+            for group in groups
+        ]
+
+    def list_user_expenses(
+        self,
+        user_uid: UUID,
+        filter: FilterNameSchema,
+    ) -> list[ListExpenseResponse]:
+        expenses = self.expense_query.list_user_expenses(
+            user_uid=user_uid,
+            filter=filter,
+        )
+        return [
+            ListExpenseResponse(
+                expense_uid=expense.uid,
+                name=expense.name,
+                amount=expense.amount,
+                currency=expense.currency,
+                expense_date=expense.expense_date,
+                end_date=expense.end_date,
+            )
+            for expense in expenses
         ]

@@ -229,3 +229,13 @@ class Query:
         user.count_use_app += 1
         user.save(update_fields=["count_use_app"])
         activity.save()
+
+    @staticmethod
+    def get_info_user(user_uid: UUID):
+        return User.objects.filter(uid=user_uid).first()
+
+    @staticmethod
+    def activate_user(user: TUser):
+        user.is_active = True
+        user.save()
+        return True

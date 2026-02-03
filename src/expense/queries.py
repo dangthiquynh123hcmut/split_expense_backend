@@ -325,3 +325,23 @@ class Query:
     @staticmethod
     def get_expense_attachments(expense: Expense):
         return ExpenseAttachment.objects.filter(expense=expense)
+
+    @staticmethod
+    def total_expenses_by_user(user_uid: UUID):
+        return (
+            Expense.objects.filter(creator__uid=user_uid, status="ACTIVE").aggregate(
+                total_amount=Sum("total_amount")
+            )["total_amount"]
+            or 0
+        )
+
+    @staticmethod
+    def list_user_expenses(user_uid: UUID, filter: FilterExpenseAdminSchema):
+        return (
+            Expense.objects.filter(
+                filter.get_filter_expression(),
+                user_shares_in_expense_fk_expense__user__uid=user_uid,
+            )
+            .annotate(amount=Sum("user_shares_in_expense_fk_expense__amount"))
+            .distinct()
+        )

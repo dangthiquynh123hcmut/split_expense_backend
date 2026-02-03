@@ -185,3 +185,29 @@ class MessageInGroupResponse(Schema):
     total_messages: int
     messages: Optional[list[MessageItemResponse]] = None
     avatar_url: Optional[AttachmentResponse] = None
+
+
+class UserInforResponse(UserSchema):
+    status: bool
+    joined: datetime
+    role: str
+    total_expenses: float
+    total_groups: int
+    last_login: Optional[datetime] = None
+    total_balance: float
+
+
+class ParticipatingGroupsResponse(Schema):
+    group_uid: UUID
+    group_name: str
+    role: str
+    joined_at: datetime
+
+
+class ListExpenseResponse(Schema):
+    expense_uid: UUID
+    name: str
+    amount: float
+    currency: str
+    expense_date: datetime
+    end_date: Optional[datetime] = None

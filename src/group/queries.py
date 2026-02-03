@@ -532,3 +532,33 @@ class Query:
 
     def get_group_by_uid(self, group_uid: UUID):
         return Group.objects.filter(uid=group_uid).first()
+
+    def total_groups_by_user(self, user_uid: UUID):
+        return Group.objects.filter(
+            group_member_fk_group__user__uid=user_uid, status="ACTIVE"
+        ).count()
+
+    def total_balances_by_user(self, user_uid: UUID):
+        return (
+            GroupMemberBalance.objects.filter(
+                user__uid=user_uid, balance__gt=0
+            ).aggregate(total_balance=Sum("balance"))["total_balance"]
+            or 0
+        )
+
+    def list_participating_groups(
+        self,
+        user_uid: UUID,
+        filter: FilterNameSchema,
+    ):
+        queryset = (
+            Group.objects.filter(
+                group_member_fk_group__user__uid=user_uid, status="ACTIVE"
+            )
+            .annotate(joined_at=F("group_member_fk_group__joined_at"))
+            .distinct()
+        )
+        if filter:
+            queryset = queryset.filter(filter.get_filter_expression())
+
+        return queryset

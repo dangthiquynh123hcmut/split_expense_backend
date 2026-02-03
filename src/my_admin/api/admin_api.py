@@ -2,6 +2,7 @@ from uuid import UUID
 
 from ninja import Query
 
+from exceptions.users import UserNotFound
 from message.schemas.request import MessageFilter
 from my_admin.schemas.request import OrderByBalanceSchema
 from my_admin.schemas.response import RatingResponse
@@ -30,11 +31,14 @@ from ..schemas.response import (
     GroupStatisticsResponse,
     ListEventMemberResponse,
     ListEventResponse,
+    ListExpenseResponse,
     MessageGroupResponse,
     MessageInGroupResponse,
     MessageManagementResponse,
+    ParticipatingGroupsResponse,
     SplitExpenseResponse,
     TodayOverviewResponse,
+    UserInforResponse,
     UserInsightsResponse,
 )
 from ..service.admin_service import AdminService
@@ -178,3 +182,40 @@ class AdminController(Controller):
     @paginate
     def list_messages_group(self):
         return self.service.list_messages_group()
+
+
+@api(
+    prefix_or_class="admin/users",
+    tags=["Users"],
+    auth=AuthBear(),
+    permissions=[IsAdminUser],
+)
+class AdminUsersController(Controller):
+    def __init__(self, service: AdminService):
+        self.service = service
+
+    @get("/{user_uid}", response=UserInforResponse)
+    def get_info_user(self, user_uid: UUID):
+        return self.service.get_info_user(user_uid=user_uid)
+
+    @patch("/{user_uid}/activate", response=bool, exceptions=(UserNotFound,))
+    def activate_user(self, user_uid: UUID):
+        return self.service.activate_user(user_uid=user_uid)
+
+    @get("/{user_uid}/groups", response=ParticipatingGroupsResponse, paginate=True)
+    @paginate
+    def list_participating_groups(
+        self,
+        user_uid: UUID,
+        filter: FilterNameSchema = Query(...),
+    ):
+        return self.service.list_participating_groups(user_uid=user_uid, filter=filter)
+
+    @get("/{user_uid}/expenses", response=ListExpenseResponse, paginate=True)
+    @paginate
+    def list_user_expenses(
+        self,
+        user_uid: UUID,
+        filter: FilterNameSchema = Query(...),
+    ):
+        return self.service.list_user_expenses(user_uid=user_uid, filter=filter)
