@@ -31,3 +31,10 @@ django-sendgrid-v5
 django-redis
 
 firebase-admin
+
+langchain_community>=0.3.1,<1.0
+openai>=1.0,<2.0
+paddlepaddle>=2.5.0,<3.0
+paddleocr>=2.7.0.3,<3.0
+pillow>=10.0,<11.0
+setuptools>=68.0,<69.0
