@@ -283,3 +283,17 @@ FIREBASE_CONFIG = {
     "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
     "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_CERT_URL"),
 }
+
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL")
+OPENAI_VISION_MODEL = os.getenv("OPENAI_VISION_MODEL")
+PADDLE_OCR_USE_ANGLE_CLS = (
+    os.getenv("PADDLE_OCR_USE_ANGLE_CLS", "true").lower() == "true"
+)
+PADDLE_OCR_LANG = os.getenv("PADDLE_OCR_LANG", "vi")
+OCR_MIN_TEXT_LENGTH = int(os.getenv("OCR_MIN_TEXT_LENGTH", 50))
+OCR_MIN_AVG_CONFIDENCE = float(os.getenv("OCR_MIN_AVG_CONFIDENCE", 0.6))
+MEDIA_TYPE_MAP = os.getenv("MEDIA_TYPE_MAP")
+
+MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", 4096))

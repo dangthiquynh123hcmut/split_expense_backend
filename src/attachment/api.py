@@ -1,20 +1,28 @@
 from typing import List
 from uuid import UUID
 
+from ninja import File
+from ninja.files import UploadedFile
+
 from exceptions.attachments import AttachmentNotFound
 from expense.schemas.request import UpdateImageExpense
 from utils.router.controller import Controller, api, delete, post, put
 from utils.types import AuthenticatedRequest
 
+from .schemas.receipt_ocr import OCRReceiptResponse
 from .schemas.requests import GeneratePresignedUrlRequest, UidsRequest
 from .schemas.responses import GeneratePresignedUrl
 from .services import AttachmentService
+from .services_ocr import ReceiptOCRService
 
 
 @api(prefix_or_class="attachments", tags=["Attachments"])
 class AttachmentController(Controller):
-    def __init__(self, service: AttachmentService) -> None:
+    def __init__(
+        self, service: AttachmentService, ocr_service: ReceiptOCRService
+    ) -> None:
         self.service = service
+        self.ocr_service = ocr_service
 
     @post("presigned-url", response=List[GeneratePresignedUrl])
     def get_presigned_url(
@@ -76,3 +84,12 @@ class AttachmentController(Controller):
                     }
                 )
         return responses
+
+    @post("/ocr/upload", response=OCRReceiptResponse)
+    def process_receipt_direct(
+        self,
+        file: UploadedFile = File(...),
+    ) -> OCRReceiptResponse:
+        return self.ocr_service.process_uploaded_file(
+            uploaded_file=file,
+        )
