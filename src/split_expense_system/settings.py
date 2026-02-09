@@ -23,27 +23,35 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = os.getenv("ENV", "dev")
 
-if os.getenv("RENDER"):
-    # Running on Render
-    DEBUG = os.environ.get("DEBUG", "False") == "True"
+# Validate environment
+if env not in ["dev", "staging", "prod"]:
+    raise ValueError(f"Invalid env: {env}")
 
-    # Get the secret key from environment variables
-    SECRET_KEY = os.environ.get("SECRET_KEY")
-    if not SECRET_KEY:
-        raise ValueError("SECRET_KEY must be set in environment variables")
-
-    # Allow all hosts for now, but you should restrict this in production
-    ALLOWED_HOSTS = ["*"]
-else:
-    # Local development
-    if env not in ["dev", "staging", "prod"]:
-        raise ValueError(f"Invalid env: {env}")
-
+# Load environment variables
+if env != "prod":
+    # For dev and staging, load from .env file
     load_dotenv(os.path.join(BASE_DIR, f"../env/.env.{env}"))
+else:
+    # For production (EC2), all env vars should already be set
+    load_dotenv(os.path.join(BASE_DIR, "../env/.env.prod"), override=False)
 
-    SECRET_KEY = os.environ.get("SECRET_KEY")
-    DEBUG = env == "dev"
+# Security configuration
+DEBUG = env == "dev"
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY must be set in environment variables")
+
+# ALLOWED_HOSTS configuration for EC2
+if DEBUG:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+else:
+    # For production, get from environment variable
+    allowed_hosts = os.environ.get("ALLOWED_HOSTS", "")
+    if allowed_hosts:
+        ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(",")]
+    else:
+        ALLOWED_HOSTS = ["*"]  # Fallback, but should configure properly
 
 
 INSTALLED_APPS = [
@@ -94,13 +102,15 @@ MIDDLEWARE = [
 ASGI_APPLICATION = "split_expense_system.asgi.application"
 ROOT_URLCONF = "split_expense_system.urls"
 
+# Channel layers configuration
 if DEBUG:
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         }
     }
-if os.getenv("RENDER"):
+else:
+    # Production: use Redis
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -148,7 +158,8 @@ TEMPLATES = [
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-if os.getenv("RENDER"):
+if env == "prod":
+    # Production: use DATABASE_URL (supports various databases)
     DATABASES = {
         "default": dj_database_url.config(
             default=os.getenv("DATABASE_URL"),
@@ -157,6 +168,7 @@ if os.getenv("RENDER"):
         )
     }
 else:
+    # Local development and staging
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -211,6 +223,15 @@ if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+    # Security settings for production
+    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True") == "True"
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
+    CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True") == "True"
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_SECURITY_POLICY = {
+        "default-src": ("'self'",),
+    }
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -225,6 +246,13 @@ RESET_PASSWORD_EXPIRES_IN_MINUTES = int(
 OTP_LIFETIME = int(os.getenv("OTP_LIFETIME", 2))
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Add CSRF trusted origins for production
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
 
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
 REDIS_TOKEN_TTL_ADMIN_ACTIVATE_ACCOUNT = int(
