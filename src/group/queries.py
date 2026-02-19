@@ -319,7 +319,7 @@ class Query:
         )
         query = (
             Group.objects.filter(group_member_fk_group__user=user)
-            .exclude(status="DELETED")
+            .exclude(status__in=["DELETED", "INACTIVE"])
             .prefetch_related(
                 Prefetch(
                     "group_member_fk_group",
@@ -509,9 +509,21 @@ class Query:
         ).update(status="INACTIVE")
 
     @staticmethod
+    def deactivate_group_members_in_group(group_uid: UUID):
+        GroupMember.objects.filter(
+            group__uid=group_uid,
+        ).update(status="INACTIVE")
+
+    @staticmethod
     def active_groups(group_uid: UUID):
         Group.objects.filter(
             uid=group_uid,
+        ).update(status="ACTIVE")
+
+    @staticmethod
+    def active_group_members_in_group(group_uid: UUID):
+        GroupMember.objects.filter(
+            group__uid=group_uid,
         ).update(status="ACTIVE")
 
     @staticmethod

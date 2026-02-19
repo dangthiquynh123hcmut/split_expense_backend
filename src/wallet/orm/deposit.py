@@ -1,9 +1,11 @@
 from datetime import timedelta
+from typing import Optional
 from uuid import UUID
 
-from django.db.models import Sum
+from django.db.models import CharField, Sum, Value
 from django.utils.timezone import now
 
+from utils.functions.get_last_month import get_last_month
 from utils.types import TUser
 from wallet.models import WalletDeposit
 
@@ -59,3 +61,22 @@ class DepositORM:
             or 0
         )
         return total_deposits_today, total_deposits_yesterday
+
+    def count_deposits(self):
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return WalletDeposit.objects.filter(
+            created_at__gte=start_this_month
+        ).count(), WalletDeposit.objects.filter(
+            created_at__gte=start_last_month, created_at__lte=end_last_month
+        ).count()
+
+    def list_deposits(self, userName: Optional[str] = None):
+        query = WalletDeposit.objects.all()
+        if userName:
+            query = query.filter(user__full_name__icontains=userName)
+        return query.annotate(
+            type=Value("deposit", output_field=CharField())
+        ).select_related("user")

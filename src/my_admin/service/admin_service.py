@@ -1,6 +1,8 @@
 from typing import Optional
 from uuid import UUID
 
+from django.db import transaction
+
 from attachment.schemas.responses import AttachmentResponse
 from authenticate.queries import Query as Auth_Query
 from event.queries import Query as EventQuery
@@ -11,7 +13,7 @@ from group.queries import Query as GroupQuery
 from group.schemas.response import GroupName
 from message.orm.message_queries import MessageORM
 from message.schemas.request import MessageFilter
-from my_admin.schemas.request import OrderByBalanceSchema
+from my_admin.schemas.request import FilterTransactionSchema, OrderByBalanceSchema
 from my_admin.schemas.response import (
     AdminGroupResponse,
     ExpenseCategoryResponse,
@@ -35,6 +37,7 @@ from wallet.orm.withdraw import WithdrawORM
 from ..orm.admin_orm import Query
 from ..schemas.request import UserFilter
 from ..schemas.response import (
+    BankAccountResponse,
     EventManagementResponse,
     ExpenseAttachmentResponse,
     ExpenseInEventResponse,
@@ -43,12 +46,14 @@ from ..schemas.response import (
     ListEventMemberResponse,
     ListEventResponse,
     ListExpenseResponse,
+    ListTransactionWithdrawDepositResponse,
     MessageGroupResponse,
     MessageInGroupResponse,
     MessageItemResponse,
     MessageManagementResponse,
     NameEvent,
     SplitExpenseResponse,
+    TransactionManagementResponse,
     UserCreator,
     UserEventSchema,
     UserInforResponse,
@@ -199,12 +204,15 @@ class AdminService:
             ),
         )
 
+    @transaction.atomic
     def deactivate_group(self, group_uid: UUID) -> bool:
         self.group_query.deactivate_groups(group_uid=group_uid)
+        self.group_query.deactivate_group_members_in_group(group_uid=group_uid)
         return True
 
     def active_groups(self, group_uid: UUID) -> bool:
         self.group_query.active_groups(group_uid=group_uid)
+        self.group_query.active_group_members_in_group(group_uid=group_uid)
         return True
 
     def list_groups(self, filter: FilterNameSchema) -> list[AdminGroupResponse]:
@@ -580,3 +588,93 @@ class AdminService:
             )
             for expense in expenses
         ]
+
+    def transactions_management(self):
+        total_deposits, total_deposits_last_month = self.deposit_query.count_deposits()
+        total_withdrawals, total_withdrawals_last_month = (
+            self.withdraw_query.count_withdrawals()
+        )
+        total_transactions, total_transactions_last_month = (
+            self.transaction_query.count_transactions()
+        )
+        return TransactionManagementResponse(
+            total_deposits=total_deposits,
+            total_withdrawals=total_withdrawals,
+            total_transactions=total_transactions,
+            percent_increase_transactions=(
+                (total_transactions - total_transactions_last_month)
+                / total_transactions_last_month
+                * 100
+                if total_transactions_last_month > 0
+                else 100.0
+            ),
+            percent_increase_deposits=(
+                (total_deposits - total_deposits_last_month)
+                / total_deposits_last_month
+                * 100
+                if total_deposits_last_month > 0
+                else 100.0
+            ),
+            percent_increase_withdrawals=(
+                (total_withdrawals - total_withdrawals_last_month)
+                / total_withdrawals_last_month
+                * 100
+                if total_withdrawals_last_month > 0
+                else 100.0
+            ),
+        )
+
+    def list_transactions_withdraws_and_deposits(
+        self, filter: FilterTransactionSchema
+    ) -> ListTransactionWithdrawDepositResponse:
+        total_list = []
+        if filter.type is None:
+            transactions = (
+                self.transaction_query.list_transactions_withdraws_and_deposits(
+                    userName=filter.search
+                )
+            )
+            withdraws = self.withdraw_query.list_withdraws(userName=filter.search)
+            deposits = self.deposit_query.list_deposits(userName=filter.search)
+            total_list = list(transactions) + list(withdraws) + list(deposits)
+            total_list.sort(key=lambda x: x.created_at, reverse=True)
+        elif filter.type == "withdraw":
+            total_list = list(
+                self.withdraw_query.list_withdraws(userName=filter.search)
+            )
+        elif filter.type == "deposit":
+            total_list = list(self.deposit_query.list_deposits(userName=filter.search))
+        elif filter.type == "in_app":
+            total_list = list(
+                self.transaction_query.list_transactions_withdraws_and_deposits(
+                    userName=filter.search
+                )
+            )
+
+        results = []
+        for trans in total_list:
+            if hasattr(trans, "from_user"):
+                user = UserCreator.from_orm(trans.from_user)
+            else:
+                user = UserCreator.from_orm(trans.user)
+
+            results.append(
+                ListTransactionWithdrawDepositResponse(
+                    uid=trans.uid,
+                    type=trans.type,
+                    amount=trans.amount,
+                    created_at=trans.created_at,
+                    code=trans.code,
+                    user=user,
+                    bank_account=BankAccountResponse.from_orm(trans.bank_account)
+                    if hasattr(trans, "bank_account") and trans.bank_account
+                    else None,
+                    to_user=UserCreator.from_orm(trans.to_user)
+                    if hasattr(trans, "to_user")
+                    else None,
+                    group_uid=trans.group.uid
+                    if hasattr(trans, "group") and trans.group
+                    else None,
+                )
+            )
+        return results  # type: ignore

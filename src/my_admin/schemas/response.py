@@ -211,3 +211,29 @@ class ListExpenseResponse(Schema):
     currency: str
     expense_date: datetime
     end_date: Optional[datetime] = None
+
+
+class TransactionManagementResponse(Schema):
+    total_deposits: int
+    total_withdrawals: int
+    total_transactions: int
+    percent_increase_transactions: float
+    percent_increase_deposits: float
+    percent_increase_withdrawals: float
+
+
+class BankAccountResponse(Schema):
+    bank_name: str
+    account_number: str
+
+
+class ListTransactionWithdrawDepositResponse(Schema):
+    uid: UUID
+    type: str
+    amount: float
+    created_at: datetime
+    code: str
+    user: UserCreator
+    bank_account: Optional[BankAccountResponse] = None
+    to_user: Optional[UserCreator] = None
+    group_uid: Optional[UUID] = None

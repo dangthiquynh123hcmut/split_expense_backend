@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from ninja import FilterSchema, Schema
 
@@ -38,3 +38,14 @@ class OrderByBalanceSchema(OrderBySchema):
 class ActiveAdminRequest(Schema):
     password: str
     token: str
+
+
+class FilterTransactionSchema(FilterSchema):
+    search: Optional[str] = FilterField(
+        None,
+        q=[
+            "user__full_name__icontains",
+        ],
+        description="Exact match by full_name (using icontains)",
+    )
+    type: Optional[Literal["withdraw", "deposit", "in_app"]] = None

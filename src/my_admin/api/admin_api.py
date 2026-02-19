@@ -19,7 +19,7 @@ from utils.schemas.filter_and_order_by import (
     FilterNameSchema,
 )
 
-from ..schemas.request import UserFilter
+from ..schemas.request import FilterTransactionSchema, UserFilter
 from ..schemas.response import (
     AdminGroupResponse,
     EventManagementResponse,
@@ -32,12 +32,14 @@ from ..schemas.response import (
     ListEventMemberResponse,
     ListEventResponse,
     ListExpenseResponse,
+    ListTransactionWithdrawDepositResponse,
     MessageGroupResponse,
     MessageInGroupResponse,
     MessageManagementResponse,
     ParticipatingGroupsResponse,
     SplitExpenseResponse,
     TodayOverviewResponse,
+    TransactionManagementResponse,
     UserInforResponse,
     UserInsightsResponse,
 )
@@ -182,6 +184,19 @@ class AdminController(Controller):
     @paginate
     def list_messages_group(self):
         return self.service.list_messages_group()
+
+    @get("/transactions-management", response=TransactionManagementResponse)
+    def transactions_management(self):
+        return self.service.transactions_management()
+
+    @get(
+        "/transactions", response=ListTransactionWithdrawDepositResponse, paginate=True
+    )
+    @paginate
+    def list_transactions_withdraws_and_deposits(
+        self, filter: FilterTransactionSchema = Query(...)
+    ):
+        return self.service.list_transactions_withdraws_and_deposits(filter=filter)
 
 
 @api(

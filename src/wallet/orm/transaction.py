@@ -8,6 +8,7 @@ from django.utils.timezone import now
 
 from authenticate.models import User
 from group.models import Group
+from utils.functions.get_last_month import get_last_month
 from utils.schemas.filter_and_order_by import (
     FilterCodeSchema,
     FilterDateAndAmountSchema,
@@ -101,3 +102,27 @@ class TransactionORM:
         ).count(), Transaction.objects.filter(
             created_at__date=today - timedelta(days=1)
         ).count()
+
+    @staticmethod
+    def count_transactions():
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return Transaction.objects.filter(
+            created_at__gte=start_this_month
+        ).count(), Transaction.objects.filter(
+            created_at__gte=start_last_month, created_at__lte=end_last_month
+        ).count()
+
+    @staticmethod
+    def list_transactions_withdraws_and_deposits(userName: Optional[str] = None):
+        query = Transaction.objects.all()
+        if userName:
+            query = query.filter(
+                Q(from_user__full_name__icontains=userName)
+                | Q(to_user__full_name__icontains=userName)
+            )
+        return query.annotate(
+            type=Value("transaction", output_field=CharField())
+        ).select_related("from_user", "to_user", "group")

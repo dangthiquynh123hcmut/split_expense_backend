@@ -1,11 +1,13 @@
 from datetime import timedelta
+from typing import Optional
 from uuid import UUID
 
-from django.db.models import Sum
+from django.db.models import CharField, Sum, Value
 from django.utils.timezone import now
 
 from authenticate.models import User
 from bank_account.models import BankAccount
+from utils.functions.get_last_month import get_last_month
 from wallet.models import Withdraw
 
 
@@ -58,3 +60,22 @@ class WithdrawORM:
             or 0
         )
         return total_withdrawals_today, total_withdrawals_yesterday
+
+    def count_withdrawals(self):
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return Withdraw.objects.filter(
+            created_at__gte=start_this_month
+        ).count(), Withdraw.objects.filter(
+            created_at__gte=start_last_month, created_at__lte=end_last_month
+        ).count()
+
+    def list_withdraws(self, userName: Optional[str] = None):
+        query = Withdraw.objects.all()
+        if userName:
+            query = query.filter(user__full_name__icontains=userName)
+        return query.annotate(
+            type=Value("withdraw", output_field=CharField())
+        ).select_related("user")

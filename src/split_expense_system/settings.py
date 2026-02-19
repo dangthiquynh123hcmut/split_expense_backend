@@ -44,7 +44,7 @@ if not SECRET_KEY:
 
 # ALLOWED_HOSTS configuration for EC2
 if DEBUG:
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "*"]
 else:
     # For production, get from environment variable
     allowed_hosts = os.environ.get("ALLOWED_HOSTS", "")
@@ -223,15 +223,26 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 if not DEBUG:
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-    # Security settings for production
-    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True") == "True"
-    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
-    CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True") == "True"
+    #     # Security settings for production
+    #     SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True") == "True"
+    #     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
+    #     CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True") == "True"
+    #     SECURE_BROWSER_XSS_FILTER = True
+    #     SECURE_CONTENT_SECURITY_POLICY = {
+    #         "default-src": ("'self'",),
+    #     }
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_SECURITY_POLICY = {
         "default-src": ("'self'",),
     }
 
+    CSRF_TRUSTED_ORIGINS = [
+        "https://dividex-admin-dashboard.vercel.app",
+        "http://13.212.249.125",
+    ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
