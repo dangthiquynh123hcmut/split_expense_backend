@@ -20,6 +20,7 @@ class MessageUpdateOut(ModelSchema):
 
 class NotificationResponse(ModelSchema):
     from_user: UserResponse
+    to_users: list[UserResponse]
 
     class Meta:
         model = Notification

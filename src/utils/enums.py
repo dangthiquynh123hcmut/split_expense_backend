@@ -291,3 +291,7 @@ class NotificationTypeEnum(TextChoices):
     EXPENSE_RESTORED = "EXPENSE_RESTORED", "Expense Restored"
     EXPENSE_SOFT_DELETED = "EXPENSE_SOFT_DELETED", "Expense Soft Deleted"
     EXPENSE_HARD_DELETED = "EXPENSE_HARD_DELETED", "Expense Hard Deleted"
+
+    SYSTEM = "SYSTEM", "System"
+    WARNING = "WARNING", "Warning"
+    ANNOUNCEMENT = "ANNOUNCEMENT", "Announcement"

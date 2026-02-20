@@ -12,17 +12,20 @@ from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
 from group.schemas.response import GroupName
 from message.orm.message_queries import MessageORM
+from message.orm.notification_queries import NotificationORM
 from message.schemas.request import MessageFilter
 from my_admin.schemas.request import FilterTransactionSchema, OrderByBalanceSchema
 from my_admin.schemas.response import (
     AdminGroupResponse,
     ExpenseCategoryResponse,
     GroupStatisticsResponse,
+    NotificationManagementResponse,
     ParticipatingGroupsResponse,
     RatingResponse,
     TodayOverviewResponse,
     UserInsightsResponse,
 )
+from user.queries import Query as UserQuery
 from utils.schemas.filter_and_order_by import (
     FilterDateSchema,
     FilterEventAdminSchema,
@@ -30,12 +33,18 @@ from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
 )
+from utils.services.firebase_cm.fcm_service import FCMService
+from utils.types import TUser
 from wallet.orm.deposit import DepositORM
 from wallet.orm.transaction import TransactionORM
 from wallet.orm.withdraw import WithdrawORM
 
 from ..orm.admin_orm import Query
-from ..schemas.request import UserFilter
+from ..schemas.request import (
+    CreateNotificationResquest,
+    FilterNotificationSchema,
+    UserFilter,
+)
 from ..schemas.response import (
     BankAccountResponse,
     EventManagementResponse,
@@ -72,6 +81,9 @@ class AdminService:
         self.group_query = GroupQuery()
         self.events_query = EventQuery()
         self.message_query = MessageORM()
+        self.notification_query = NotificationORM()
+        self.user_query = UserQuery()
+        self.fcm_service = FCMService()
 
     def list_users(
         self,
@@ -678,3 +690,65 @@ class AdminService:
                 )
             )
         return results  # type: ignore
+
+    def get_notification_management(self):
+        total_notifications, total_notifications_last_month = (
+            self.notification_query.total_notifications()
+        )
+        total_users, total_users_last_month = self.user_query.total_users_in_app()
+        notifications_today, notifications_yesterday = (
+            self.notification_query.total_notifications_today()
+        )
+        return NotificationManagementResponse(
+            total_notifications=total_notifications,
+            total_users=total_users,
+            notifications_today=notifications_today,
+            percent_increase_users=(
+                (total_users - total_users_last_month) / total_users_last_month * 100
+                if total_users_last_month > 0
+                else 100.0
+            ),
+            percent_increase_total_notifications=(
+                (total_notifications - total_notifications_last_month)
+                / total_notifications_last_month
+                * 100
+                if total_notifications_last_month > 0
+                else 100.0
+            ),
+            percent_increase_notifications_today=(
+                (notifications_today - notifications_yesterday)
+                / notifications_yesterday
+                * 100
+                if notifications_yesterday > 0
+                else 100.0
+            ),
+        )
+
+    def list_notifications_admin(
+        self, filter: FilterNotificationSchema
+    ) -> list[NotificationManagementResponse]:
+        return self.notification_query.list_notifications_admin(filter=filter)
+
+    def create_notification(
+        self,
+        from_user: TUser,
+        body: CreateNotificationResquest,
+    ):
+        members = self.auth_query.get_user_by_uids(uids=body.to_user_uids)
+        if len(members) != len(body.to_user_uids):
+            raise UserNotFound
+        self.fcm_service.send_multicast_notification(
+            tokens=[member.fcm_token for member in members if member.fcm_token],
+            title=body.type,
+            body=body.content,
+        )
+        return self.notification_query.create_notification(
+            from_user=from_user,
+            related_uid=body.related_uid,
+            content=body.content,
+            type=body.type,
+            to_users=members,
+        )
+
+    def delete_notification(self, notification_uid: UUID):
+        self.notification_query.delete_notification(notification_uid=notification_uid)

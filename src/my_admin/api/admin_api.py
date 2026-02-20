@@ -4,11 +4,12 @@ from ninja import Query
 
 from exceptions.users import UserNotFound
 from message.schemas.request import MessageFilter
+from message.schemas.response import NotificationResponse
 from my_admin.schemas.request import OrderByBalanceSchema
 from my_admin.schemas.response import RatingResponse
 from user.schemas.response import UserResponse
 from utils.router.authenticate import AuthBear
-from utils.router.controller import Controller, api, get, patch
+from utils.router.controller import Controller, api, delete, get, patch, post
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAdminUser
 from utils.schemas.filter_and_order_by import (
@@ -18,8 +19,14 @@ from utils.schemas.filter_and_order_by import (
     FilterFullNameSchema,
     FilterNameSchema,
 )
+from utils.types import AuthenticatedRequest
 
-from ..schemas.request import FilterTransactionSchema, UserFilter
+from ..schemas.request import (
+    CreateNotificationResquest,
+    FilterNotificationSchema,
+    FilterTransactionSchema,
+    UserFilter,
+)
 from ..schemas.response import (
     AdminGroupResponse,
     EventManagementResponse,
@@ -36,6 +43,7 @@ from ..schemas.response import (
     MessageGroupResponse,
     MessageInGroupResponse,
     MessageManagementResponse,
+    NotificationManagementResponse,
     ParticipatingGroupsResponse,
     SplitExpenseResponse,
     TodayOverviewResponse,
@@ -197,6 +205,28 @@ class AdminController(Controller):
         self, filter: FilterTransactionSchema = Query(...)
     ):
         return self.service.list_transactions_withdraws_and_deposits(filter=filter)
+
+    @get("/notifications-management", response=NotificationManagementResponse)
+    def get_notification_management(self):
+        return self.service.get_notification_management()
+
+    @get("/notifications", response=NotificationResponse, paginate=True)
+    @paginate
+    def list_notifications_admin(self, filter: FilterNotificationSchema = Query(...)):
+        return self.service.list_notifications_admin(filter=filter)
+
+    @post("/notifications", response=NotificationResponse)
+    def create_notification(
+        self,
+        request: AuthenticatedRequest,
+        body: CreateNotificationResquest,
+    ):
+        return self.service.create_notification(from_user=request.user, body=body)
+
+    @delete("/notifications/{notification_uid}", response=bool)
+    def delete_notification(self, notification_uid: UUID):
+        self.service.delete_notification(notification_uid=notification_uid)
+        return True
 
 
 @api(

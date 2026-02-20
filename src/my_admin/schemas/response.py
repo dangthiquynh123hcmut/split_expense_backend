@@ -237,3 +237,12 @@ class ListTransactionWithdrawDepositResponse(Schema):
     bank_account: Optional[BankAccountResponse] = None
     to_user: Optional[UserCreator] = None
     group_uid: Optional[UUID] = None
+
+
+class NotificationManagementResponse(Schema):
+    total_notifications: int
+    total_users: int
+    notifications_today: int
+    percent_increase_notifications_today: float
+    percent_increase_total_notifications: float
+    percent_increase_users: float

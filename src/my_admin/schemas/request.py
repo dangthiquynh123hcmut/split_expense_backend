@@ -1,4 +1,5 @@
 from typing import Literal, Optional
+from uuid import UUID
 
 from ninja import FilterSchema, Schema
 
@@ -49,3 +50,21 @@ class FilterTransactionSchema(FilterSchema):
         description="Exact match by full_name (using icontains)",
     )
     type: Optional[Literal["withdraw", "deposit", "in_app"]] = None
+
+
+class FilterNotificationSchema(FilterSchema):
+    search: Optional[str] = FilterField(
+        None,
+        q=[
+            "content__icontains",
+        ],
+        description="Exact match by content (using icontains)",
+    )
+    type: Optional[Literal["System", "Warning", "Announcement", "Reminder"]] = None
+
+
+class CreateNotificationResquest(Schema):
+    related_uid: Optional[UUID] = None
+    content: str
+    type: str
+    to_user_uids: list[UUID]

@@ -1,7 +1,9 @@
 from django.db.models import Case, CharField, Exists, OuterRef, Q, Value, When
+from django.utils.timezone import now
 
 from authenticate.models import User
 from friend.models import Friend
+from utils.functions.get_last_month import get_last_month
 from utils.types import TUser
 
 from .schemas.request import UserFilterSchema
@@ -44,3 +46,15 @@ class Query:
         user.balance += amount
         user.save()
         return
+
+    @staticmethod
+    def total_users_in_app():
+        start_last_month, end_last_month = get_last_month(now())
+        start_this_month = now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        return User.objects.filter(
+            date_joined__gte=start_this_month
+        ).count(), User.objects.filter(
+            date_joined__gte=start_last_month, date_joined__lte=end_last_month
+        ).count()
