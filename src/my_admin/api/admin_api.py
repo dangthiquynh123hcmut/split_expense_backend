@@ -39,6 +39,7 @@ from ..schemas.response import (
     ListEventMemberResponse,
     ListEventResponse,
     ListExpenseResponse,
+    ListLoginHistoryResponse,
     ListTransactionWithdrawDepositResponse,
     MessageGroupResponse,
     MessageInGroupResponse,
@@ -264,3 +265,8 @@ class AdminUsersController(Controller):
         filter: FilterNameSchema = Query(...),
     ):
         return self.service.list_user_expenses(user_uid=user_uid, filter=filter)
+
+    @get("/{user_uid}/login-history", response=ListLoginHistoryResponse, paginate=True)
+    @paginate
+    def list_user_login_history(self, user_uid: UUID):
+        return self.service.list_user_login_history(user_uid=user_uid)

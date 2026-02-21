@@ -5,6 +5,7 @@ from uuid import uuid4
 import jwt
 from django.conf import settings
 from django.contrib import auth as django_auth
+from django.db import transaction
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -26,6 +27,7 @@ from exceptions.users import (
     UserNotFound,
 )
 from exceptions.wallet import PinAlreadyExists, PinIncorrect
+from my_admin.orm.admin_orm import Query as AdminQuery
 from utils.exceptions import SecretKeyNotFound
 from utils.services.base import BaseService
 from utils.services.email.client import EmailClient
@@ -48,7 +50,9 @@ class Service(BaseService):
         self.deposit_orm = DepositORM()
         self.withdraw_orm = WithdrawORM()
         self.transaction_orm = TransactionORM()
+        self.my_admin = AdminQuery()
 
+    @transaction.atomic
     def register(
         self, request: HttpRequest, data: RegisterSchema
     ) -> Tuple[TUser, str, str]:
@@ -62,6 +66,15 @@ class Service(BaseService):
         user = self.query.create_user(data=data)
         self.auth.login(request=request, user=user)
         self.query.track_user_activity(user=user)
+        self.my_admin.create_user_login_history(
+            user=user,
+            platform=request.headers.get("X-Platform"),
+            divice_model=request.headers.get("X-Device-Model"),
+            os_version=request.headers.get("X-OS-Version"),
+            app_version=request.headers.get("X-App-Version"),
+            location=request.headers.get("X-Location"),
+        )
+
         return (
             user,
             self.query.generate_access_token(user_uid=str(user.uid)),
@@ -77,6 +90,14 @@ class Service(BaseService):
         )
         self.auth.login(request=request, user=user)
         self.query.track_user_activity(user=user)
+        self.my_admin.create_user_login_history(
+            user=user,
+            platform=request.headers.get("X-Platform"),
+            divice_model=request.headers.get("X-Device-Model"),
+            os_version=request.headers.get("X-OS-Version"),
+            app_version=request.headers.get("X-App-Version"),
+            location=request.headers.get("X-Location"),
+        )
         return (
             user,
             self.query.generate_access_token(user_uid=str(user.uid)),

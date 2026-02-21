@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, Optional
+from uuid import UUID
 
 from django.db.models import Avg, Count, F
 from django.db.models.functions import ExtractMonth, TruncDate
@@ -10,7 +11,7 @@ from authenticate.models import User
 from my_admin.schemas.request import OrderByBalanceSchema
 from utils.schemas.filter_and_order_by import FilterDateSchema
 
-from ..models import RatingMonthly, UserMonthlyActivity
+from ..models import LoginHistory, RatingMonthly, UserMonthlyActivity
 from ..schemas.request import UserFilter
 
 
@@ -113,7 +114,7 @@ class Query:
     def rating(filter: FilterDateSchema):
         return (
             RatingMonthly.objects.filter(filter.get_filter_expression())
-            .annotate(date=TruncDate(F("creat_date")))  # type: ignore
+            .annotate(date=TruncDate(F("created_at")))  # type: ignore
             .values("date")
             .annotate(avg_rate=Avg("rate"))
             .order_by("date")
@@ -121,5 +122,13 @@ class Query:
 
     @staticmethod
     def update_rating_monthly(user: User, rate: int):
-        RatingMonthly.objects.update_or_create(user=user, creat_date=now(), rate=rate)
+        RatingMonthly.objects.update_or_create(user=user, rate=rate)
         return
+
+    @staticmethod
+    def list_user_login_history(user_uid: UUID):
+        return LoginHistory.objects.filter(user__uid=user_uid).order_by("-created_at")
+
+    @staticmethod
+    def create_user_login_history(user: User, **kwargs):
+        LoginHistory.objects.create(user=user, **kwargs)

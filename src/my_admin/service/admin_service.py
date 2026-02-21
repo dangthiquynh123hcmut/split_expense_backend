@@ -752,3 +752,6 @@ class AdminService:
 
     def delete_notification(self, notification_uid: UUID):
         self.notification_query.delete_notification(notification_uid=notification_uid)
+
+    def list_user_login_history(self, user_uid: UUID):
+        return self.query.list_user_login_history(user_uid=user_uid)

@@ -2,11 +2,12 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from ninja import Schema
+from ninja import ModelSchema, Schema
 
 from attachment.schemas.responses import AttachmentResponse
 from event.schemas.response import EventGroup
 from group.schemas.response import GroupName
+from my_admin.models import LoginHistory
 from utils.schemas.user import UserSchema
 
 
@@ -246,3 +247,9 @@ class NotificationManagementResponse(Schema):
     percent_increase_notifications_today: float
     percent_increase_total_notifications: float
     percent_increase_users: float
+
+
+class ListLoginHistoryResponse(ModelSchema):
+    class Meta:
+        model = LoginHistory
+        exclude = ["updated_at"]

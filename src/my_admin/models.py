@@ -38,5 +38,23 @@ class RatingMonthly(BaseModel):
         blank=True,
         unique=True,
     )
-    creat_date = models.DateField(auto_now_add=True)
     rate = models.IntegerField(default=0, null=False)
+
+
+class LoginHistory(BaseModel):
+    user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="login_histories",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    platform = models.CharField(max_length=50, null=True, blank=True)
+    divice_model = models.CharField(max_length=100, null=True, blank=True)
+    os_version = models.CharField(max_length=50, null=True, blank=True)
+    app_version = models.CharField(max_length=50, null=True, blank=True)
+    location = models.CharField(max_length=100, null=True, blank=True)
