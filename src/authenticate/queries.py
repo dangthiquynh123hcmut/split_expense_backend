@@ -176,7 +176,7 @@ class Query:
         refresh_token.save()
 
     @staticmethod
-    def delete_user(user: TUser) -> None:
+    def deactivate_user(user: TUser) -> None:
         user.is_active = False
         user.save()
 

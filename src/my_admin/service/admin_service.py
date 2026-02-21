@@ -675,6 +675,7 @@ class AdminService:
                     uid=trans.uid,
                     type=trans.type,
                     amount=trans.amount,
+                    currency=trans.currency if hasattr(trans, "currency") else "VND",
                     created_at=trans.created_at,
                     code=trans.code,
                     user=user,

@@ -11,7 +11,7 @@ from my_admin.schemas.request import (
 from my_admin.schemas.response import AdminResponse
 from my_admin.service.super_service import SuperService
 from utils.router.authenticate import AuthBear
-from utils.router.controller import Controller, api, delete, get, patch, post
+from utils.router.controller import Controller, api, get, patch, post
 from utils.router.paginate import paginate
 from utils.router.permissions import IsSuperUser
 
@@ -35,9 +35,9 @@ class SuperController(Controller):
     def list_admins(self, filter: FilterAdminSchema = Query(...)):
         return self.service.list_admins(filter=filter)
 
-    @delete("/{admin_uid}", response=bool)
-    def delete_admin(self, admin_uid: UUID):
-        self.service.delete_admin(admin_uid=admin_uid)
+    @patch("/{admin_uid}", response=bool)
+    def deactivate_admin(self, admin_uid: UUID):
+        self.service.deactivate_admin(admin_uid=admin_uid)
         return True
 
     @patch("/activate", response=bool)

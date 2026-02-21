@@ -54,7 +54,7 @@ class LoginHistory(BaseModel):
         blank=False,
     )
     platform = models.CharField(max_length=50, null=True, blank=True)
-    divice_model = models.CharField(max_length=100, null=True, blank=True)
+    device_model = models.CharField(max_length=100, null=True, blank=True)
     os_version = models.CharField(max_length=50, null=True, blank=True)
     app_version = models.CharField(max_length=50, null=True, blank=True)
     location = models.CharField(max_length=100, null=True, blank=True)

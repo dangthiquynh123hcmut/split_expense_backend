@@ -69,7 +69,7 @@ class Service(BaseService):
         self.my_admin.create_user_login_history(
             user=user,
             platform=request.headers.get("X-Platform"),
-            divice_model=request.headers.get("X-Device-Model"),
+            device_model=request.headers.get("X-Device-Model"),
             os_version=request.headers.get("X-OS-Version"),
             app_version=request.headers.get("X-App-Version"),
             location=request.headers.get("X-Location"),
@@ -93,7 +93,7 @@ class Service(BaseService):
         self.my_admin.create_user_login_history(
             user=user,
             platform=request.headers.get("X-Platform"),
-            divice_model=request.headers.get("X-Device-Model"),
+            device_model=request.headers.get("X-Device-Model"),
             os_version=request.headers.get("X-OS-Version"),
             app_version=request.headers.get("X-App-Version"),
             location=request.headers.get("X-Location"),

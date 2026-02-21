@@ -232,6 +232,7 @@ class ListTransactionWithdrawDepositResponse(Schema):
     uid: UUID
     type: str
     amount: float
+    currency: str
     created_at: datetime
     code: str
     user: UserCreator
