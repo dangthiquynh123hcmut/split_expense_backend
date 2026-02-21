@@ -67,4 +67,4 @@ class CreateNotificationResquest(Schema):
     related_uid: Optional[UUID] = None
     content: str
     type: str
-    to_user_uids: list[UUID]
+    to_user_uids: Optional[list[UUID]] = None

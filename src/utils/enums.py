@@ -295,3 +295,4 @@ class NotificationTypeEnum(TextChoices):
     SYSTEM = "SYSTEM", "System"
     WARNING = "WARNING", "Warning"
     ANNOUNCEMENT = "ANNOUNCEMENT", "Announcement"
+    BROADCAST = "BROADCAST", "Broadcast"

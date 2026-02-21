@@ -735,9 +735,12 @@ class AdminService:
         from_user: TUser,
         body: CreateNotificationResquest,
     ):
-        members = self.auth_query.get_user_by_uids(uids=body.to_user_uids)
-        if len(members) != len(body.to_user_uids):
-            raise UserNotFound
+        if body.type == "Broadcast":
+            members = self.auth_query.get_all_active_users()
+        else:
+            members = self.auth_query.get_user_by_uids(uids=body.to_user_uids)
+            if len(members) != len(body.to_user_uids):  # type: ignore
+                raise UserNotFound
         self.fcm_service.send_multicast_notification(
             tokens=[member.fcm_token for member in members if member.fcm_token],
             title=body.type,

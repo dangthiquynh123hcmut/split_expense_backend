@@ -239,3 +239,7 @@ class Query:
         user.is_active = True
         user.save()
         return True
+
+    @staticmethod
+    def get_all_active_users():
+        return User.objects.filter(is_active=True, is_staff=False)
