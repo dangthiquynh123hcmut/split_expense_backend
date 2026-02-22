@@ -18,9 +18,14 @@ class NotificationORM:
         content: str,
         type: NotificationTypeEnum,
         to_users: list[TUser],
+        is_broadcast: bool = False,
     ):
         notification = Notification.objects.create(
-            from_user=from_user, related_uid=related_uid, content=content, type=type
+            from_user=from_user,
+            related_uid=related_uid,
+            content=content,
+            type=type,
+            is_broadcast=is_broadcast,
         )
         notification.to_users.add(*to_users)
         return notification

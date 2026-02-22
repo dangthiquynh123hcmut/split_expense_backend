@@ -68,3 +68,4 @@ class CreateNotificationResquest(Schema):
     content: str
     type: str
     to_user_uids: Optional[list[UUID]] = None
+    is_broadcast: Optional[bool] = False

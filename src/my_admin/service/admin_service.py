@@ -735,7 +735,7 @@ class AdminService:
         from_user: TUser,
         body: CreateNotificationResquest,
     ):
-        if body.type == "Broadcast":
+        if body.is_broadcast:
             members = self.auth_query.get_all_active_users()
         else:
             members = self.auth_query.get_user_by_uids(uids=body.to_user_uids)
@@ -752,6 +752,7 @@ class AdminService:
             content=body.content,
             type=body.type,
             to_users=members,
+            is_broadcast=body.is_broadcast,
         )
 
     def delete_notification(self, notification_uid: UUID):

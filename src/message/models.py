@@ -95,6 +95,7 @@ class Notification(BaseModel):
     to_users = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="received_notifications"
     )
+    is_broadcast = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
