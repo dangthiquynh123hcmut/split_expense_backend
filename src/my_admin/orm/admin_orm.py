@@ -5,7 +5,7 @@ from uuid import UUID
 
 from django.db.models import Avg, Count, F
 from django.db.models.functions import ExtractMonth, TruncDate
-from django.utils.timezone import now
+from django.utils.timezone import make_aware, now
 
 from authenticate.models import User
 from my_admin.schemas.request import OrderByBalanceSchema
@@ -77,7 +77,7 @@ class Query:
         insights_data = []
 
         for month in range(1, 13):
-            signup_month_start = datetime(year, month, 1)
+            signup_month_start = make_aware(datetime(year, month, 1))
 
             new_users = new_users_by_month.get(month, 0)
 
@@ -122,7 +122,7 @@ class Query:
 
     @staticmethod
     def update_rating_monthly(user: User, rate: int):
-        RatingMonthly.objects.update_or_create(user=user, rate=rate)
+        RatingMonthly.objects.update_or_create(user=user, defaults={"rate": rate})
         return
 
     @staticmethod

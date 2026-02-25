@@ -2,7 +2,7 @@ from ninja import Query
 
 from user.schemas.response import SearchUserResponse
 from utils.router.authenticate import AuthBear
-from utils.router.controller import Controller, api, get, post
+from utils.router.controller import Controller, api, get, put
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
 from utils.types import AuthenticatedRequest
@@ -28,7 +28,7 @@ class UserAPI(Controller):
     ):
         return self.service.search_user(user=request.user, search=search)
 
-    @post("/review", response=bool)
+    @put("/review", response=bool)
     def review_users(self, request: AuthenticatedRequest, data: ReviewUserRequest):
         self.service.review_users(user=request.user, rate=data.rate)
         return True

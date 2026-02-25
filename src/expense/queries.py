@@ -5,6 +5,7 @@ from uuid import UUID
 from django.db.models import Count, Sum
 from django.utils.timezone import now
 
+from attachment.models import Attachment
 from authenticate.models import User
 from event.models import Event
 from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
@@ -324,7 +325,9 @@ class Query:
 
     @staticmethod
     def get_expense_attachments(expense: Expense):
-        return ExpenseAttachment.objects.filter(expense=expense)
+        return Attachment.objects.filter(
+            expense_attachment_fk_attachment__expense=expense
+        ).distinct()
 
     @staticmethod
     def total_expenses_by_user(user_uid: UUID):

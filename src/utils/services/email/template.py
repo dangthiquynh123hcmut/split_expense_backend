@@ -47,7 +47,7 @@ class EmailTemplate:
             user=user,
             template_name="email/account_active.html",
             data={
-                "reset_link": f"{self._base_url}/active-account?token={token}",
+                "reset_link": f"{self._base_url}?token={token}",
             },
             subject="Account active / kích hoạt tài khoản",
         )

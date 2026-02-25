@@ -40,6 +40,12 @@ class ExpenseCategoryResponse(Schema):
     total_amount: float
 
 
+class CashChartResponse(Schema):
+    deposit: float
+    withdraw: float
+    day: datetime
+
+
 class RatingResponse(Schema):
     date: datetime
     rate: float

@@ -15,6 +15,12 @@ class EmailOrPasswordIncorrect(APIException):
     message = "Email or password incorrect"
 
 
+class UserInactive(APIException):
+    error_code = HTTPStatus.FORBIDDEN
+    message_code = "USER_INACTIVE"
+    message = "User is inactive"
+
+
 class PasswordIncorrect(APIException):
     error_code = HTTPStatus.UNAUTHORIZED
     message_code = "PASSWORD_INCORRECT"

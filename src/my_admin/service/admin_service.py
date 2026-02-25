@@ -47,6 +47,7 @@ from ..schemas.request import (
 )
 from ..schemas.response import (
     BankAccountResponse,
+    CashChartResponse,
     EventManagementResponse,
     ExpenseAttachmentResponse,
     ExpenseInEventResponse,
@@ -103,6 +104,14 @@ class AdminService:
         total_withdraw_today, total_withdraw_yesterday = (
             self.withdraw_query.total_withdraw_today()
         )
+
+        total_tranfer_today = total_tranfer_today or 0
+        total_tranfer_yesterday = total_tranfer_yesterday or 0
+        total_deposit_today = total_deposit_today or 0
+        total_deposit_yesterday = total_deposit_yesterday or 0
+        total_withdraw_today = total_withdraw_today or 0
+        total_withdraw_yesterday = total_withdraw_yesterday or 0
+
         total_transactions_today = (
             total_deposit_today + total_withdraw_today + total_tranfer_today
         )
@@ -115,9 +124,20 @@ class AdminService:
         total_deposit_today, total_deposit_yesterday = (
             self.deposit_query.total_deposit_money_today()
         )
+
+        total_withdraw_money_today = total_withdraw_money_today or 0
+        total_withdraw_money_yesterday = total_withdraw_money_yesterday or 0
+        total_deposit_today = total_deposit_today or 0
+        total_deposit_yesterday = total_deposit_yesterday or 0
+
         total_money_today = total_deposit_today + total_withdraw_money_today
         total_money_yesterday = total_deposit_yesterday + total_withdraw_money_yesterday
         new_users_today, new_users_yesterday = self.auth_query.count_new_users()
+
+        new_users_today = new_users_today or 0
+        new_users_yesterday = new_users_yesterday or 0
+        total_users_today = total_users_today or 0
+        total_users_yesterday = total_users_yesterday or 0
 
         return TodayOverviewResponse(
             total_users=total_users_today,
@@ -176,6 +196,32 @@ class AdminService:
             for category in categories_data
         ]
 
+    def cash_chart(self) -> list[CashChartResponse]:
+        deposit_chart_data = self.deposit_query.cash_chart()
+        withdraw_chart_data = self.withdraw_query.cash_chart()
+        cash_chart_data = []
+        for deposit_data in deposit_chart_data:
+            day = deposit_data["day"]
+            withdraw_data = next(
+                (data for data in withdraw_chart_data if data["day"] == day), None
+            )
+            cash_chart_data.append(
+                {
+                    "deposit": deposit_data["total_amount"],
+                    "withdraw": withdraw_data["total_amount"] if withdraw_data else 0,
+                    "day": day,
+                }
+            )
+
+        return [
+            CashChartResponse(
+                deposit=data["deposit"],
+                withdraw=data["withdraw"],
+                day=data["day"],
+            )
+            for data in cash_chart_data
+        ]
+
     def rating(self, filter: FilterDateSchema) -> list[RatingResponse]:
         rating_data = self.query.rating(filter=filter)
 
@@ -191,6 +237,11 @@ class AdminService:
         total_groups, total_groups_last_month = self.group_query.count_groups()
         total_members, total_members_last_month = self.group_query.count_members()
         active_groups, active_groups_last_month = self.group_query.count_active_groups()
+
+        total_groups_last_month = total_groups_last_month or 0
+        total_members_last_month = total_members_last_month or 0
+        active_groups_last_month = active_groups_last_month or 0
+
         return GroupStatisticsResponse(
             total_groups=total_groups,
             total_members=total_members,
@@ -241,6 +292,12 @@ class AdminService:
         total_finished_events, total_finished_events_last_month = (
             self.events_query.count_finished_events()
         )
+
+        total_events_last_month = total_events_last_month or 0
+        total_members_last_month = total_members_last_month or 0
+        active_events_last_month = active_events_last_month or 0
+        total_finished_events_last_month = total_finished_events_last_month or 0
+
         return EventManagementResponse(
             total_events=total_events,
             total_members=total_members,
@@ -353,6 +410,14 @@ class AdminService:
             self.expense_query.count_expense_members()
         )
 
+        total_expenses_last_month = total_expenses_last_month or 0
+        active_expenses_last_month = active_expenses_last_month or 0
+        total_expired_expenses_last_month = total_expired_expenses_last_month or 0
+        total_expense_amount_last_month = total_expense_amount_last_month or 0
+        total_expense_members_last_month = total_expense_members_last_month or 0
+        total_expense_amount = total_expense_amount or 0
+        total_expense_members = total_expense_members or 0
+
         return ExpenseManagementResponse(
             total_expenses=total_expenses,
             total_avg_amount=(total_expense_amount / total_expense_members)
@@ -449,6 +514,12 @@ class AdminService:
         total_attachments, total_attachments_last_month = (
             self.message_query.total_attachments()
         )
+
+        total_message_last_month = total_message_last_month or 0
+        total_group_last_month = total_group_last_month or 0
+        message_yesterday = message_yesterday or 0
+        total_attachments_last_month = total_attachments_last_month or 0
+
         return MessageManagementResponse(
             total_messages=total_message,
             active_groups=total_group,
@@ -609,6 +680,11 @@ class AdminService:
         total_transactions, total_transactions_last_month = (
             self.transaction_query.count_transactions()
         )
+
+        total_deposits_last_month = total_deposits_last_month or 0
+        total_withdrawals_last_month = total_withdrawals_last_month or 0
+        total_transactions_last_month = total_transactions_last_month or 0
+
         return TransactionManagementResponse(
             total_deposits=total_deposits,
             total_withdrawals=total_withdrawals,
@@ -700,6 +776,11 @@ class AdminService:
         notifications_today, notifications_yesterday = (
             self.notification_query.total_notifications_today()
         )
+
+        total_notifications_last_month = total_notifications_last_month or 0
+        total_users_last_month = total_users_last_month or 0
+        notifications_yesterday = notifications_yesterday or 0
+
         return NotificationManagementResponse(
             total_notifications=total_notifications,
             total_users=total_users,

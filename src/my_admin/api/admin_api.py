@@ -29,6 +29,7 @@ from ..schemas.request import (
 )
 from ..schemas.response import (
     AdminGroupResponse,
+    CashChartResponse,
     EventManagementResponse,
     ExpenseAttachmentResponse,
     ExpenseCategoryResponse,
@@ -85,6 +86,10 @@ class AdminController(Controller):
     @get("/expense-categories", response=list[ExpenseCategoryResponse])
     def expense_categories(self):
         return self.service.expense_categories()
+
+    @get("/cash-chart", response=list[CashChartResponse])
+    def cash_chart(self):
+        return self.service.cash_chart()
 
     @get("/rating", response=list[RatingResponse])
     def rating(self, filter: FilterDateSchema = Query(...)):

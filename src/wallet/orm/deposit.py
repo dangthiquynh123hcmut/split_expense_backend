@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Optional
 from uuid import UUID
 
-from django.db.models import CharField, Sum, Value
+from django.db.models import CharField, F, Sum, Value
 from django.utils.timezone import now
 
 from utils.functions.get_last_month import get_last_month
@@ -80,3 +80,15 @@ class DepositORM:
         return query.annotate(
             type=Value("deposit", output_field=CharField())
         ).select_related("user")
+
+    def cash_chart(self):
+        return (
+            WalletDeposit.objects.filter(
+                created_at__date__lte=now().date(),
+                created_at__date__gte=now().date() - timedelta(days=6),
+            )
+            .annotate(day=F("created_at__date"))
+            .values("day")
+            .annotate(total_amount=Sum("amount"))
+            .order_by("day")
+        )

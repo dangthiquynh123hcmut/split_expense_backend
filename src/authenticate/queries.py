@@ -16,7 +16,7 @@ from authenticate.models import (
 )
 from authenticate.schemas import PasswordNewRequest, RegisterSchema, UpdateMeSchema
 from exceptions.auth import InvalidOrExpiredToken
-from exceptions.users import EmailOrPasswordIncorrect
+from exceptions.users import EmailOrPasswordIncorrect, UserInactive
 from my_admin.models import UserMonthlyActivity
 from utils.types import TUser
 
@@ -35,6 +35,8 @@ class Query:
     def get_user_by_email_and_password(email: str, password: str) -> TUser:
         try:
             user = User.objects.get(email=email)
+            if not user.is_active:
+                raise UserInactive
         except User.DoesNotExist:
             raise EmailOrPasswordIncorrect
         if not user.check_password(password):
@@ -84,11 +86,11 @@ class Query:
 
     @staticmethod
     def get_user_by_email(email: str) -> TUser | None:
-        return User.objects.filter(email=email).first()
+        return User.objects.filter(email=email, is_active=True).first()
 
     @staticmethod
     def get_user_by_phone_number(phone_number: str) -> TUser | None:
-        return User.objects.filter(phone_number=phone_number).first()
+        return User.objects.filter(phone_number=phone_number, is_active=True).first()
 
     @staticmethod
     def get_user_by_uid(uid: UUID) -> TUser | None:
