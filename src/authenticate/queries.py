@@ -178,9 +178,8 @@ class Query:
         refresh_token.save()
 
     @staticmethod
-    def deactivate_user(user: TUser) -> None:
-        user.is_active = False
-        user.save()
+    def delete_user(user_uid: UUID) -> None:
+        User.objects.filter(uid=user_uid).delete()
 
     @staticmethod
     def add_attachment(user: TUser, attachment: Attachment):

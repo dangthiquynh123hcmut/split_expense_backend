@@ -9,7 +9,7 @@ from utils.router.authenticate import AuthBear
 from utils.router.exception import get_handlers
 
 
-logger = logging.getLogger("django")
+logger = logging.getLogger(__name__)
 
 
 class BaseAPI(NinjaExtraAPI):

@@ -23,7 +23,7 @@ from ninja.errors import AuthenticationError, HttpError, ValidationError
 from pydantic import BaseModel
 
 
-logger = logging.getLogger("django")
+logger = logging.getLogger(__name__)
 
 
 _E = TypeVar("_E", bound=Exception)

@@ -3,7 +3,7 @@ from abc import ABC
 
 
 class BaseService(ABC):
-    logger = logging.getLogger("django")
+    logger = logging.getLogger(__name__)
 
     # Singleton pattern
     _instance = None

@@ -11,7 +11,7 @@ from utils.router.exception import generate_exception_response
 from utils.router.paginate import PaginatedResponseSchema
 
 
-logger = logging.getLogger("django")
+logger = logging.getLogger(__name__)
 
 
 def get_openapi_view(api: NinjaExtraAPI):

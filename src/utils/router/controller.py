@@ -14,7 +14,7 @@ from utils.router.utils import wrap_http_method
 
 
 class Controller(ControllerBase):
-    logger = logging.getLogger("django")
+    logger = logging.getLogger(__name__)
 
 
 patch = wrap_http_method(http_patch)

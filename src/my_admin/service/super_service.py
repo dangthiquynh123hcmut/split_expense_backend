@@ -52,11 +52,11 @@ class SuperService(BaseService):
                 setattr(admin, "status", "INACTIVE")
         return list_admins
 
-    def deactivate_admin(self, admin_uid: UUID):
+    def delete_admin(self, admin_uid: UUID):
         admin = self.auth_query.get_user_by_uid(uid=admin_uid)
         if not admin:
             raise UserNotFound
-        self.auth_query.deactivate_user(user=admin)
+        self.auth_query.delete_user(user_uid=admin_uid)
 
     def activate_admin(self, body: ActiveAdminRequest):
         user_uid = cache.get(f"admin_activate_token:{body.token}")
