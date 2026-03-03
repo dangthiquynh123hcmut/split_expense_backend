@@ -39,17 +39,17 @@ class APIMiddleware:
             "---------------------------------------------------------------"
         )
         LOGGER.info(log_info)
-
-        try:
-            ApiLog.objects.create(
-                path=request.path,
-                method_type=request.method,
-                user=request.user if request.user.is_authenticated else None,
-                status_code=response.status_code,
-                response_time=response_time,
-                log_message=log_info,
-            )
-        except Exception as e:
-            LOGGER.error(f"Failed to save API log: {str(e)}")
+        if response.status_code >= 400:
+            try:
+                ApiLog.objects.create(
+                    path=request.path,
+                    method_type=request.method,
+                    user=request.user if request.user.is_authenticated else None,
+                    status_code=response.status_code,
+                    response_time=response_time,
+                    log_message=log_info,
+                )
+            except Exception as e:
+                LOGGER.error(f"Failed to save API log: {str(e)}")
 
         return response

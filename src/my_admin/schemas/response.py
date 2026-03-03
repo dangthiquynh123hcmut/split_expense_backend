@@ -6,7 +6,9 @@ from ninja import ModelSchema, Schema
 
 from attachment.schemas.responses import AttachmentResponse
 from event.schemas.response import EventGroup
+from expense.schemas.response import UserInformation
 from group.schemas.response import GroupName
+from message.models import Notification
 from my_admin.models import LoginHistory
 from utils.schemas.user import UserSchema
 
@@ -260,3 +262,11 @@ class ListLoginHistoryResponse(ModelSchema):
     class Meta:
         model = LoginHistory
         exclude = ["updated_at"]
+
+
+class GroupActivityResponse(ModelSchema):
+    from_user: UserInformation
+
+    class Meta:
+        model = Notification
+        exclude = ["updated_at", "to_users", "is_broadcast"]

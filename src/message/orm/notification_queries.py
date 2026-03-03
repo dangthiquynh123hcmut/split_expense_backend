@@ -1,8 +1,11 @@
 from datetime import timedelta
 from uuid import UUID
 
+from django.db.models import Q
 from django.utils.timezone import now
 
+from event.models import Event
+from expense.models import Expense
 from message.models import Notification
 from my_admin.schemas.request import FilterNotificationSchema
 from utils.enums import NotificationTypeEnum
@@ -67,3 +70,43 @@ class NotificationORM:
     @staticmethod
     def delete_notification(notification_uid: UUID):
         return Notification.objects.filter(uid=notification_uid).delete()
+
+    @staticmethod
+    def get_group_notifications(group_uid: UUID):
+        event_uids = Event.objects.filter(group_id=group_uid).values_list(
+            "uid", flat=True
+        )
+
+        expense_uids = Expense.objects.filter(event__group_id=group_uid).values_list(
+            "uid", flat=True
+        )
+
+        return Notification.objects.filter(
+            Q(
+                related_uid=group_uid,
+                type__in=[
+                    NotificationTypeEnum.GROUP_CREATED,
+                    NotificationTypeEnum.GROUP_UPDATED,
+                    NotificationTypeEnum.GROUP_LEFT,
+                    NotificationTypeEnum.TRANSFER,
+                ],
+            )
+            | Q(
+                related_uid__in=event_uids,
+                type__in=[
+                    NotificationTypeEnum.EVENT_CREATED,
+                    NotificationTypeEnum.EVENT_UPDATED,
+                    NotificationTypeEnum.EVENT_DELETED,
+                ],
+            )
+            | Q(
+                related_uid__in=expense_uids,
+                type__in=[
+                    NotificationTypeEnum.EXPENSE_CREATED,
+                    NotificationTypeEnum.EXPENSE_UPDATED,
+                    NotificationTypeEnum.EXPENSE_RESTORED,
+                    NotificationTypeEnum.EXPENSE_SOFT_DELETED,
+                    NotificationTypeEnum.EXPENSE_HARD_DELETED,
+                ],
+            )
+        ).order_by("-created_at")

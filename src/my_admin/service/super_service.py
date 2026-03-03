@@ -58,6 +58,12 @@ class SuperService(BaseService):
             raise UserNotFound
         self.auth_query.delete_user(user_uid=admin_uid)
 
+    def deactivate_admin(self, admin_uid: UUID):
+        admin = self.auth_query.get_user_by_uid(uid=admin_uid)
+        if not admin:
+            raise UserNotFound
+        self.auth_query.deactivate_user(user=admin)
+
     def activate_admin(self, body: ActiveAdminRequest):
         user_uid = cache.get(f"admin_activate_token:{body.token}")
         if not user_uid:

@@ -40,6 +40,11 @@ class SuperController(Controller):
         self.service.delete_admin(admin_uid=admin_uid)
         return True
 
+    @patch("/{admin_uid}/deactivate", response=bool)
+    def deactivate_admin(self, admin_uid: UUID):
+        self.service.deactivate_admin(admin_uid=admin_uid)
+        return True
+
     @patch("/activate", response=bool)
     def activate_admin(self, body: ActiveAdminRequest):
         self.service.activate_admin(body=body)

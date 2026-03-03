@@ -6,17 +6,13 @@ from django.utils.timezone import now
 from utils.functions.get_last_month import get_last_month
 
 from .models import ApiLog
-from .schemas.request import CreateLogSchema, FilterContainer, FilterLogApiSchema
+from .schemas.request import FilterContainer, FilterLogApiSchema
 
 
 class Query:
     @staticmethod
-    def create_log(log_data: CreateLogSchema):
-        return ApiLog.objects.create(**log_data.dict())
-
-    @staticmethod
     def list_logs(filter: FilterLogApiSchema, filter_container: FilterContainer):
-        query = ApiLog.objects.all()
+        query = ApiLog.objects.all().order_by("-created_at")
         if filter_container and filter_container.search:
             query = query.filter(filter_container.get_filter_expression())
         if filter and filter.method_type:
@@ -32,7 +28,7 @@ class Query:
 
     @staticmethod
     def get_total_errors():
-        start_last_month, end_last_month = get_last_month(now())
+        start_last_month, _ = get_last_month(now())
         start_this_month = now().replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
@@ -56,7 +52,7 @@ class Query:
 
     @staticmethod
     def get_avg_response_time():
-        start_last_month, end_last_month = get_last_month(now())
+        start_last_month, _ = get_last_month(now())
         start_this_month = now().replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )

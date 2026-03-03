@@ -156,6 +156,9 @@ class FilterEventAdminSchema(FilterSchema):
     type: Optional[str] = FilterField(
         default=None, description="Filter by event type is all, active or finished"
     )
+    group_uid: Optional[UUID] = FilterField(
+        default=None, description="Filter by group uid"
+    )
 
     def get_filter_expression(self) -> Q:
         q = Q()
@@ -165,6 +168,8 @@ class FilterEventAdminSchema(FilterSchema):
             q &= Q(status=StatusEnum.ACTIVE)
         elif self.type == "finished":
             q &= Q(event_end__lt=datetime.now())
+        if self.group_uid:
+            q &= Q(group_id=self.group_uid)
         return q
 
 

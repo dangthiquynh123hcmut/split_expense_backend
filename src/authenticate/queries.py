@@ -182,6 +182,11 @@ class Query:
         User.objects.filter(uid=user_uid).delete()
 
     @staticmethod
+    def deactivate_user(user: TUser):
+        user.is_active = False
+        user.save()
+
+    @staticmethod
     def add_attachment(user: TUser, attachment: Attachment):
         user.avatar_url = attachment
         user.save()

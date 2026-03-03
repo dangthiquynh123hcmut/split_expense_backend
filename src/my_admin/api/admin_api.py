@@ -36,6 +36,7 @@ from ..schemas.response import (
     ExpenseInEventResponse,
     ExpenseItemResponse,
     ExpenseManagementResponse,
+    GroupActivityResponse,
     GroupStatisticsResponse,
     ListEventMemberResponse,
     ListEventResponse,
@@ -114,6 +115,11 @@ class AdminController(Controller):
         filter: FilterNameSchema = Query(...),
     ):
         return self.service.list_groups(filter=filter)
+
+    @get("/group/{group_uid}/activity", response=GroupActivityResponse, paginate=True)
+    @paginate
+    def list_group_activity(self, group_uid: UUID):
+        return self.service.get_group_activity(group_uid=group_uid)
 
     @get("/event-management", response=EventManagementResponse)
     def event_management(self):

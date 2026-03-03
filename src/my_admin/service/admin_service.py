@@ -281,6 +281,9 @@ class AdminService:
     def list_groups(self, filter: FilterNameSchema) -> list[AdminGroupResponse]:
         return self.group_query.list_groups_admin(filter=filter)
 
+    def get_group_activity(self, group_uid: UUID):
+        return self.notification_query.get_group_notifications(group_uid=group_uid)
+
     def event_management(self) -> EventManagementResponse:
         total_events, total_events_last_month = self.events_query.count_events()
         total_members, total_members_last_month = (
