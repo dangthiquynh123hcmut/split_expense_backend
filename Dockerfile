@@ -1,4 +1,3 @@
-
 FROM python:3.11-bookworm as builder
 
 WORKDIR /build
@@ -31,6 +30,7 @@ RUN apt-get update || apt-get update && \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /root/.local /root/.local
@@ -42,6 +42,7 @@ ENV PATH=/root/.local/bin:$PATH \
 
 COPY . .
 
-RUN mkdir -p /app/staticfiles /app/logs
+RUN mkdir -p /app/staticfiles /app/logs /app/media
 
+# Default to production gunicorn server
 CMD ["sh", "-c", "cd src && python manage.py runserver 0.0.0.0:8000"]
