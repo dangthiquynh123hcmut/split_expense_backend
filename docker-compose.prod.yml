@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: split_expense_postgres_prod
+    env_file:
+      - ./env/.env.prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-split_expense_db}
+      POSTGRES_USER: ${POSTGRES_USER:-split_expense_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - split_expense_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_expense_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: split_expense_redis_prod
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - split_expense_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  django:
+    build: .
+    container_name: split_expense_backend_prod
+    command: >
+      sh -c "cd src &&
+             python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn split_expense_system.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120 --access-logfile - --error-logfile -"
+    env_file:
+      - ./env/.env.prod
+    environment:
+      DEBUG: "False"
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src/staticfiles:/app/staticfiles
+      - ./src/media:/app/media
+      - ./logs:/app/logs
+    networks:
+      - split_expense_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    container_name: split_expense_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./src/staticfiles:/app/staticfiles:ro
+      - ./src/media:/app/media:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - django
+    networks:
+      - split_expense_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data_prod:
+  redis_data_prod:
+
+networks:
+  split_expense_network:
+    driver: bridge

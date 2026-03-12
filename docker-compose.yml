@@ -3,7 +3,7 @@ services:
     image: postgres:15-alpine
     container_name: split_expense_postgres
     env_file:
-      - .env
+      - ./env/.env.dev
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-split_expense_db}
       POSTGRES_USER: ${POSTGRES_USER:-dev}
@@ -40,7 +40,7 @@ services:
     container_name: split_expense_backend
     command: sh -c "cd src && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     env_file:
-      - .env
+      - ./env/.env.dev
     ports:
       - "8000:8000"
     depends_on:
@@ -54,6 +54,9 @@ services:
       - split_expense_network
     stdin_open: true
     tty: true
+    mem_limit: 4g
+    memswap_limit: 4g
+    cpus: '2'
 
 volumes:
   postgres_data:

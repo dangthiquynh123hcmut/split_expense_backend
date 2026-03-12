@@ -62,3 +62,56 @@ class OpenAIService:
             return (content or "", response.usage.total_tokens, response.model)
         except Exception as e:
             raise ValueError(f"Failed to extract image content: {str(e)}") from e
+
+    def extract_receipt_from_image(
+        self,
+        media_type: str,
+        image_data: str,
+        target_structure: Type[BaseModel],
+    ) -> tuple[Any, int, str]:
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{media_type};base64,{image_data}",
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": """You are an expert at extracting structured data from receipts and invoices.
+
+Analyze this receipt image and extract the following information:
+- Purchase date
+- Total amount
+- Currency code (VND, USD, etc.)
+- List of items (name, quantity, unit price, total price)
+- Suggested expense name (concise and descriptive)
+- Suggested expense category (food, transportation, entertainment, shopping, bills, etc.)
+- Additional notes if any
+
+Be precise and accurate. If information is not available, mark it as null.""",
+                    },
+                ],
+            }
+        ]
+
+        try:
+            response = self._client.beta.chat.completions.parse(
+                model=self._model,
+                messages=messages,
+                response_format=target_structure,
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to extract receipt from image: {str(e)}") from e
+
+        try:
+            return (
+                response.choices[0].message.parsed,
+                response.usage.total_tokens,
+                response.model,
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to parse receipt data: {str(e)}") from e
