@@ -87,6 +87,8 @@ MIDDLEWARE = [
 ASGI_APPLICATION = "split_expense_system.asgi.application"
 ROOT_URLCONF = "split_expense_system.urls"
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # Channel layers configuration
 if DEBUG:
     CHANNEL_LAYERS = {
@@ -198,11 +200,6 @@ if not DEBUG:
         "default-src": ("'self'",),
     }
 
-    CSRF_TRUSTED_ORIGINS = [
-        "https://dividex-admin-dashboard.vercel.app",
-        "http://13.212.249.125",
-    ]
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ACCESS_TOKEN_LIFETIME = int(os.getenv("ACCESS_TOKEN_LIFETIME", "15"))
@@ -218,7 +215,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Add CSRF trusted origins for production
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    for origin in os.getenv(
+        "CSRF_TRUSTED_ORIGINS",
+        "https://dividex-admin-dashboard.vercel.app,https://split-expense.app",
+    ).split(",")
     if origin.strip()
 ]
 
@@ -278,12 +278,4 @@ FIREBASE_CONFIG = {
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL")
 OPENAI_VISION_MODEL = os.getenv("OPENAI_VISION_MODEL")
-PADDLE_OCR_USE_ANGLE_CLS = (
-    os.getenv("PADDLE_OCR_USE_ANGLE_CLS", "true").lower() == "true"
-)
-PADDLE_OCR_LANG = os.getenv("PADDLE_OCR_LANG", "vi")
-OCR_MIN_TEXT_LENGTH = int(os.getenv("OCR_MIN_TEXT_LENGTH", 50))
-OCR_MIN_AVG_CONFIDENCE = float(os.getenv("OCR_MIN_AVG_CONFIDENCE", 0.6))
 MEDIA_TYPE_MAP = os.getenv("MEDIA_TYPE_MAP")
-
-MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", 4096))
