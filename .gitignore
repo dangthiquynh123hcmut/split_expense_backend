@@ -14,3 +14,9 @@ venv/
 
 
 **.pdf
+
+logs/
+src/logs/
+*.log
+nohup.out
+src/staticfiles/
