@@ -18,7 +18,7 @@ if env != "prod":
     load_dotenv(os.path.join(BASE_DIR, f"../env/.env.{env}"))
 else:
     # For production (EC2), all env vars should already be set
-    load_dotenv(os.path.join(BASE_DIR, "../env/.env.prod"), override=False)
+    load_dotenv(os.path.join(BASE_DIR, "../env/.env.prod"), override=True)
 
 DEBUG = env == "dev"
 
