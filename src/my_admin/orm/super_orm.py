@@ -16,8 +16,3 @@ class SuperORM:
     @staticmethod
     def list_admins(filter: FilterAdminSchema):
         return User.objects.filter(filter.get_filter_expression(), role="ADMIN")
-
-    @staticmethod
-    def activate_user(user: User, password: str):
-        user.password = password
-        user.save()

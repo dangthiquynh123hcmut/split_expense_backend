@@ -72,4 +72,4 @@ class SuperService(BaseService):
         user = self.auth_query.get_user_by_uid(uid=user_uid)
         if not user or not user.is_staff:
             raise UserNotFound
-        self.super_orm.activate_user(user=user, password=body.password)
+        self.auth_query.change_password(user=user, password=body.password)
