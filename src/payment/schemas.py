@@ -16,12 +16,11 @@ class PaymentResponse(Schema):
 
 class PayOSCreateLinkRequest(Schema):
     amount: int = Field(..., description="Payment amount in VND (integer, e.g. 10000)")
-    description: str = Field(
-        ...,
+    description: Optional[str] = Field(
+        None,
         max_length=25,
         description="Bank transfer note shown to the payer, max 25 characters",
     )
-    item_name: str = Field(..., description="Name of the item being paid for")
     currency: str = Field(default="VND", description="Currency code, e.g. VND")
 
 

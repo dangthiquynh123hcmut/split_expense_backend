@@ -26,11 +26,11 @@ class PayOSOrder(BaseModel):
         choices=CurrencyEnum.choices,
         default=CurrencyEnum.VND,
     )
-    description = models.CharField(max_length=25)
+    description = models.CharField(max_length=25, null=True)
     status = models.CharField(
         max_length=10,
         choices=PayOSOrderStatus.choices,
         default=PayOSOrderStatus.PENDING,
     )
     checkout_url = models.URLField(max_length=500)
-    payment_link_id = models.CharField(max_length=255, blank=True, default="")
+    payment_link_id = models.CharField(max_length=255, default="")

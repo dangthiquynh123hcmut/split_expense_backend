@@ -4,7 +4,7 @@ import time
 from django.conf import settings
 from django.db import transaction
 from payos import PayOS
-from payos.types import CreatePaymentLinkRequest, ItemData
+from payos.types import CreatePaymentLinkRequest
 
 from message.orm.notification_queries import NotificationORM
 from user.queries import Query as UserQuery
@@ -45,12 +45,13 @@ class PayOSService:
     ) -> PayOSCreateLinkResponse:
         # create unique order code using current timestamp + random suffix to avoid collisions
         order_code = int(time.time()) * 1000 + random.randint(0, 999)
-        item = ItemData(name=payload.item_name, quantity=1, price=payload.amount)
         payment_request = CreatePaymentLinkRequest(
             order_code=order_code,
             amount=payload.amount,
-            description=payload.description,
-            items=[item],
+            description=payload.description
+            if payload.description
+            else "Chuyen tien vao app",
+            items=[],
             cancel_url=settings.PAYOS_CANCEL_URL,
             return_url=settings.PAYOS_RETURN_URL,
             buyer_name=user.full_name,
