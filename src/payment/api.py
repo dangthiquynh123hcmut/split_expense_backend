@@ -1,4 +1,6 @@
-from django.http import JsonResponse
+import json
+
+from django.http import HttpRequest, JsonResponse
 
 from payment.schemas import (
     PaymentRequest,
@@ -6,7 +8,6 @@ from payment.schemas import (
     PayOSCreateLinkRequest,
     PayOSCreateLinkResponse,
     PayOSPaymentInfoResponse,
-    PayOSWebhookPayload,
 )
 from utils.router.authenticate import AuthBear
 from utils.router.controller import Controller, api, get, post, put
@@ -92,11 +93,12 @@ class PayOSWebhookAPI(Controller):
     def __init__(self):
         self.service = PayOSService()
 
-    @post("", response=bool)
-    def handle_webhook(self, payload: PayOSWebhookPayload):
+    @post("")
+    def handle_webhook(self, request: HttpRequest):
         """Receive and process a PayOS transfer webhook."""
         try:
-            self.service.handle_webhook(webhook_data=payload.model_dump())
+            data = json.loads(request.body)
+            self.service.handle_webhook(webhook_data=data)
             return JsonResponse({"error": 0, "message": "Ok", "data": None})
         except Exception as exc:
             return JsonResponse({"error": -1, "message": str(exc), "data": None})

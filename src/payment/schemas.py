@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from ninja import Schema
 from pydantic import ConfigDict, Field
@@ -29,16 +29,6 @@ class PayOSCreateLinkResponse(Schema):
     order_code: int
     checkout_url: str
     payment_link_id: str
-
-
-class PayOSWebhookPayload(Schema):
-    model_config = ConfigDict(extra="allow")
-
-    code: str
-    desc: str
-    success: bool
-    data: Dict[str, Any]
-    signature: str
 
 
 class PayOSPaymentInfoResponse(Schema):
