@@ -19,7 +19,7 @@ class UpdateExpenseRequest(Schema):
     name: str
     total_amount: Decimal = Field(..., gt=0)
     currency: str
-    category: str
+    category: Optional[str] = None
     paid_by: Optional[UUID] = None
     note: Optional[str] = None
     expense_date: Optional[datetime] = None

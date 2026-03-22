@@ -34,3 +34,5 @@ firebase-admin
 gunicorn==21.2.0
 
 openai>=1.0,<2.0
+
+payos==1.1.0
