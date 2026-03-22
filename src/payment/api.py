@@ -83,7 +83,7 @@ class PayOSAPI(Controller):
 
 
 @api(
-    prefix_or_class="payment/payos/webhook",
+    prefix_or_class="/payos/webhook",
     tags=["PayOS Webhook"],
     auth=None,
 )
