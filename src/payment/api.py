@@ -1,3 +1,5 @@
+from django.http import JsonResponse
+
 from payment.schemas import (
     PaymentRequest,
     PaymentResponse,
@@ -15,7 +17,6 @@ from .exceptions import (
     PayOSCancelFailed,
     PayOSOrderNotFound,
     PayOSPaymentLinkCreationFailed,
-    PayOSWebhookVerificationFailed,
 )
 from .payos_service import PayOSService
 from .service import Service
@@ -91,8 +92,11 @@ class PayOSWebhookAPI(Controller):
     def __init__(self):
         self.service = PayOSService()
 
-    @post("", response=bool, exceptions=(PayOSWebhookVerificationFailed,))
+    @post("", response=bool)
     def handle_webhook(self, payload: PayOSWebhookPayload):
         """Receive and process a PayOS transfer webhook."""
-        self.service.handle_webhook(webhook_data=payload.model_dump())
-        return True
+        try:
+            self.service.handle_webhook(webhook_data=payload.model_dump())
+            return JsonResponse({"error": 0, "message": "Ok", "data": None})
+        except Exception as exc:
+            return JsonResponse({"error": -1, "message": str(exc), "data": None})
