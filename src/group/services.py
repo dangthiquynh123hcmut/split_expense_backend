@@ -24,7 +24,7 @@ from utils.services.firebase_cm.fcm_service import FCMService
 from utils.types import TUser
 from wallet.orm.transaction import TransactionORM
 
-from .models import GroupMember
+from .models import GroupMember, GroupMemberBalance
 from .queries import Query
 from .schemas.request import GroupUpdateRequest
 from .schemas.response import DebtMember, DetailGroup, GroupReport, GroupResponse
@@ -130,7 +130,11 @@ class Service:
         member = self.query.get_group_has_user(user=user, group=group)
         if not member:
             raise UserNotInGroup
-        if member.total_amount != 0:
+        if (
+            GroupMemberBalance.objects.filter(group=group, user=user)
+            .exclude(balance=0)
+            .exists()
+        ):
             raise LeaveIsDenied
         query = self.query.leave_group(user=user, group=group)
         return query

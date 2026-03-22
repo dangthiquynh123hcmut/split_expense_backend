@@ -27,7 +27,6 @@ class PayOSQuery:
 
     @staticmethod
     def get_order_pending(order_code: int):
-
         try:
             return PayOSOrder.objects.get(
                 order_code=order_code,
