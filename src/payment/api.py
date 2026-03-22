@@ -85,6 +85,7 @@ class PayOSAPI(Controller):
 @api(
     prefix_or_class="payment/payos/webhook",
     tags=["PayOS Webhook"],
+    auth=None,
 )
 class PayOSWebhookAPI(Controller):
     def __init__(self):
