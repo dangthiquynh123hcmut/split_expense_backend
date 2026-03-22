@@ -20,3 +20,5 @@ src/logs/
 *.log
 nohup.out
 src/staticfiles/
+
+firebase.json

@@ -16,15 +16,14 @@ class FCMService:
 
     @classmethod
     def _initialize_firebase(cls):
-        """Initialize Firebase app with credentials from Django settings."""
+        """Initialize Firebase app with credentials from service account JSON file."""
         try:
             firebase_admin.get_app()
             return
         except ValueError:
             pass
 
-        firebase_config = getattr(settings, "FIREBASE_CONFIG", {})
-        cred = credentials.Certificate(firebase_config)
+        cred = credentials.Certificate(str(settings.FIREBASE_CREDENTIALS_PATH))
         firebase_admin.initialize_app(cred)
 
     def send_notification(
