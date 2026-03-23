@@ -71,7 +71,7 @@ class PayOSService:
 
         return PayOSCreateLinkResponse(
             order_code=order_code,
-            checkout_url=response.checkout_url,
+            qr_code=response.qr_code,
             payment_link_id=response.payment_link_id,
         )
 

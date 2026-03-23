@@ -26,7 +26,7 @@ class PayOSCreateLinkRequest(Schema):
 
 class PayOSCreateLinkResponse(Schema):
     order_code: int
-    checkout_url: str
+    qr_code: str
     payment_link_id: str
 
 
