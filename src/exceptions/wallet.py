@@ -43,3 +43,15 @@ class PinNotSet(APIException):
     error_code = HTTPStatus.BAD_REQUEST
     message_code = "PIN_NOT_SET"
     message = "Pin not set"
+
+
+class PayOSPayoutFailed(APIException):
+    error_code = HTTPStatus.BAD_GATEWAY
+    message_code = "PAYOS_PAYOUT_FAILED"
+    message = "PayOS payout request failed"
+
+
+class BankBinNotFound(APIException):
+    error_code = HTTPStatus.BAD_REQUEST
+    message_code = "BANK_BIN_NOT_FOUND"
+    message = "Bank BIN mapping not found for the specified bank"

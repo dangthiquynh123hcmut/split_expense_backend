@@ -5,6 +5,7 @@ from django.db import transaction
 from authenticate.models import User
 from bank_account.queries import Query as BankAccountQuery
 from exceptions.wallet import BankAccountNotFound
+from payment.payos_payout_service import PayOSPayoutService
 from user.queries import Query as UserQuery
 from utils.services.firebase_cm.fcm_service import FCMService
 from wallet.orm.withdraw import WithdrawORM
@@ -17,6 +18,7 @@ class WithdrawService:
         self.bank_account_query = BankAccountQuery()
         self.user_query = UserQuery()
         self.fcm_service = FCMService()
+        self.payos_payout_service = PayOSPayoutService()
 
     @transaction.atomic
     def withdraw(self, user: User, payload: WithdrawRequest):
@@ -28,14 +30,30 @@ class WithdrawService:
         if not bank_account:
             raise BankAccountNotFound
         self.user_query.update_balance(user=user, amount=-payload.amount)
-        self.fcm_service.send_notification(
-            token=user.fcm_token,
-            title="Withdrawal Request",
-            body=f"You have requested to withdraw {payload.amount} from your bank account.",
-        )
-        return self.query.withdraw(
+        withdraw_record = self.query.withdraw(
             user=user, bank_account=bank_account[0], amount=payload.amount
         )
+
+        description = (
+            payload.description
+            if payload.description
+            else f"Rut tien {int(payload.amount)} VND"
+        )
+
+        self.payos_payout_service.create_payout(
+            reference_id=withdraw_record.code,
+            amount=int(payload.amount),
+            description=description,
+            bank_code=payload.bank_name,
+            account_number=payload.account_number,
+        )
+
+        self.fcm_service.send_notification(
+            token=user.fcm_token,
+            title="Withdrawal Successful",
+            body=f"Your withdrawal of {int(payload.amount):,} VND has been submitted successfully.",
+        )
+        return withdraw_record
 
     def withdraw_history(self, user: User):
         return self.query.withdraw_history(user=user)

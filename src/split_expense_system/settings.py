@@ -274,3 +274,10 @@ PAYOS_API_KEY = os.getenv("PAYOS_API_KEY")
 PAYOS_CHECKSUM_KEY = os.getenv("PAYOS_CHECKSUM_KEY")
 PAYOS_RETURN_URL = os.getenv("PAYOS_RETURN_URL", "")
 PAYOS_CANCEL_URL = os.getenv("PAYOS_CANCEL_URL", "")
+
+PAYOS_API_KEY_OUT = os.getenv("PAYOS_API_KEY_OUT")
+PAYOS_CHECKSUM_KEY_OUT = os.getenv("PAYOS_CHECKSUM_KEY_OUT")
+PAYOS_CLIENT_ID_OUT = os.getenv("PAYOS_CLIENT_ID_OUT")
+PAYOS_PAYOUT_URL = os.getenv(
+    "PAYOS_PAYOUT_URL", "https://api-merchant.payos.vn/v1/payouts"
+)

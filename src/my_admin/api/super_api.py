@@ -25,11 +25,6 @@ class SuperController(Controller):
     def __init__(self, service: SuperService):
         self.service = service
 
-    @patch("/activate", response=bool)
-    def activate_admin(self, body: ActiveAdminRequest):
-        self.service.activate_admin(body=body)
-        return True
-
     @post("", auth=True, response=bool, exceptions=(EmailAlreadyExists,))
     def create_admin(self, data: AdminCreateRequest):
         return self.service.create_admin(data=data)
@@ -47,4 +42,19 @@ class SuperController(Controller):
     @patch("/{admin_uid}/deactivate", auth=True, response=bool)
     def deactivate_admin(self, admin_uid: UUID):
         self.service.deactivate_admin(admin_uid=admin_uid)
+        return True
+
+
+@api(
+    prefix_or_class="admins",
+    tags=["Admin"],
+    auth=None,
+)
+class ActivateAdminController(Controller):
+    def __init__(self, service: SuperService):
+        self.service = service
+
+    @patch("/activate", response=bool)
+    def activate_admin(self, body: ActiveAdminRequest):
+        self.service.activate_admin(body=body)
         return True

@@ -7,8 +7,10 @@ from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
 from exceptions.wallet import (
     BankAccountNotFound,
+    BankBinNotFound,
     DepositNotFound,
     InvalidTokenOrAmountIncorrect,
+    PayOSPayoutFailed,
 )
 from user.schemas.response import WalletResponse
 from user.services import UserService
@@ -78,7 +80,9 @@ class WalletAPI(Controller):
         )
 
     @post(
-        "/withdraw", response=WalletWithdrawResponse, exceptions=(BankAccountNotFound,)
+        "/withdraw",
+        response=WalletWithdrawResponse,
+        exceptions=(BankAccountNotFound, BankBinNotFound, PayOSPayoutFailed),
     )
     def withdraw(self, request: AuthenticatedRequest, payload: WithdrawRequest):
         return self.withdraw_service.withdraw(user=request.user, payload=payload)

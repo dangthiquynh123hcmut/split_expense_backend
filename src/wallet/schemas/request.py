@@ -23,3 +23,4 @@ class WithdrawRequest(Schema):
     account_number: str
     amount: float
     bank_name: str
+    description: Optional[str] = None
