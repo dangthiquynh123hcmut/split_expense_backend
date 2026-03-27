@@ -53,7 +53,7 @@ if [ $? -eq 0 ]; then
 
     log_info "Setting up auto-renewal..."
     sudo tee /etc/cron.d/certbot > /dev/null <<EOF
-0 12 * * * root test -x /usr/bin/certbot -a \! -d /run/systemd/system && perl -e 'sleep int(rand(43200))' && certbot -q renew --post-hook "cd $(pwd) && docker-compose -f docker-compose.prod.yml restart nginx"
+0 12 * * * root test -x /usr/bin/certbot -a \! -d /run/systemd/system && perl -e 'sleep int(rand(43200))' && certbot -q renew --post-hook "cd $(pwd) && docker-compose restart nginx"
 EOF
 
     log_info "Setup complete!"

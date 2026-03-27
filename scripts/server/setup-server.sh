@@ -66,9 +66,8 @@ curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-comp
     -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
-# Install Certbot for SSL
-log_info "Installing Certbot..."
-apt-get install -y certbot python3-certbot-nginx
+# NOTE: SSL/Certbot setup is handled separately by scripts/setup-ssl.sh
+# Run: ./scripts/setup-ssl.sh yourdomain.com
 
 # Create non-root user for deployment
 log_info "Creating deployment user..."

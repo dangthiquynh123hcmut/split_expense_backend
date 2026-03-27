@@ -2,9 +2,9 @@
 # exit on error
 set -o errexit
 
-# Get the directory where this script is located
+# Get the project root (parent of the render/ directory)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$SCRIPT_DIR"
+PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
 SRC_DIR="$PROJECT_ROOT/src"
 
 # Print debug information
@@ -14,7 +14,7 @@ echo "Project root: $PROJECT_ROOT"
 echo "Source directory: $SRC_DIR"
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r "$PROJECT_ROOT/requirements.txt"
 
 # List files in the project root for debugging
 echo -e "\n=== Project Root Contents ==="

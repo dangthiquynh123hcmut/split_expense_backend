@@ -2,7 +2,7 @@ services:
   - type: web
     name: split-expense-backend
     env: python
-    buildCommand: "chmod a+x ./build.sh && ./build.sh"
+    buildCommand: "chmod a+x ./render/build.sh && ./render/build.sh"
     startCommand: "cd src && gunicorn --chdir . split_expense_system.wsgi:application"
     envVars:
       - key: PYTHON_VERSION

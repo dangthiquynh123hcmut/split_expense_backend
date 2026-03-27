@@ -39,6 +39,8 @@ local_settings.py
 .env
 .env.*
 !.env.sample
+env/.env.dev
+env/.env.prod
 
 # Git
 .git

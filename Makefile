@@ -1,28 +1,50 @@
-.PHONY: install start migrate
+.PHONY: help up down build logs shell migrate makemigrations collectstatic createsuperuser restart status
 
-install-dev:
-	sudo chmod +x scripts/install.sh && ./scripts/install.sh dev
+help:
+	@echo "Usage: make [command]"
+	@echo ""
+	@echo "Commands:"
+	@echo "  up              - Start all services (detached)"
+	@echo "  down            - Stop all services"
+	@echo "  build           - Rebuild Docker images (no cache)"
+	@echo "  logs            - Follow logs from all services"
+	@echo "  shell           - Open Django shell inside container"
+	@echo "  migrate         - Run database migrations"
+	@echo "  makemigrations  - Create new migration files"
+	@echo "  collectstatic   - Collect static files"
+	@echo "  createsuperuser - Create Django admin superuser"
+	@echo "  restart         - Restart all services"
+	@echo "  status          - Show service status"
 
-start-dev:
-	ENV=dev source venv/bin/activate && python src/manage.py runserver 0.0.0.0:8000
+up:
+	docker-compose up -d
 
-migrate-dev:
-	ENV=dev source venv/bin/activate && python src/manage.py makemigrations && python src/manage.py migrate
+down:
+	docker-compose down
 
-start-prod:
-	ENV=prod source venv/bin/activate && python src/manage.py runserver 0.0.0.0:8000
+build:
+	docker-compose build --no-cache
 
-install-prod:
-	sudo chmod +x scripts/install.sh && ./scripts/install.sh prod
+logs:
+	docker-compose logs -f
 
-migrate-prod:
-	ENV=prod source venv/bin/activate && python src/manage.py makemigrations && python src/manage.py migrate
+shell:
+	docker-compose exec django sh -c "cd src && python manage.py shell"
 
-create-superuser-dev:
-	ENV=dev source venv/bin/activate && python src/manage.py createsuperuser
+migrate:
+	docker-compose exec django sh -c "cd src && python manage.py migrate"
 
-load-initial-data-dev:
-	chmod +x ./scripts/load_initial.sh && ./scripts/load_initial.sh dev
+makemigrations:
+	docker-compose exec django sh -c "cd src && python manage.py makemigrations"
 
-load-initial-data-prod:
-	chmod +x ./scripts/load_initial.sh && ./scripts/load_initial.sh prod
+collectstatic:
+	docker-compose exec django sh -c "cd src && python manage.py collectstatic --noinput"
+
+createsuperuser:
+	docker-compose exec django sh -c "cd src && python manage.py createsuperuser"
+
+restart:
+	docker-compose restart
+
+status:
+	docker-compose ps

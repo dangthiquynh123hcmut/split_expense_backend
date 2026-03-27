@@ -44,5 +44,6 @@ COPY . .
 
 RUN mkdir -p /app/staticfiles /app/logs /app/media
 
-# Default to production gunicorn server
-CMD ["sh", "-c", "cd src && python manage.py runserver 0.0.0.0:8000"]
+# Production: run with gunicorn
+# Development: override command in docker-compose.yml
+CMD ["sh", "-c", "cd src && gunicorn split_expense_system.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -"]

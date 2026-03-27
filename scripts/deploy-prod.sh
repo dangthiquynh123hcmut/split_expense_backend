@@ -46,7 +46,7 @@ check_requirements() {
 
     if [ ! -f "$PROJECT_ROOT/env/.env.prod" ]; then
         log_error "env/.env.prod file not found"
-        log_warn "Please create env/.env.prod from env/.env.prod.example"
+        log_warn "Please create env/.env.prod from env/.env.sample"
         exit 1
     fi
 
@@ -56,19 +56,19 @@ check_requirements() {
 build_and_deploy() {
     log_info "Building Docker images..."
     cd "$PROJECT_ROOT"
-    docker-compose -f docker-compose.prod.yml build --no-cache
+    docker-compose build --no-cache
 
     log_info "Starting services..."
-    docker-compose -f docker-compose.prod.yml up -d
+    docker-compose up -d
 
     log_info "Waiting for services to be healthy..."
     sleep 10
 
     # Check if django service is healthy
-    if docker-compose -f docker-compose.prod.yml exec django curl -f http://localhost:8000/health/ > /dev/null 2>&1; then
+    if docker-compose exec django curl -f http://localhost:8000/health/ > /dev/null 2>&1; then
         log_info "Django service is healthy ✓"
     else
-        log_warn "Django service might still be starting, check logs with: docker-compose -f docker-compose.prod.yml logs -f django"
+        log_warn "Django service might still be starting, check logs with: docker-compose logs -f django"
     fi
 }
 
@@ -78,17 +78,17 @@ create_superuser() {
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         log_info "Creating superuser..."
         cd "$PROJECT_ROOT"
-        docker-compose -f docker-compose.prod.yml exec django sh -c "cd src && python manage.py createsuperuser"
+        docker-compose exec django sh -c "cd src && python manage.py createsuperuser"
     fi
 }
 
 show_status() {
     log_info "Service Status:"
     cd "$PROJECT_ROOT"
-    docker-compose -f docker-compose.prod.yml ps
+    docker-compose ps
 
     log_info "Logs (last 20 lines):"
-    docker-compose -f docker-compose.prod.yml logs --tail=20
+    docker-compose logs --tail=20
 }
 
 show_help() {
@@ -119,29 +119,29 @@ case "${1:-}" in
     build)
         check_requirements
         cd "$PROJECT_ROOT"
-        docker-compose -f docker-compose.prod.yml build --no-cache
+        docker-compose build --no-cache
         ;;
     start)
         check_requirements
         cd "$PROJECT_ROOT"
-        docker-compose -f docker-compose.prod.yml up -d
+        docker-compose up -d
         log_info "Services started"
         show_status
         ;;
     stop)
         cd "$PROJECT_ROOT"
-        docker-compose -f docker-compose.prod.yml down
+        docker-compose down
         log_info "Services stopped"
         ;;
     restart)
         cd "$PROJECT_ROOT"
-        docker-compose -f docker-compose.prod.yml restart
+        docker-compose restart
         log_info "Services restarted"
         show_status
         ;;
     logs)
         cd "$PROJECT_ROOT"
-        docker-compose -f docker-compose.prod.yml logs -f
+        docker-compose logs -f
         ;;
     status)
         show_status
@@ -156,7 +156,7 @@ case "${1:-}" in
         log_info "Backing up database..."
         cd "$PROJECT_ROOT"
         mkdir -p backups
-        docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U $(grep POSTGRES_USER env/.env.prod | cut -d '=' -f2) $(grep POSTGRES_DB env/.env.prod | cut -d '=' -f2) | gzip > "backups/db_backup_$(date +%Y%m%d_%H%M%S).sql.gz"
+        docker-compose exec postgres pg_dump -U $(grep POSTGRES_USER env/.env.prod | cut -d '=' -f2) $(grep POSTGRES_DB env/.env.prod | cut -d '=' -f2) | gzip > "backups/db_backup_$(date +%Y%m%d_%H%M%S).sql.gz"
         log_info "Database backed up"
         ;;
     restore)
@@ -166,7 +166,7 @@ case "${1:-}" in
         fi
         log_warn "Restoring database from $2..."
         cd "$PROJECT_ROOT"
-        gunzip < "$2" | docker-compose -f docker-compose.prod.yml exec -T postgres psql -U $(grep POSTGRES_USER env/.env.prod | cut -d '=' -f2) $(grep POSTGRES_DB env/.env.prod | cut -d '=' -f2)
+        gunzip < "$2" | docker-compose exec -T postgres psql -U $(grep POSTGRES_USER env/.env.prod | cut -d '=' -f2) $(grep POSTGRES_DB env/.env.prod | cut -d '=' -f2)
         log_info "Database restored"
         ;;
     help|--help|-h)
