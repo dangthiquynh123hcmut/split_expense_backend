@@ -4,6 +4,7 @@ from uuid import UUID
 
 from django.db import transaction
 
+from authenticate.queries import Query as AuthQuery
 from authenticate.queries import Query as UserQuery
 from event.queries import Query as EventQuery
 from exceptions.group import GroupNotFound, LeaveIsDenied, UserNotInGroup
@@ -20,13 +21,15 @@ from utils.schemas.filter_and_order_by import (
     OrderByFullNameAndUpdatedAtSchema,
     OrderByNameAndUpdatedAtSchema,
 )
+from utils.services.email.client import EmailClient
+from utils.services.email.template import EmailTemplate
 from utils.services.firebase_cm.fcm_service import FCMService
 from utils.types import TUser
 from wallet.orm.transaction import TransactionORM
 
 from .models import GroupMember, GroupMemberBalance
 from .queries import Query
-from .schemas.request import GroupUpdateRequest
+from .schemas.request import ExternalTransferRequest, GroupUpdateRequest, RemindRequest
 from .schemas.response import DebtMember, DetailGroup, GroupReport, GroupResponse
 
 
@@ -39,6 +42,10 @@ class Service:
         self.transaction_orm = TransactionORM()
         self.fcm_service = FCMService()
         self.notification_orm = NotificationORM()
+        self.auth_query = AuthQuery()
+        self.transaction_orm = TransactionORM()
+        self.email_client = EmailClient()
+        self.email_template = EmailTemplate()
 
     @transaction.atomic
     def create_group(self, leader: TUser, name: str, list_user_uids: List[UUID]):
@@ -336,3 +343,99 @@ class Service:
         if not member:
             raise GetIsDenied
         return self.expense_query.chart_expenses(user=user, group=group, year=year)
+
+    @transaction.atomic
+    def remind_group_members(
+        self, user: TUser, group_uid: UUID, payload: RemindRequest
+    ):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        if payload.user_uid:
+            remind_member = self.user_query.get_user_by_uid(uid=payload.user_uid)
+            if not remind_member:
+                raise UserNotFound
+        else:
+            remind_member = self.query.get_all_users_debt(user=user, group=group)
+
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=f"You owe money in group {group.name}. Click to see details.",
+            type=NotificationTypeEnum.REMINDER,
+            related_uid=group_uid,
+            to_users=[member.user for member in remind_member]
+            if isinstance(remind_member, list)
+            else [remind_member],
+        )
+
+        if isinstance(remind_member, list):
+            for member in remind_member:
+                self.fcm_service.send_notification(
+                    token=member.fcm_token,
+                    title=f"Reminder from {group.name}",
+                    body=f"You owe money in group {group.name}. Click to see details.",
+                )
+        else:
+            self.fcm_service.send_notification(
+                token=remind_member.fcm_token,
+                title=f"Reminder from {group.name}",
+                body=f"You owe money in group {group.name}. Click to see details.",
+            )
+
+    @transaction.atomic
+    def external_transfer(
+        self, user: TUser, group_uid: UUID, payload: ExternalTransferRequest
+    ):
+        to_user = self.auth_query.get_user_by_uid(uid=payload.user_uid)
+        if not to_user:
+            raise UserNotFound
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        confirm_token = self.query.create_transfer_confirm_token(
+            amount=payload.amount, to_user=to_user, from_user=user, group=group
+        )
+        email = self.email_template.confirm_transfer(
+            to_user=user,
+            from_name=user.get_full_name(),
+            amount=payload.amount,
+            currency="VND",
+            group_name=group.name,
+            description="External transfer",
+            confirm_token=confirm_token.uid,
+        )
+        self.email_client.send(messages=[email])
+        return True
+
+    @transaction.atomic
+    def confirm_transfer_token(self, uid: str) -> bool:
+        tranfer = self.query.token_transfer(uid=uid)
+
+        self.query.update_balance_in_group(
+            user=tranfer.from_user,
+            group=tranfer.group,
+            amount=-tranfer.amount,
+            currency="VND",
+        )
+        self.query.update_balance_in_group(
+            user=tranfer.to_user,
+            group=tranfer.group,
+            amount=tranfer.amount,
+            currency="VND",
+        )
+        self.query.update_restructure_debt(
+            debtor=tranfer.from_user,
+            creditor=tranfer.to_user,
+            group=tranfer.group,
+            amount=tranfer.amount,
+            currency="VND",
+        )
+        self.transaction_orm.create_transaction(
+            from_user=tranfer.from_user,
+            to_user=tranfer.to_user,
+            amount=tranfer.amount,
+            description="External transfer",
+            group=tranfer.group,
+        )
+        self.query.confirm_transfer_token(confirm_token=tranfer)
+        return True

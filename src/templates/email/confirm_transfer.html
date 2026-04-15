@@ -1,0 +1,17 @@
+{% extends "email/base.html" %}
+{% block title %}Xác nhận nhận tiền{% endblock %}
+{% block header_text %}Xác nhận nhận tiền{% endblock %}
+{% block content %}
+<p>Kính gửi {{ to_name }},</p>
+<p><strong>{{ from_name }}</strong> đã chuyển cho bạn <strong>{{ amount }} {{ currency }}</strong> trong nhóm <strong>{{ group_name }}</strong>.</p>
+{% if description %}
+<p>Nội dung chuyển khoản: <em>{{ description }}</em></p>
+{% endif %}
+<p>Vui lòng nhấn vào nút bên dưới để xác nhận rằng bạn đã nhận được khoản tiền này:</p>
+<div style="text-align: center;">
+  <a class="button" href="{{ confirm_link }}" style="color: #ffffff;">Xác nhận đã nhận tiền</a>
+</div>
+<p style="font-size: 12px; color: #888888;">Liên kết này chỉ có thể sử dụng một lần. Nếu bạn không nhận được giao dịch, vui lòng bỏ qua email này.</p>
+<p>Trân trọng!</p>
+<p>Đội ngũ hỗ trợ hệ thống Quản lý Dividex</p>
+{% endblock %}

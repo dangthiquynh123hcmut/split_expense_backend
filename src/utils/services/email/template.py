@@ -51,3 +51,29 @@ class EmailTemplate:
             },
             subject="Account active / kích hoạt tài khoản",
         )
+
+    def confirm_transfer(
+        self,
+        to_user: TUser,
+        from_name: str,
+        amount: float,
+        currency: str,
+        group_name: str,
+        description: str,
+        confirm_token: str,
+    ):
+        confirm_link = f"{self._base_url}/confirm-transfer?token={confirm_token}"
+        return self._sent_email(
+            user=to_user,
+            template_name="email/confirm_transfer.html",
+            data={
+                "to_name": to_user.get_full_name(),
+                "from_name": from_name,
+                "amount": amount,
+                "currency": currency,
+                "group_name": group_name,
+                "description": description,
+                "confirm_link": confirm_link,
+            },
+            subject="Xác nhận nhận tiền / Transfer confirmation",
+        )

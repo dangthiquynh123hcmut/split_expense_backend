@@ -99,12 +99,6 @@ class Service:
         )
         return event
 
-    # def leave_event(self, user: TUser, event_uid: UUID):
-    #     event = self.query.get_event(event_uid=event_uid)
-    #     if not event:
-    #         raise EventNotFound
-    #     return self.query.leave_event(user=user, event=event)
-
     def delete_event(self, user: TUser, event_uid: UUID):
         event = self.query.get_event(event_uid=event_uid)
         if not event:
