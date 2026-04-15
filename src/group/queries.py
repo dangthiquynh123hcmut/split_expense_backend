@@ -34,7 +34,13 @@ from utils.schemas.filter_and_order_by import (
 )
 from utils.types import TUser
 
-from .models import Group, GroupMember, GroupMemberBalance, RestructureDebt
+from .models import (
+    Group,
+    GroupMember,
+    GroupMemberBalance,
+    RestructureDebt,
+    TransferConfirmToken,
+)
 
 
 class Query:
@@ -574,3 +580,21 @@ class Query:
             queryset = queryset.filter(filter.get_filter_expression())
 
         return queryset
+
+    def get_all_users_debt(self, user: TUser, group: Group):
+        return RestructureDebt.objects.filter(group=group, creditor=user)
+
+    def create_transfer_confirm_token(
+        self, amount: Decimal, to_user: TUser, from_user: TUser, group: Group
+    ) -> TransferConfirmToken:
+        return TransferConfirmToken.objects.create(
+            amount=amount, to_user=to_user, from_user=from_user, group=group
+        )
+
+    def token_transfer(self, uid: str):
+        return TransferConfirmToken.objects.filter(uid=uid, is_used=False).first()
+
+    def confirm_transfer_token(self, confirm_token: TransferConfirmToken) -> bool:
+        confirm_token.is_used = True
+        confirm_token.save(update_fields=["is_used"])
+        return True

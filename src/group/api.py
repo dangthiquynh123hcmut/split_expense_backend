@@ -21,7 +21,13 @@ from utils.schemas.filter_and_order_by import (
 )
 from utils.types import AuthenticatedRequest
 
-from .schemas.request import GroupRequest, GroupUpdateRequest, UpdateGroupLeaderRequest
+from .schemas.request import (
+    ExternalTransferRequest,
+    GroupRequest,
+    GroupUpdateRequest,
+    RemindRequest,
+    UpdateGroupLeaderRequest,
+)
 from .schemas.response import (
     BalanceGroupResponse,
     CreateGroup,
@@ -239,3 +245,41 @@ class GroupAPI(Controller):
         return self.service.chart_expenses_in_group(
             user=request.user, group_uid=group_uid, year=year
         )
+
+    @post(
+        "/{group_uid}/remind",
+        response=bool,
+        exceptions=(GroupNotFound, UserNotFound),
+    )
+    def remind_group_members(
+        self, request: AuthenticatedRequest, group_uid: UUID, payload: RemindRequest
+    ):
+        self.service.remind_group_members(
+            user=request.user, group_uid=group_uid, payload=payload
+        )
+        return True
+
+    @post(
+        "/{group_uid}/external-transfer",
+        response=bool,
+        exceptions=(GroupNotFound, UserNotFound),
+    )
+    def external_transfer(
+        self,
+        request: AuthenticatedRequest,
+        group_uid: UUID,
+        payload: ExternalTransferRequest,
+    ):
+        return self.service.external_transfer(
+            user=request.user, group_uid=group_uid, payload=payload
+        )
+
+
+@api(prefix_or_class="", tags=["Group"], auth=None)
+class GroupPublicAPI(Controller):
+    def __init__(self, service: Service):
+        self.service = service
+
+    @get("/confirm-transfer", response=bool)
+    def confirm_transfer(self, token: str):
+        return self.service.confirm_transfer_token(uid=token)

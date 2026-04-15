@@ -17,3 +17,12 @@ class GroupUpdateRequest(Schema):
 
 class UpdateGroupLeaderRequest(Schema):
     new_leader: UUID
+
+
+class RemindRequest(Schema):
+    user_uid: Optional[UUID] = None
+
+
+class ExternalTransferRequest(Schema):
+    amount: float
+    user_uid: UUID

@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django.conf import settings
 from django.db import models
 
@@ -153,4 +155,41 @@ class RestructureDebt(BaseModel):
         max_length=20,
         choices=CurrencyEnum.choices,
         default=CurrencyEnum.VND,
+    )
+
+
+class TransferConfirmToken(models.Model):
+    uid = models.UUIDField(default=uuid4, unique=True, editable=False, primary_key=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    is_used = models.BooleanField(default=False)
+    to_user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="to_user_uid",
+        related_name="transfer_confirm_token_fk_to_user",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    from_user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="from_user_uid",
+        related_name="transfer_confirm_token_fk_from_user",
+        db_constraint=True,
+        null=False,
+        blank=False,
+    )
+    group = models.ForeignKey(
+        to="group.Group",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="group_uid",
+        related_name="transfer_confirm_token_fk_group",
+        db_constraint=True,
+        null=False,
+        blank=False,
     )
