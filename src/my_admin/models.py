@@ -7,7 +7,7 @@ from utils.models import BaseModel
 class UserMonthlyActivity(BaseModel):
     user = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         to_field="uid",
         db_column="user_uid",
         related_name="user_monthly_activities",

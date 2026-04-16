@@ -9,7 +9,9 @@ class SuperORM:
     @staticmethod
     def create_admin(data: AdminCreateRequest):
         try:
-            return User.objects.create_admin(email=data.email, role="ADMIN")
+            return User.objects.create_admin(
+                email=data.email, role="ADMIN", is_active=False
+            )
         except IntegrityError:
             raise EmailAlreadyExists
 

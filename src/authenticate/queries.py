@@ -97,7 +97,6 @@ class Query:
         try:
             return User.objects.get(
                 uid=uid,
-                is_active=True,
             )
         except User.DoesNotExist:
             return None
