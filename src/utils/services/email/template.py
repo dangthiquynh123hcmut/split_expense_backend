@@ -11,6 +11,7 @@ from utils.types import TUser
 class EmailTemplate:
     def __init__(self):
         self._base_url = settings.FRONTEND_BASE_URL
+        self._confirm_transfer_url = settings.URL_CONFIRM_TRANSFER
 
     def _sent_email(self, user: TUser, template_name: str, data: dict, subject: str):
         body = render_to_string(template_name, data)
@@ -62,7 +63,9 @@ class EmailTemplate:
         description: str,
         confirm_token: str,
     ):
-        confirm_link = f"{self._base_url}/confirm-transfer?token={confirm_token}"
+        confirm_link = (
+            f"{self._confirm_transfer_url}/api/confirm-transfer?token={confirm_token}"
+        )
         return self._sent_email(
             user=to_user,
             template_name="email/confirm_transfer.html",

@@ -281,3 +281,5 @@ PAYOS_CLIENT_ID_OUT = os.getenv("PAYOS_CLIENT_ID_OUT")
 PAYOS_PAYOUT_URL = os.getenv(
     "PAYOS_PAYOUT_URL", "https://api-merchant.payos.vn/v1/payouts"
 )
+
+URL_CONFIRM_TRANSFER = os.getenv("URL_CONFIRM_TRANSFER", "https://split-expense.app")
