@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from django.core.cache import cache
+from django.db import transaction
 
 from authenticate.models import generate_token
 from authenticate.queries import Query as AuthQuery
@@ -46,10 +47,10 @@ class SuperService(BaseService):
     def list_admins(self, filter: FilterAdminSchema):
         list_admins = self.super_orm.list_admins(filter=filter)
         for admin in list_admins:
-            if not admin.last_login:
+            if not admin.is_active:
                 setattr(admin, "status", "INACTIVE")
             else:
-                setattr(admin, "status", "INACTIVE")
+                setattr(admin, "status", "ACTIVE")
         return list_admins
 
     def delete_admin(self, admin_uid: UUID):
@@ -64,6 +65,7 @@ class SuperService(BaseService):
             raise UserNotFound
         self.auth_query.deactivate_user(user=admin)
 
+    @transaction.atomic
     def activate_admin(self, body: ActiveAdminRequest):
         user_uid = cache.get(f"admin_activate_token:{body.token}")
         if not user_uid:

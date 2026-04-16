@@ -396,7 +396,7 @@ class Service:
             amount=payload.amount, to_user=to_user, from_user=user, group=group
         )
         email = self.email_template.confirm_transfer(
-            to_user=user,
+            to_user=to_user,
             from_name=user.get_full_name(),
             amount=payload.amount,
             currency="VND",
