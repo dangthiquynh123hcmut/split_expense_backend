@@ -28,6 +28,15 @@ if [[ -z "${IMAGE_TAG:-}" || -z "${DOCKER_USERNAME:-}" ]]; then
   exit 1
 fi
 
+# ── 0. Bootstrap: clone repo nếu userdata chưa clone được ──────
+export HOME="/root"
+if [[ ! -d "$PROJECT_DIR/.git" ]]; then
+  log_warn "Repository not found – cloning from GitHub..."
+  mkdir -p "$PROJECT_DIR"
+  git clone "https://github.com/dangthiquynh123hcmut/split_expense_backend.git" "$PROJECT_DIR"
+  chown -R ubuntu:ubuntu "$PROJECT_DIR" 2>/dev/null || true
+fi
+
 cd "$PROJECT_DIR"
 
 log_info "====================================="
@@ -38,7 +47,6 @@ log_info "====================================="
 
 # ── 1. Git pull để lấy code mới nhất (bao gồm docker-compose.prod.yml) ──
 log_info "Pulling latest code from git..."
-export HOME="/root"
 git config --global --add safe.directory "$PROJECT_DIR"
 git -C "$PROJECT_DIR" fetch --all
 git -C "$PROJECT_DIR" reset --hard origin/main
