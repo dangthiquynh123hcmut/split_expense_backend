@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from asgiref.sync import sync_to_async
 from channels.layers import get_channel_layer
 from django.core.cache import cache
 from django.utils import timezone
@@ -134,13 +135,13 @@ class MessageService:
                 continue
 
             cache_key = f"user_online:{user_uid}"
-            is_online = cache.get(cache_key)
+            is_online = await sync_to_async(cache.get)(cache_key)
 
             if not is_online:
                 offline_tokens.append(fcm_token)
 
         if offline_tokens:
-            self.fcm_service.send_chat_message_notification(
+            await sync_to_async(self.fcm_service.send_chat_message_notification)(
                 device_tokens=offline_tokens,
                 title=f"New message from {sender.full_name}",
                 body=content[:100],
