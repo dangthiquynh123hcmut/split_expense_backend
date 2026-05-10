@@ -66,6 +66,20 @@ if [[ ! -f "$ENV_FILE" ]]; then
   log_info ".env.prod fetched from SSM ✓"
 fi
 
+# ── 2b. Tự động fetch firebase.json từ SSM Parameter Store nếu chưa có ───
+FIREBASE_FILE="${PROJECT_DIR}/firebase.json"
+if [[ ! -f "$FIREBASE_FILE" ]]; then
+  log_warn "firebase.json not found locally – fetching from SSM Parameter Store..."
+  aws ssm get-parameter \
+    --region "${AWS_REGION:-ap-southeast-1}" \
+    --name "/split-expense/prod/firebase" \
+    --with-decryption \
+    --query "Parameter.Value" \
+    --output text > "$FIREBASE_FILE"
+  chmod 600 "$FIREBASE_FILE"
+  log_info "firebase.json fetched from SSM ✓"
+fi
+
 # ── 3. Pull image mới từ Docker Hub ──────────────────────────
 log_info "Pulling image: $FULL_IMAGE"
 docker pull "$FULL_IMAGE"
