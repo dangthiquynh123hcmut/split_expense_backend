@@ -174,7 +174,7 @@ jobs:
 
           echo "Canary deploying tag=$IMAGE_TAG to instance=$CANARY"
 
-          CMD='["cd /opt/split-expense-backend && IMAGE_TAG='"$IMAGE_TAG"' DOCKER_USERNAME='"$DOCKER_USERNAME"' bash scripts/deploy-ec2.sh"]'
+          CMD='["cd /opt/split-expense-backend && git config --global --add safe.directory /opt/split-expense-backend && IMAGE_TAG='"$IMAGE_TAG"' DOCKER_USERNAME='"$DOCKER_USERNAME"' bash scripts/deploy-ec2.sh"]'
 
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$CANARY" \
@@ -241,7 +241,7 @@ jobs:
 
           echo "Full rollout tag=$IMAGE_TAG to instances: $ALL_IDS"
 
-          CMD='["cd /opt/split-expense-backend && IMAGE_TAG='"$IMAGE_TAG"' DOCKER_USERNAME='"$DOCKER_USERNAME"' bash scripts/deploy-ec2.sh"]'
+          CMD='["cd /opt/split-expense-backend && git config --global --add safe.directory /opt/split-expense-backend && IMAGE_TAG='"$IMAGE_TAG"' DOCKER_USERNAME='"$DOCKER_USERNAME"' bash scripts/deploy-ec2.sh"]'
 
           # Send to all instances simultaneously
           COMMAND_ID=$(aws ssm send-command \
