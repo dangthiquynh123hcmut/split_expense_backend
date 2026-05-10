@@ -38,6 +38,7 @@ log_info "====================================="
 
 # ── 1. Git pull để lấy code mới nhất (bao gồm docker-compose.prod.yml) ──
 log_info "Pulling latest code from git..."
+export HOME="/root"
 git config --global --add safe.directory "$PROJECT_DIR"
 git -C "$PROJECT_DIR" fetch --all
 git -C "$PROJECT_DIR" reset --hard origin/main
