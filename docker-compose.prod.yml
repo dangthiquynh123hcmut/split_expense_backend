@@ -17,8 +17,8 @@ services:
       - ./env/.env.prod
     environment:
       DEBUG: "False"
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     volumes:
       - staticfiles:/app/staticfiles
       - media:/app/media

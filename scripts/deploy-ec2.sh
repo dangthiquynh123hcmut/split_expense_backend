@@ -99,11 +99,10 @@ docker compose -f "$COMPOSE_FILE" run --rm --no-deps django \
 log_info "Restarting Django container with new image..."
 docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate django
 
-# ── 6. Health check (bên trong container vì port 8000 chỉ expose) ──────
+# ── 6. Health check (port 8000 mapped to host) ──────────────────────────
 log_info "Waiting for service to become healthy..."
 for i in {1..20}; do
-  HTTP_STATUS=$(docker compose -f "$COMPOSE_FILE" exec -T django \
-    curl -s -o /dev/null -w "%{http_code}" \
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
     --connect-timeout 5 http://localhost:8000/health/ 2>/dev/null || echo "000")
 
   if [[ "$HTTP_STATUS" == "200" ]]; then
