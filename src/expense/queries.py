@@ -222,7 +222,7 @@ class Query:
     @staticmethod
     def expense_categories():
         return (
-            Expense.objects.filter(status="ACTIVE")
+            Expense.objects.filter(status="ACTIVE", category__isnull=False)
             .values("category")
             .annotate(total_amount=Sum("total_amount"))
         )

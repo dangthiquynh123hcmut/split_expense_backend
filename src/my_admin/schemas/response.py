@@ -38,7 +38,7 @@ class UserInsightsResponse(Schema):
 
 
 class ExpenseCategoryResponse(Schema):
-    category: str
+    category: str = ""
     total_amount: float
 
 

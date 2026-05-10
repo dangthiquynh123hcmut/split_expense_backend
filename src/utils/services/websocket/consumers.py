@@ -65,26 +65,30 @@ class MultiGroupChatConsumer(AsyncWebsocketConsumer):
         if payload.get("type") == "multi_chat_message":
             group_uid = payload.get("group_uid")
             content = (payload.get("content") or "").strip()
-            groups = await self.group_query.get_user_group_uids(self.user)
 
             if not group_uid or not content:
                 return
-            group_uids = [str(gid.uid) for gid in groups]
 
-            if str(group_uid) not in group_uids:
-                return
+            try:
+                groups = await self.group_query.get_user_group_uids(self.user)
+                group_uids = [str(gid) for gid in groups]
 
-            data = {
-                "content": content,
-                "user": {
-                    "uid": str(self.user.uid),
-                    "full_name": self.user.full_name,
-                },
-                "group_uid": group_uid,
-            }
-            await self.channel_layer.group_send(
-                f"chat_{group_uid}", {"type": "multi_chat_message", "message": data}
-            )
+                if str(group_uid) not in group_uids:
+                    return
+
+                data = {
+                    "content": content,
+                    "user": {
+                        "uid": str(self.user.uid),
+                        "full_name": self.user.full_name,
+                    },
+                    "group_uid": group_uid,
+                }
+                await self.channel_layer.group_send(
+                    f"chat_{group_uid}", {"type": "multi_chat_message", "message": data}
+                )
+            except Exception as e:
+                logger.error(f"WebSocket receive error for user {self.user}: {e}")
 
     async def multi_chat_message(self, event):
         await self.send(text_data=json.dumps({"type": "message", **event["message"]}))
