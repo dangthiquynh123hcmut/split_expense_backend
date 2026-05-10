@@ -294,19 +294,18 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# HTTPS listener — uncomment sau khi ACM cert được issued
-# resource "aws_lb_listener" "https" {
-#   load_balancer_arn = aws_lb.main.arn
-#   port              = 443
-#   protocol          = "HTTPS"
-#   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-#   certificate_arn   = "arn:aws:acm:ap-southeast-1:807304180967:certificate/REPLACE_WITH_YOUR_CERT_ID"
-#
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.backend.arn
-#   }
-# }
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = "arn:aws:acm:ap-southeast-1:807304180967:certificate/a5e21bc1-59ac-4424-93b4-02d17ff43324"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+}
 
 # ── Auto Scaling Group ─────────────────────────────────────────
 resource "aws_autoscaling_group" "backend" {

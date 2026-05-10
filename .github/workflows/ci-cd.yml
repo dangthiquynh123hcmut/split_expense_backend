@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/split-expense-backend
