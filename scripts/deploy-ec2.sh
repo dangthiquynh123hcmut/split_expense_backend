@@ -36,21 +36,34 @@ log_info "  Image : $FULL_IMAGE"
 log_info "  Host  : $(hostname)"
 log_info "====================================="
 
-# ── 1. Pull image mới từ Docker Hub ──────────────────────────
+# ── 1. Git pull để lấy code mới nhất (bao gồm docker-compose.prod.yml) ──
+log_info "Pulling latest code from git..."
+git -C "$PROJECT_DIR" fetch --all
+git -C "$PROJECT_DIR" reset --hard origin/main
+
+# ── 2. Tự động fetch .env.prod từ SSM Parameter Store nếu chưa có ──────
+ENV_FILE="${PROJECT_DIR}/env/.env.prod"
+if [[ ! -f "$ENV_FILE" ]]; then
+  log_warn ".env.prod not found locally – fetching from SSM Parameter Store..."
+  mkdir -p "${PROJECT_DIR}/env"
+  aws ssm get-parameter \
+    --region "${AWS_REGION:-ap-southeast-1}" \
+    --name "/split-expense/prod/env" \
+    --with-decryption \
+    --query "Parameter.Value" \
+    --output text > "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  log_info ".env.prod fetched from SSM ✓"
+fi
+
+# ── 3. Pull image mới từ Docker Hub ──────────────────────────
 log_info "Pulling image: $FULL_IMAGE"
 docker pull "$FULL_IMAGE"
 
-# ── 2. Export biến để docker-compose đọc ─────────────────────
+# ── 4. Export biến để docker-compose đọc ─────────────────────
 export BACKEND_IMAGE="$FULL_IMAGE"
 
-# ── 3. Kiểm tra file .env.prod ───────────────────────────────
-if [[ ! -f "${PROJECT_DIR}/env/.env.prod" ]]; then
-  log_error "env/.env.prod not found at ${PROJECT_DIR}/env/.env.prod"
-  log_error "Please place the .env.prod file on the server before deploying"
-  exit 1
-fi
-
-# ── 4. Zero-downtime restart ──────────────────────────────────
+# ── 5. Zero-downtime restart ──────────────────────────────────
 log_info "Running database migrations..."
 docker compose -f "$COMPOSE_FILE" run --rm --no-deps django \
   sh -c "cd src && python manage.py migrate --noinput"
@@ -62,7 +75,7 @@ docker compose -f "$COMPOSE_FILE" run --rm --no-deps django \
 log_info "Restarting Django container with new image..."
 docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate django
 
-# ── 5. Health check ───────────────────────────────────────────
+# ── 6. Health check ───────────────────────────────────────────
 log_info "Waiting for service to become healthy..."
 for i in {1..15}; do
   HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -84,13 +97,13 @@ for i in {1..15}; do
   sleep 10
 done
 
-# ── 6. Reload nginx (nếu có) ─────────────────────────────────
+# ── 7. Reload nginx (nếu có) ─────────────────────────────────
 if docker compose -f "$COMPOSE_FILE" ps nginx 2>/dev/null | grep -q "Up"; then
   log_info "Reloading nginx..."
   docker compose -f "$COMPOSE_FILE" exec -T nginx nginx -s reload || true
 fi
 
-# ── 7. Dọn dẹp image cũ ──────────────────────────────────────
+# ── 8. Dọn dẹp image cũ ──────────────────────────────────────
 log_info "Pruning dangling images..."
 docker image prune -f
 
