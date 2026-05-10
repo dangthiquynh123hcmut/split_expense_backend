@@ -11,4 +11,4 @@ pytest>=8.0
 pytest-django>=4.8
 pytest-mock>=3.12
 
-locust==2.0.0
+locust>=2.43
