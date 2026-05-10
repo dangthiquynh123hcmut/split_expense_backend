@@ -77,8 +77,15 @@ resource "aws_iam_role_policy" "github_actions_policy" {
         Action = [
           "ssm:SendCommand",
           "ssm:GetCommandInvocation",
-          "ssm:ListCommandInvocations"
+          "ssm:ListCommandInvocations",
+          "ssm:WaitUntilCommandExecuted"
         ]
+        Resource = "*"
+      },
+      {
+        # Describe ALB để lấy DNS cho health check
+        Effect   = "Allow"
+        Action   = ["elasticloadbalancing:DescribeLoadBalancers"]
         Resource = "*"
       },
       {

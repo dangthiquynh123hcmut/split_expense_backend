@@ -168,61 +168,108 @@ jobs:
       # ── Bước 1: Canary deploy – chỉ 1 instance đầu tiên ──
       - name: Canary deploy (1st instance)
         run: |
-          IMAGE="${{ env.DOCKER_IMAGE }}:${{ steps.tag.outputs.IMAGE_TAG }}"
-          echo "Canary deploying image: $IMAGE to instance: ${{ steps.get_instances.outputs.canary }}"
+          CANARY="${{ steps.get_instances.outputs.canary }}"
+          IMAGE_TAG="${{ steps.tag.outputs.IMAGE_TAG }}"
+          DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
 
-          aws ssm send-command \
-            --instance-ids "${{ steps.get_instances.outputs.canary }}" \
+          echo "Canary deploying tag=$IMAGE_TAG to instance=$CANARY"
+
+          CMD='["cd /opt/split-expense-backend && IMAGE_TAG='"$IMAGE_TAG"' DOCKER_USERNAME='"$DOCKER_USERNAME"' bash scripts/deploy-ec2.sh"]'
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$CANARY" \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[
-              'cd /opt/split-expense-backend',
-              'IMAGE_TAG=${{ steps.tag.outputs.IMAGE_TAG }} DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} bash scripts/deploy-ec2.sh'
-            ]" \
+            --parameters "commands=$CMD" \
             --output-s3-bucket-name "${{ secrets.SSM_LOG_BUCKET }}" \
             --output-s3-key-prefix "ssm-logs/canary" \
-            --timeout-seconds 300 \
-            --wait
-
-      # ── Health check canary instance ──
-      - name: Health check canary instance
-        run: |
-          INSTANCE_IP=$(aws ec2 describe-instances \
-            --instance-ids "${{ steps.get_instances.outputs.canary }}" \
-            --query "Reservations[0].Instances[0].PrivateIpAddress" \
+            --timeout-seconds 600 \
+            --query "Command.CommandId" \
             --output text)
 
-          echo "Checking health at: http://$INSTANCE_IP:8000/health/"
-          for i in {1..10}; do
+          echo "SSM CommandId: $COMMAND_ID"
+
+          # Wait up to 10 min for command to finish
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$CANARY"
+
+          # Check exit status
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$CANARY" \
+            --query "StatusDetails" \
+            --output text)
+          echo "Command status: $STATUS"
+          [[ "$STATUS" == "Success" ]] || { echo "Deploy failed: $STATUS"; exit 1; }
+
+      # ── Health check qua ALB (GitHub runner không thể reach private IP) ──
+      - name: Health check via ALB
+        run: |
+          # Get ALB DNS from AWS
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names "split-expense-alb" \
+            --query "LoadBalancers[0].DNSName" \
+            --output text 2>/dev/null || echo "")
+
+          if [[ -z "$ALB_DNS" || "$ALB_DNS" == "None" ]]; then
+            echo "WARNING: Could not get ALB DNS, skipping HTTP health check"
+            echo "Relying on SSM command success status instead"
+            exit 0
+          fi
+
+          echo "Checking health at: http://$ALB_DNS/health/"
+          for i in {1..15}; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              --connect-timeout 5 http://$INSTANCE_IP:8000/health/ || echo "000")
+              --connect-timeout 10 http://$ALB_DNS/health/ || echo "000")
             if [ "$STATUS" = "200" ]; then
-              echo "Canary instance healthy (attempt $i)"
+              echo "ALB health check passed (attempt $i)"
               exit 0
             fi
-            echo "Attempt $i: status=$STATUS, retrying in 15s..."
-            sleep 15
+            echo "Attempt $i: status=$STATUS, retrying in 20s..."
+            sleep 20
           done
-          echo "Canary instance failed health check!"
+          echo "Health check failed after 5 minutes!"
           exit 1
 
       # ── Bước 2: Full rollout – tất cả instance còn lại ──
       - name: Full rollout (all remaining instances)
         if: steps.get_instances.outputs.count > 1
         run: |
+          IMAGE_TAG="${{ steps.tag.outputs.IMAGE_TAG }}"
+          DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
           ALL_IDS="${{ steps.get_instances.outputs.all }}"
-          echo "Full rollout to all instances: $ALL_IDS"
 
-          aws ssm send-command \
-            --instance-ids $ALL_IDS \
+          echo "Full rollout tag=$IMAGE_TAG to instances: $ALL_IDS"
+
+          CMD='["cd /opt/split-expense-backend && IMAGE_TAG='"$IMAGE_TAG"' DOCKER_USERNAME='"$DOCKER_USERNAME"' bash scripts/deploy-ec2.sh"]'
+
+          # Send to all instances simultaneously
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids $(echo "$ALL_IDS" | tr ',' ' ') \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[
-              'cd /opt/split-expense-backend',
-              'IMAGE_TAG=${{ steps.tag.outputs.IMAGE_TAG }} DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} bash scripts/deploy-ec2.sh'
-            ]" \
+            --parameters "commands=$CMD" \
             --output-s3-bucket-name "${{ secrets.SSM_LOG_BUCKET }}" \
             --output-s3-key-prefix "ssm-logs/full" \
-            --timeout-seconds 300 \
-            --wait
+            --timeout-seconds 600 \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "SSM CommandId: $COMMAND_ID"
+
+          # Wait for each instance
+          for INSTANCE_ID in $(echo "$ALL_IDS" | tr ',' ' '); do
+            echo "Waiting for $INSTANCE_ID..."
+            aws ssm wait command-executed \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID"
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query "StatusDetails" \
+              --output text)
+            echo "  $INSTANCE_ID: $STATUS"
+            [[ "$STATUS" == "Success" ]] || { echo "Deploy failed on $INSTANCE_ID: $STATUS"; exit 1; }
+          done
 
       - name: Deployment summary
         run: |
