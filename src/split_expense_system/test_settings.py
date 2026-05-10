@@ -5,6 +5,9 @@ import os
 # does not raise "SECRET_KEY must be set".
 os.environ.setdefault("SECRET_KEY", "insecure-test-key-only-not-for-production")
 os.environ.setdefault("ENV", "dev")
+# Provide a dummy key so EmailClient default arg `api_key=settings.SENDGRID_API_KEY`
+# can be evaluated at class definition time without AttributeError.
+os.environ.setdefault("SENDGRID_API_KEY", "test-sendgrid-key-not-used")
 
 from split_expense_system.settings import *  # noqa: F401, F403, E402
 
