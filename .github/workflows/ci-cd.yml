@@ -188,19 +188,30 @@ jobs:
 
           echo "SSM CommandId: $COMMAND_ID"
 
-          # Wait up to 10 min for command to finish
-          aws ssm wait command-executed \
-            --command-id "$COMMAND_ID" \
-            --instance-id "$CANARY"
-
-          # Check exit status
-          STATUS=$(aws ssm get-command-invocation \
-            --command-id "$COMMAND_ID" \
-            --instance-id "$CANARY" \
-            --query "StatusDetails" \
-            --output text)
-          echo "Command status: $STATUS"
-          [[ "$STATUS" == "Success" ]] || { echo "Deploy failed: $STATUS"; exit 1; }
+          # Poll up to 10 min (40 x 15s) for command to finish
+          for i in $(seq 1 40); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$CANARY" \
+              --query "StatusDetails" \
+              --output text 2>/dev/null || echo "Pending")
+            echo "Attempt $i/40: $STATUS"
+            if [[ "$STATUS" == "Success" ]]; then
+              echo "Deploy succeeded!"
+              exit 0
+            elif [[ "$STATUS" == "Failed" || "$STATUS" == "TimedOut" || "$STATUS" == "Cancelled" ]]; then
+              echo "Deploy failed: $STATUS"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$CANARY" \
+                --query "StandardErrorContent" \
+                --output text || true
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "Deploy timed out after 10 minutes!"
+          exit 1
 
       # ── Health check qua ALB (GitHub runner không thể reach private IP) ──
       - name: Health check via ALB
@@ -256,19 +267,33 @@ jobs:
 
           echo "SSM CommandId: $COMMAND_ID"
 
-          # Wait for each instance
+          # Wait for each instance (poll up to 10 min each)
           for INSTANCE_ID in $(echo "$ALL_IDS" | tr ',' ' '); do
             echo "Waiting for $INSTANCE_ID..."
-            aws ssm wait command-executed \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$INSTANCE_ID"
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$INSTANCE_ID" \
-              --query "StatusDetails" \
-              --output text)
-            echo "  $INSTANCE_ID: $STATUS"
-            [[ "$STATUS" == "Success" ]] || { echo "Deploy failed on $INSTANCE_ID: $STATUS"; exit 1; }
+            for i in $(seq 1 40); do
+              STATUS=$(aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StatusDetails" \
+                --output text 2>/dev/null || echo "Pending")
+              echo "  $INSTANCE_ID attempt $i/40: $STATUS"
+              if [[ "$STATUS" == "Success" ]]; then
+                break
+              elif [[ "$STATUS" == "Failed" || "$STATUS" == "TimedOut" || "$STATUS" == "Cancelled" ]]; then
+                echo "Deploy failed on $INSTANCE_ID: $STATUS"
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query "StandardErrorContent" \
+                  --output text || true
+                exit 1
+              fi
+              sleep 15
+            done
+            if [[ "$STATUS" != "Success" ]]; then
+              echo "Timed out waiting for $INSTANCE_ID"
+              exit 1
+            fi
           done
 
       - name: Deployment summary
