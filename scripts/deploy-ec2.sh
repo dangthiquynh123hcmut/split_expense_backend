@@ -99,10 +99,11 @@ docker compose -f "$COMPOSE_FILE" run --rm --no-deps django \
 log_info "Restarting Django container with new image..."
 docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate django
 
-# ── 6. Health check ───────────────────────────────────────────
+# ── 6. Health check (bên trong container vì port 8000 chỉ expose) ──────
 log_info "Waiting for service to become healthy..."
-for i in {1..15}; do
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+for i in {1..20}; do
+  HTTP_STATUS=$(docker compose -f "$COMPOSE_FILE" exec -T django \
+    curl -s -o /dev/null -w "%{http_code}" \
     --connect-timeout 5 http://localhost:8000/health/ 2>/dev/null || echo "000")
 
   if [[ "$HTTP_STATUS" == "200" ]]; then
@@ -110,21 +111,24 @@ for i in {1..15}; do
     break
   fi
 
-  if [[ $i -eq 15 ]]; then
-    log_error "Health check failed after 15 attempts!"
+  if [[ $i -eq 20 ]]; then
+    log_error "Health check failed after 20 attempts!"
     log_error "Container logs:"
     docker compose -f "$COMPOSE_FILE" logs --tail=50 django
     exit 1
   fi
 
-  log_warn "Attempt $i/15: HTTP $HTTP_STATUS – retrying in 10s..."
+  log_warn "Attempt $i/20: HTTP $HTTP_STATUS – retrying in 10s..."
   sleep 10
 done
 
-# ── 7. Reload nginx (nếu có) ─────────────────────────────────
-if docker compose -f "$COMPOSE_FILE" ps nginx 2>/dev/null | grep -q "Up"; then
+# ── 7. Đảm bảo nginx đang chạy (start nếu chưa, reload nếu rồi) ────────
+if docker compose -f "$COMPOSE_FILE" ps nginx 2>/dev/null | grep -qE "Up|running"; then
   log_info "Reloading nginx..."
   docker compose -f "$COMPOSE_FILE" exec -T nginx nginx -s reload || true
+else
+  log_info "Starting nginx..."
+  docker compose -f "$COMPOSE_FILE" up -d nginx
 fi
 
 # ── 8. Dọn dẹp image cũ ──────────────────────────────────────
