@@ -124,7 +124,7 @@ class NameEvent(Schema):
 class ExpenseItemResponse(Schema):
     name: str
     status: str
-    category: str
+    category: Optional[str] = None
     total_amount: float
     currency: str
     expense_date: datetime
