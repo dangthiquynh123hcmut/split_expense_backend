@@ -1,0 +1,226 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/split-expense-backend
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: CI – Lint + Test
+  # ─────────────────────────────────────────────
+  ci:
+    name: CI – Lint & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: split_expense_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint with ruff
+        run: ruff check src/
+
+      - name: Run tests
+        env:
+          DJANGO_SETTINGS_MODULE: split_expense_system.test_settings
+          SECRET_KEY: ci-test-secret-key-not-for-production
+          POSTGRES_DB: split_expense_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          pytest tests/ -v --tb=short
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Build & Push Docker image
+  # (chỉ chạy khi push vào main)
+  # ─────────────────────────────────────────────
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Deploy to EC2 (Canary → Full)
+  # ─────────────────────────────────────────────
+  deploy:
+    name: Deploy to Production (Canary Rolling)
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # ── Lấy EC2 instance IDs từ Auto Scaling Group ──
+      - name: Get EC2 instance IDs from ASG
+        id: get_instances
+        run: |
+          INSTANCE_IDS=$(aws autoscaling describe-auto-scaling-groups \
+            --auto-scaling-group-names "${{ secrets.ASG_NAME }}" \
+            --query "AutoScalingGroups[0].Instances[?LifecycleState=='InService'].InstanceId" \
+            --output text)
+          echo "Found instances: $INSTANCE_IDS"
+
+          INSTANCE_ARRAY=($INSTANCE_IDS)
+          CANARY_INSTANCE=${INSTANCE_ARRAY[0]}
+          ALL_INSTANCES=$(echo "$INSTANCE_IDS" | tr '\t' ',')
+
+          echo "canary=$CANARY_INSTANCE" >> $GITHUB_OUTPUT
+          echo "all=$ALL_INSTANCES" >> $GITHUB_OUTPUT
+          echo "count=${#INSTANCE_ARRAY[@]}" >> $GITHUB_OUTPUT
+
+      # ── Bước 1: Canary deploy – chỉ 1 instance đầu tiên ──
+      - name: Canary deploy (1st instance)
+        run: |
+          IMAGE="${{ env.DOCKER_IMAGE }}:${{ steps.tag.outputs.IMAGE_TAG }}"
+          echo "Canary deploying image: $IMAGE to instance: ${{ steps.get_instances.outputs.canary }}"
+
+          aws ssm send-command \
+            --instance-ids "${{ steps.get_instances.outputs.canary }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "commands=[
+              'cd /opt/split-expense-backend',
+              'IMAGE_TAG=${{ steps.tag.outputs.IMAGE_TAG }} DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} bash scripts/deploy-ec2.sh'
+            ]" \
+            --output-s3-bucket-name "${{ secrets.SSM_LOG_BUCKET }}" \
+            --output-s3-key-prefix "ssm-logs/canary" \
+            --timeout-seconds 300 \
+            --wait
+
+      # ── Health check canary instance ──
+      - name: Health check canary instance
+        run: |
+          INSTANCE_IP=$(aws ec2 describe-instances \
+            --instance-ids "${{ steps.get_instances.outputs.canary }}" \
+            --query "Reservations[0].Instances[0].PrivateIpAddress" \
+            --output text)
+
+          echo "Checking health at: http://$INSTANCE_IP:8000/health/"
+          for i in {1..10}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --connect-timeout 5 http://$INSTANCE_IP:8000/health/ || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Canary instance healthy (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: status=$STATUS, retrying in 15s..."
+            sleep 15
+          done
+          echo "Canary instance failed health check!"
+          exit 1
+
+      # ── Bước 2: Full rollout – tất cả instance còn lại ──
+      - name: Full rollout (all remaining instances)
+        if: steps.get_instances.outputs.count > 1
+        run: |
+          ALL_IDS="${{ steps.get_instances.outputs.all }}"
+          echo "Full rollout to all instances: $ALL_IDS"
+
+          aws ssm send-command \
+            --instance-ids $ALL_IDS \
+            --document-name "AWS-RunShellScript" \
+            --parameters "commands=[
+              'cd /opt/split-expense-backend',
+              'IMAGE_TAG=${{ steps.tag.outputs.IMAGE_TAG }} DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} bash scripts/deploy-ec2.sh'
+            ]" \
+            --output-s3-bucket-name "${{ secrets.SSM_LOG_BUCKET }}" \
+            --output-s3-key-prefix "ssm-logs/full" \
+            --timeout-seconds 300 \
+            --wait
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment completed!"
+          echo "Image: ${{ env.DOCKER_IMAGE }}:${{ steps.tag.outputs.IMAGE_TAG }}"
+          echo "Instances: ${{ steps.get_instances.outputs.all }}"
+          echo "Commit: ${{ github.sha }}"

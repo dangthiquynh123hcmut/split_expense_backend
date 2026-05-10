@@ -1,8 +1,12 @@
+
+# Biến môi trường cần export trước khi chạy:
+#   BACKEND_IMAGE=<dockerhub_user>/split-expense-backend:<tag>
+
 version: '3.8'
 
 services:
   django:
-    build: .
+    image: ${BACKEND_IMAGE:-dangthiquynh123hcmut/split-expense-backend:latest}
     container_name: split_expense_backend_prod
     command: >
       sh -c "cd src &&
@@ -16,8 +20,8 @@ services:
     expose:
       - "8000"
     volumes:
-      - ./src/staticfiles:/app/staticfiles
-      - ./src/media:/app/media
+      - staticfiles:/app/staticfiles
+      - media:/app/media
       - ./logs:/app/logs
     networks:
       - split_expense_network
@@ -38,11 +42,12 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./src/staticfiles:/app/staticfiles:ro
-      - ./src/media:/app/media:ro
+      - staticfiles:/app/staticfiles:ro
+      - media:/app/media:ro
       - ./logs/nginx:/var/log/nginx
     depends_on:
-      - django
+      django:
+        condition: service_healthy
     networks:
       - split_expense_network
     restart: unless-stopped
@@ -50,3 +55,7 @@ services:
 networks:
   split_expense_network:
     driver: bridge
+
+volumes:
+  staticfiles:
+  media:

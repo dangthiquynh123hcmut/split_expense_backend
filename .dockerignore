@@ -45,8 +45,23 @@ env/.env.prod
 # Git
 .git
 .gitignore
+.github/
 
 # Docker
 Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Tests & docs
+tests/
+*.md
+logs/
+media/
+
+# Terraform
+terraform/
+
+# Render
+render/
 docker-compose.yml
 .dockerignore

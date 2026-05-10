@@ -22,3 +22,8 @@ nohup.out
 src/staticfiles/
 
 firebase.json
+
+terraform/*.tfvars
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup

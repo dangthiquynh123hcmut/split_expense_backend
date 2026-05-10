@@ -1,8 +1,8 @@
-FROM python:3.11-bookworm as builder
+FROM python:3.11-bookworm AS builder
 
 WORKDIR /build
 
-RUN apt-get update || apt-get update && \
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -10,26 +10,19 @@ RUN apt-get update || apt-get update && \
     libssl-dev \
     libjpeg-dev \
     zlib1g-dev \
-    libgl1 \
-    libglib2.0-0 \
-    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --upgrade pip setuptools wheel && \
     pip install --user --no-cache-dir -r requirements.txt
 
-FROM python:3.11-bookworm
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-RUN apt-get update || apt-get update && \
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     libpq5 \
-    postgresql-client \
-    libgl1 \
-    libglib2.0-0 \
-    libgomp1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,6 +37,4 @@ COPY . .
 
 RUN mkdir -p /app/staticfiles /app/logs /app/media
 
-# Production: run with gunicorn
-# Development: override command in docker-compose.yml
-CMD ["sh", "-c", "cd src && gunicorn split_expense_system.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "cd src && daphne -b 0.0.0.0 -p 8000 split_expense_system.asgi:application"]

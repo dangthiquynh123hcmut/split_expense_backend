@@ -1,0 +1,61 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm destruction of infrastructure'
+        required: true
+        type: string
+
+jobs:
+  destroy:
+    name: Destroy AWS Infrastructure
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.event.inputs.confirm == 'destroy'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.7"
+
+      - name: Terraform Init
+        working-directory: terraform/
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
+
+      # Xóa protected resources khỏi state TRƯỚC khi destroy
+      # để tránh xóa nhầm S3 bucket, OIDC provider, IAM role
+      - name: Remove protected resources from Terraform state
+        working-directory: terraform/
+        run: |
+          echo "Removing protected resources from state (they will NOT be deleted)..."
+          terraform state rm aws_s3_bucket.tf_state             || true
+          terraform state rm aws_iam_openid_connect_provider.github_oidc || true
+          terraform state rm aws_iam_role.github_actions_role   || true
+
+      - name: Terraform Destroy
+        working-directory: terraform/
+        run: |
+          terraform destroy \
+            -var="aws_region=${{ secrets.AWS_REGION }}" \
+            -var="docker_image=${{ secrets.DOCKER_USERNAME }}/split-expense-backend" \
+            -auto-approve
+
+      - name: Destroy summary
+        run: |
+          echo "Infrastructure destroyed successfully"
+          echo "Protected resources preserved:"
+          echo "  - S3 bucket (Terraform state)"
+          echo "  - GitHub OIDC provider"
+          echo "  - GitHub Actions IAM role"
