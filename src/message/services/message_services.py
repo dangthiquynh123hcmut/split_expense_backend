@@ -26,12 +26,19 @@ class MessageService:
         result = await self.message_orm.create_message(
             user=user, group=group, message=message
         )
+        user_data = await sync_to_async(
+            lambda: {
+                "uid": str(user.uid),
+                "full_name": user.full_name,
+                "avatar_url": user.avatar_url,
+            }
+        )()
 
         if result:
             await self._send_ws_event(
                 group_uid=group_uid,
                 message_type="multi_chat_message",
-                user=user,
+                user_data=user_data,
                 uid=result.uid,
                 content=result.content,
                 created_at=result.created_at,
@@ -57,10 +64,18 @@ class MessageService:
         updated_message = await self.message_orm.update_message(
             message=message, data=data
         )
+        user_data = await sync_to_async(
+            lambda: {
+                "uid": str(user.uid),
+                "full_name": user.full_name,
+                "avatar_url": user.avatar_url,
+            }
+        )()
+
         await self._send_ws_event(
             group_uid=message.group.uid,
             message_type="multi_chat_message",
-            user=user,
+            user_data=user_data,
             uid=message_uid,
             content=data.content,
             updated_at=updated_message.updated_at,
@@ -70,10 +85,17 @@ class MessageService:
     async def delete_message(self, user: TUser, message_uid: UUID):
         message = await self.message_orm.get_message(message_uid=message_uid)
         await self.message_orm.delete_message(message=message)
+        user_data = await sync_to_async(
+            lambda: {
+                "uid": str(user.uid),
+                "full_name": user.full_name,
+                "avatar_url": user.avatar_url,
+            }
+        )()
         await self._send_ws_event(
             group_uid=message.group.uid,
             message_type="multi_chat_message",
-            user=user,
+            user_data=user_data,
             uid=message_uid,
             content="message deleted",
             updated_at=timezone.now(),
@@ -86,7 +108,7 @@ class MessageService:
         self,
         group_uid: UUID,
         message_type: str,
-        user: TUser,
+        user_data: dict,
         uid: UUID,
         content: str,
         created_at=None,
@@ -94,11 +116,7 @@ class MessageService:
     ):
         payload = {
             "uid": str(uid),
-            "user": {
-                "uid": str(user.uid),
-                "full_name": user.full_name,
-                "avatar_url": user.avatar_url,
-            },
+            "user": user_data,
             "group_uid": str(group_uid),
         }
         if content is not None:
