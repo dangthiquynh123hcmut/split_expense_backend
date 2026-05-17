@@ -1,4 +1,3 @@
-
 # Biến môi trường cần export trước khi chạy:
 #   BACKEND_IMAGE=<dockerhub_user>/split-expense-backend:<tag>
 
@@ -6,7 +5,7 @@ version: '3.8'
 
 services:
   django:
-    image: ${BACKEND_IMAGE:-dangthiquynh123hcmut/split-expense-backend:latest}
+    image: ${BACKEND_IMAGE:-quynhdangq1/split-expense-backend:latest}
     container_name: split_expense_backend_prod
     command: >
       sh -c "cd src &&
