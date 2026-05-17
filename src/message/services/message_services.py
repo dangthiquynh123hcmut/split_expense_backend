@@ -30,7 +30,7 @@ class MessageService:
             lambda: {
                 "uid": str(user.uid),
                 "full_name": user.full_name,
-                "avatar_url": user.avatar_url,
+                "avatar_url": user.avatar_url.public_url if user.avatar_url else None,
             }
         )()
 
@@ -68,7 +68,7 @@ class MessageService:
             lambda: {
                 "uid": str(user.uid),
                 "full_name": user.full_name,
-                "avatar_url": user.avatar_url,
+                "avatar_url": user.avatar_url.public_url if user.avatar_url else None,
             }
         )()
 
@@ -89,7 +89,7 @@ class MessageService:
             lambda: {
                 "uid": str(user.uid),
                 "full_name": user.full_name,
-                "avatar_url": user.avatar_url,
+                "avatar_url": user.avatar_url.public_url if user.avatar_url else None,
             }
         )()
         await self._send_ws_event(
