@@ -585,10 +585,19 @@ class Query:
         return RestructureDebt.objects.filter(group=group, creditor=user)
 
     def create_transfer_confirm_token(
-        self, amount: Decimal, to_user: TUser, from_user: TUser, group: Group
+        self,
+        amount: Decimal,
+        to_user: TUser,
+        from_user: TUser,
+        group: Group,
+        event=None,
     ) -> TransferConfirmToken:
         return TransferConfirmToken.objects.create(
-            amount=amount, to_user=to_user, from_user=from_user, group=group
+            amount=amount,
+            to_user=to_user,
+            from_user=from_user,
+            group=group,
+            event=event,
         )
 
     def token_transfer(self, uid: str):

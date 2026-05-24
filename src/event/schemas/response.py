@@ -7,6 +7,7 @@ from pydantic import ConfigDict
 
 from attachment.schemas.responses import AttachmentResponse
 from event.models import Event
+from group.schemas.response import UserBalanceGroupResponse
 from user.schemas.response import UserResponse
 
 
@@ -14,6 +15,19 @@ class EventResponse(ModelSchema):
     class Meta:
         model = Event
         exclude = ["created_at", "updated_at", "status", "name_no_accent"]
+
+
+class EventDetailResponse(Schema):
+    uid: UUID
+    name: str
+    creator_id: UUID
+    group_id: UUID
+    description: Optional[str] = None
+    event_start: date
+    event_end: date
+    total_expenses: Optional[int] = 0
+    total: Optional[float] = 0.0
+    members: Optional[int] = None
 
 
 class EventGroup(Schema):
@@ -35,3 +49,10 @@ class EventMemberResponse(Schema):
     user: UserResponse
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EventBalanceResponse(Schema):
+    debtor: UserBalanceGroupResponse
+    creditor: UserBalanceGroupResponse
+    value: float
+    currency: str

@@ -10,6 +10,8 @@ from exceptions.wallet import InvalidTokenOrAmountIncorrect, PinIncorrect, PinNo
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
 from user.schemas.response import UserResponse
+from utils.enums import DebtOptimizationEnum
+from utils.functions.debt_simplification import settle_event_debts_by_group_payment
 from utils.functions.transfer_token import (
     generate_transfer_token,
     verify_transfer_token,
@@ -68,29 +70,52 @@ class TransactionService:
             amount=payload.convert_amount,
         ):
             raise InvalidTokenOrAmountIncorrect
+        if user.balance < payload.convert_amount:
+            raise BalanceNotEnough
         if payload.group_uid:
             group = self.group_query.get_group_sync(group_uid=payload.group_uid)
             if not group:
                 raise GroupNotFound
-            self.group_query.update_balance_in_group(
-                user=user,
-                group=group,
-                amount=-payload.original_amount,
-                currency=payload.currency,
-            )
-            self.group_query.update_balance_in_group(
-                user=to_user,
-                group=group,
-                amount=payload.original_amount,
-                currency=payload.currency,
-            )
-            self.group_query.update_restructure_debt(
-                debtor=user,
-                creditor=to_user,
-                group=group,
-                amount=payload.original_amount,
-                currency=payload.currency,
-            )
+            if group.debt_optimization == DebtOptimizationEnum.GROUP:
+                self.group_query.update_balance_in_group(
+                    user=user,
+                    group=group,
+                    amount=-payload.original_amount,
+                    currency=payload.currency,
+                )
+                self.group_query.update_balance_in_group(
+                    user=to_user,
+                    group=group,
+                    amount=payload.original_amount,
+                    currency=payload.currency,
+                )
+                self.group_query.update_restructure_debt(
+                    debtor=user,
+                    creditor=to_user,
+                    group=group,
+                    amount=payload.original_amount,
+                    currency=payload.currency,
+                )
+            if group.debt_optimization == DebtOptimizationEnum.EVENT:
+                event_debts = (
+                    self.event_query.get_event_restructure_debts_between_users(
+                        debtor=user,
+                        creditor=to_user,
+                        group=group,
+                        currency=payload.currency,
+                    )
+                )
+                settlements = settle_event_debts_by_group_payment(
+                    event_debts, payload.original_amount
+                )
+                for debt, settled_amount in settlements:
+                    self.event_query.settle_event_restructure_debt(
+                        debt=debt,
+                        amount=settled_amount,
+                        debtor=user,
+                        creditor=to_user,
+                        currency=payload.currency,
+                    )
         elif payload.event_uid:
             event = self.event_query.get_event(event_uid=payload.event_uid)
             if not event:
@@ -109,10 +134,6 @@ class TransactionService:
                 amount=payload.original_amount,
                 currency=payload.currency,
             )
-        else:
-            group = None
-        if user.balance < payload.convert_amount:
-            raise BalanceNotEnough
         self.query.update_balance_in_wallet(
             uid=user.uid, amount=-payload.convert_amount
         )

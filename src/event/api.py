@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 
 from ninja import Query
@@ -6,6 +7,7 @@ from event.schemas.response import ListEventGroup
 from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
+from group.schemas.request import ExternalTransferRequest
 from group.schemas.response import GroupChart, GroupMembersReport
 from utils.exceptions import (
     CreateIsDenied,
@@ -25,7 +27,12 @@ from utils.schemas.filter_and_order_by import (
 from utils.types import AuthenticatedRequest
 
 from .schemas.request import AddMember, EventRequest, EventUpdateRequest
-from .schemas.response import EventMemberResponse, EventResponse
+from .schemas.response import (
+    EventBalanceResponse,
+    EventDetailResponse,
+    EventMemberResponse,
+    EventResponse,
+)
 from .services import Service
 
 
@@ -47,7 +54,7 @@ class EventAPI(Controller):
     def create_event(self, request: AuthenticatedRequest, data: EventRequest):
         return self.service.create_event(user=request.user, data=data)
 
-    @get("/{event_uid}", response=EventResponse, exceptions=(EventNotFound,))
+    @get("/{event_uid}", response=EventDetailResponse, exceptions=(EventNotFound,))
     def get_event(self, event_uid: UUID):
         return self.service.get_event(event_uid=event_uid)
 
@@ -134,6 +141,29 @@ class EventAPI(Controller):
     ):
         return self.service.chart_expenses_in_event(
             user=request.user, event_uid=event_uid, year=year
+        )
+
+    @get(
+        "/{event_uid}/balance",
+        response=List[EventBalanceResponse],
+        exceptions=(EventNotFound,),
+    )
+    def get_event_balance(self, request: AuthenticatedRequest, event_uid: UUID):
+        return self.service.get_event_balance(user=request.user, event_uid=event_uid)
+
+    @post(
+        "/{event_uid}/external-transfer",
+        response=bool,
+        exceptions=(EventNotFound, UserNotFound, GetIsDenied, UpdatedIsDenied),
+    )
+    def event_external_transfer(
+        self,
+        request: AuthenticatedRequest,
+        event_uid: UUID,
+        payload: ExternalTransferRequest,
+    ):
+        return self.service.event_external_transfer(
+            user=request.user, event_uid=event_uid, payload=payload
         )
 
 

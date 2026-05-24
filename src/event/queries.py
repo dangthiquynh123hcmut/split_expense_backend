@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any, DefaultDict, Dict, List
 from uuid import UUID
 
-from django.db.models import DecimalField, ExpressionWrapper, F
+from django.db.models import DecimalField, ExpressionWrapper, F, Q
 from django.db.models.functions import Round
 from django.utils.timezone import now
 
@@ -328,4 +328,62 @@ class Query:
 
         EventMemberBalance.objects.filter(
             event=event, user=creditor, currency=currency
+        ).update(balance=F("balance") - amount)
+
+    def get_event_balance(self, event: Event, user: TUser):
+        return EventRestructureDebt.objects.filter(
+            Q(debtor=user) | Q(creditor=user), event=event
+        )
+
+    @staticmethod
+    def get_event_restructure_debts_by_event(
+        debtor: TUser, creditor: TUser, event: "Event", currency: str
+    ):
+        return (
+            EventRestructureDebt.objects.select_for_update()
+            .filter(
+                debtor=debtor,
+                creditor=creditor,
+                event=event,
+                currency=currency,
+                value__gt=0,
+            )
+            .select_related("event")
+        )
+
+    @staticmethod
+    def get_event_restructure_debts_between_users(
+        debtor: TUser, creditor: TUser, group: Group, currency: str
+    ):
+        return (
+            EventRestructureDebt.objects.select_for_update()
+            .filter(
+                debtor=debtor,
+                creditor=creditor,
+                event__group=group,
+                currency=currency,
+                value__gt=0,
+            )
+            .select_related("event")
+        )
+
+    @staticmethod
+    def settle_event_restructure_debt(
+        debt: "EventRestructureDebt",
+        amount: Decimal,
+        debtor: TUser,
+        creditor: TUser,
+        currency: str,
+    ):
+        EventRestructureDebt.objects.filter(uid=debt.uid).update(
+            value=F("value") - amount
+        )
+        EventRestructureDebt.objects.filter(uid=debt.uid, value__lte=0).delete()
+
+        EventMemberBalance.objects.filter(
+            event=debt.event, user=debtor, currency=currency
+        ).update(balance=F("balance") + amount)
+
+        EventMemberBalance.objects.filter(
+            event=debt.event, user=creditor, currency=currency
         ).update(balance=F("balance") - amount)

@@ -12,8 +12,9 @@ from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
 from expense.schemas.response import NameExpense
 from message.orm.notification_queries import NotificationORM
-from utils.enums import NotificationTypeEnum
+from utils.enums import DebtOptimizationEnum, NotificationTypeEnum
 from utils.exceptions import DeleteIsDenied, GetIsDenied, UpdatedIsDenied
+from utils.functions.debt_simplification import settle_event_debts_by_group_payment
 from utils.schemas.filter_and_order_by import (
     FilterCurrencySchema,
     FilterFullNameSchema,
@@ -395,7 +396,7 @@ class Service:
             )
 
     @transaction.atomic
-    def external_transfer(
+    def group_external_transfer(
         self, user: TUser, group_uid: UUID, payload: ExternalTransferRequest
     ):
         to_user = self.auth_query.get_user_by_uid(uid=payload.user_uid)
@@ -422,26 +423,66 @@ class Service:
     @transaction.atomic
     def confirm_transfer_token(self, uid: str) -> bool:
         tranfer = self.query.token_transfer(uid=uid)
+        if not tranfer:
+            raise GetIsDenied
 
-        self.query.update_balance_in_group(
-            user=tranfer.from_user,
-            group=tranfer.group,
-            amount=-tranfer.amount,
-            currency="VND",
-        )
-        self.query.update_balance_in_group(
-            user=tranfer.to_user,
-            group=tranfer.group,
-            amount=tranfer.amount,
-            currency="VND",
-        )
-        self.query.update_restructure_debt(
-            debtor=tranfer.from_user,
-            creditor=tranfer.to_user,
-            group=tranfer.group,
-            amount=tranfer.amount,
-            currency="VND",
-        )
+        if tranfer.event is not None:
+            event_debts = self.event_query.get_event_restructure_debts_by_event(
+                debtor=tranfer.from_user,
+                creditor=tranfer.to_user,
+                event=tranfer.event,
+                currency="VND",
+            )
+            settlements = settle_event_debts_by_group_payment(
+                event_debts, tranfer.amount
+            )
+            for debt, settled_amount in settlements:
+                self.event_query.settle_event_restructure_debt(
+                    debt=debt,
+                    amount=settled_amount,
+                    debtor=tranfer.from_user,
+                    creditor=tranfer.to_user,
+                    currency="VND",
+                )
+        elif tranfer.group.debt_optimization == DebtOptimizationEnum.GROUP:
+            self.query.update_balance_in_group(
+                user=tranfer.from_user,
+                group=tranfer.group,
+                amount=-tranfer.amount,
+                currency="VND",
+            )
+            self.query.update_balance_in_group(
+                user=tranfer.to_user,
+                group=tranfer.group,
+                amount=tranfer.amount,
+                currency="VND",
+            )
+            self.query.update_restructure_debt(
+                debtor=tranfer.from_user,
+                creditor=tranfer.to_user,
+                group=tranfer.group,
+                amount=tranfer.amount,
+                currency="VND",
+            )
+        else:
+            event_debts = self.event_query.get_event_restructure_debts_between_users(
+                debtor=tranfer.from_user,
+                creditor=tranfer.to_user,
+                group=tranfer.group,
+                currency="VND",
+            )
+            settlements = settle_event_debts_by_group_payment(
+                event_debts, tranfer.amount
+            )
+            for debt, settled_amount in settlements:
+                self.event_query.settle_event_restructure_debt(
+                    debt=debt,
+                    amount=settled_amount,
+                    debtor=tranfer.from_user,
+                    creditor=tranfer.to_user,
+                    currency="VND",
+                )
+
         self.transaction_orm.create_transaction(
             from_user=tranfer.from_user,
             to_user=tranfer.to_user,

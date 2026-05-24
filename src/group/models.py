@@ -198,3 +198,13 @@ class TransferConfirmToken(models.Model):
         null=False,
         blank=False,
     )
+    event = models.ForeignKey(
+        to="event.Event",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="event_uid",
+        related_name="transfer_confirm_token_fk_event",
+        db_constraint=True,
+        null=True,
+        blank=True,
+    )

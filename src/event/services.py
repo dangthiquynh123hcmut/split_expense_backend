@@ -4,11 +4,14 @@ from uuid import UUID
 from django.db import transaction
 
 from authenticate.queries import Query as UseQuery
+from event.schemas.response import EventBalanceResponse, EventDetailResponse
 from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
+from group.schemas.request import ExternalTransferRequest
+from group.schemas.response import UserBalanceGroupResponse
 from message.orm.notification_queries import NotificationORM
 from utils.enums import NotificationTypeEnum
 from utils.exceptions import (
@@ -22,8 +25,11 @@ from utils.schemas.filter_and_order_by import (
     FilterNameSchema,
     OrderByFullNameAndUpdatedAtSchema,
 )
+from utils.services.email.client import EmailClient
+from utils.services.email.template import EmailTemplate
 from utils.services.firebase_cm.fcm_service import FCMService
 from utils.types import TUser
+from wallet.orm.transaction import TransactionORM
 
 from .models import EventMember
 from .queries import Query
@@ -38,6 +44,9 @@ class Service:
         self.expense_query = ExpenseQuery()
         self.notification_orm = NotificationORM()
         self.fcm_service = FCMService()
+        self.email_client = EmailClient()
+        self.email_template = EmailTemplate()
+        self.transaction_orm = TransactionORM()
 
     def create_event(self, user: TUser, data: EventRequest):
         group = self.group_query.get_group_sync(group_uid=data.group_id)
@@ -78,7 +87,20 @@ class Service:
         event = self.query.get_event(event_uid=event_uid)
         if not event:
             raise EventNotFound
-        return event
+        members = self.query.total_event_members(event=event)
+        expense_data = self.expense_query.total_expenses_in_event(event=event)
+        return EventDetailResponse(
+            uid=event.uid,
+            name=event.name,
+            creator_id=event.creator_id,
+            group_id=event.group_id,
+            description=event.description,
+            event_start=event.event_start,
+            event_end=event.event_end,
+            total_expenses=expense_data.get("expense_total") or 0,
+            total=expense_data.get("total_amount") or 0.0,
+            members=members,
+        )
 
     @transaction.atomic
     def update_event(self, user: TUser, event_uid: UUID, data: EventUpdateRequest):
@@ -178,3 +200,84 @@ class Service:
         if not is_member_in_event:
             raise GetIsDenied
         return self.expense_query.chart_expenses(user=user, event=event, year=year)
+
+    def get_event_balance(self, user: TUser, event_uid: UUID):
+        event = self.query.get_event(event_uid=event_uid)
+        if not event:
+            raise EventNotFound
+        is_member_in_event = self.query.get_event_has_user(user=user, event=event)
+        if not is_member_in_event:
+            raise GetIsDenied
+        queries = self.query.get_event_balance(event=event, user=user)
+        if user == queries[0].debtor:
+            return (
+                EventBalanceResponse(
+                    debtor=UserBalanceGroupResponse(
+                        full_name=query.debtor.full_name,
+                        avatar_url=query.debtor.avatar_url,
+                        uid=query.debtor.uid,
+                    ),
+                    creditor=UserBalanceGroupResponse(
+                        full_name=query.creditor.full_name,
+                        avatar_url=query.creditor.avatar_url,
+                        uid=query.creditor.uid,
+                    ),
+                    value=query.value,
+                    currency=query.currency,
+                )
+                for query in queries
+            )
+        else:
+            return (
+                EventBalanceResponse(
+                    debtor=UserBalanceGroupResponse(
+                        full_name=query.creditor.full_name,
+                        avatar_url=query.creditor.avatar_url,
+                        uid=query.creditor.uid,
+                    ),
+                    creditor=UserBalanceGroupResponse(
+                        full_name=query.debtor.full_name,
+                        avatar_url=query.debtor.avatar_url,
+                        uid=query.debtor.uid,
+                    ),
+                    value=query.value,
+                    currency=query.currency,
+                )
+                for query in queries
+            )
+
+    def event_external_transfer(
+        self, user: TUser, event_uid: UUID, payload: ExternalTransferRequest
+    ):
+        if payload.amount <= 0:
+            raise UpdatedIsDenied
+        if str(payload.user_uid) == str(user.uid):
+            raise UpdatedIsDenied
+        to_user = self.user_query.get_user_by_uid(uid=payload.user_uid)
+        if not to_user:
+            raise UserNotFound
+        event = self.query.get_event(event_uid=event_uid)
+        if not event:
+            raise EventNotFound
+        if not self.query.get_event_has_user(user=user, event=event):
+            raise GetIsDenied
+        if not self.query.get_event_has_user(user=to_user, event=event):
+            raise GetIsDenied
+        confirm_token = self.group_query.create_transfer_confirm_token(
+            amount=payload.amount,
+            to_user=to_user,
+            from_user=user,
+            group=event.group,
+            event=event,
+        )
+        email = self.email_template.confirm_transfer(
+            to_user=to_user,
+            from_name=user.get_full_name(),
+            amount=payload.amount,
+            currency="VND",
+            group_name=event.group.name,
+            description="Event External transfer",
+            confirm_token=confirm_token.uid,
+        )
+        self.email_client.send(messages=[email])
+        return True

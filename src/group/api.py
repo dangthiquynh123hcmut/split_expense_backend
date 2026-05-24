@@ -282,13 +282,13 @@ class GroupAPI(Controller):
         response=bool,
         exceptions=(GroupNotFound, UserNotFound),
     )
-    def external_transfer(
+    def group_external_transfer(
         self,
         request: AuthenticatedRequest,
         group_uid: UUID,
         payload: ExternalTransferRequest,
     ):
-        return self.service.external_transfer(
+        return self.service.group_external_transfer(
             user=request.user, group_uid=group_uid, payload=payload
         )
 

@@ -1,3 +1,18 @@
+from decimal import Decimal
+
+
+def settle_event_debts_by_group_payment(event_debts, payment_amount):
+    remaining = Decimal(str(payment_amount))
+    settlements = []
+    for debt in event_debts:
+        if remaining <= 0:
+            break
+        settled = Decimal(str(debt.value))
+        settlements.append((debt, settled))
+        remaining -= settled
+    return settlements
+
+
 def simplify_minflow(balances):
     transactions = []
     debtors = {p: b for (p, b) in balances if b < 0}
