@@ -1,5 +1,6 @@
 Django==5.2.1
 # django-crontab==0.7.1 render now not support, only run with lunix
+apscheduler==3.11.2
 
 django-ninja-extra==0.30.0
 django-ninja==1.4.1

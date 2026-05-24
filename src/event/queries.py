@@ -8,7 +8,7 @@ from django.db.models.functions import Round
 from django.utils.timezone import now
 
 from attachment.schemas.responses import AttachmentResponse
-from event.models import Event, EventMember
+from event.models import Event, EventMember, EventMemberBalance, EventRestructureDebt
 from event.schemas.request import EventUpdateRequest
 from expense.models import UserSharesInExpense
 from group.models import Group
@@ -263,3 +263,69 @@ class Query:
         Event.objects.filter(
             uid=event_uid,
         ).update(status="ACTIVE")
+
+    @staticmethod
+    def close_event(event_uid: UUID):
+        Event.objects.filter(uid=event_uid).update(status="CLOSED")
+
+    @staticmethod
+    def close_expired_events():
+        today = now().date()
+        expired = Event.objects.filter(status="ACTIVE", event_end__lt=today)
+        event_uids = list(expired.values_list("uid", flat=True))
+        if event_uids:
+            expired.update(status="CLOSED")
+            EventMemberBalance.objects.filter(event_id__in=event_uids).delete()
+        return len(event_uids)
+
+    @staticmethod
+    def delete_event_member_balance(event: Event):
+        EventMemberBalance.objects.filter(event=event).delete()
+
+    @staticmethod
+    def list_event_member_balances(event: Event, currency: str):
+        shares = UserSharesInExpense.objects.filter(
+            expense__event=event,
+            expense__currency=currency,
+            deleted="ACTIVE",
+        ).values("user__uid", "amount", "receiver_amount", "expense__paid_by__uid")
+
+        balance_map: DefaultDict = defaultdict(Decimal)
+        for share in shares:
+            uid = share["user__uid"]
+            if uid == share["expense__paid_by__uid"]:
+                balance_map[uid] += share["receiver_amount"] or Decimal("0")
+            else:
+                balance_map[uid] -= share["amount"] or Decimal("0")
+
+        return [(uid, balance) for uid, balance in balance_map.items() if balance != 0]
+
+    @staticmethod
+    def delete_event_restructure_debt(event: Event, currency: str):
+        return EventRestructureDebt.objects.filter(
+            event=event, currency=currency
+        ).delete()
+
+    @staticmethod
+    def create_event_restructure_debt(restructure_debts: List[EventRestructureDebt]):
+        EventRestructureDebt.objects.bulk_create(restructure_debts)
+
+    @staticmethod
+    def update_event_restructure_debt(
+        debtor: TUser, creditor: TUser, event: Event, amount: Decimal, currency: str
+    ):
+        EventRestructureDebt.objects.filter(
+            event=event, debtor=debtor, creditor=creditor, currency=currency
+        ).delete()
+
+    @staticmethod
+    def update_event_member_balance(
+        debtor: TUser, creditor: TUser, event: Event, amount: Decimal, currency: str
+    ):
+        EventMemberBalance.objects.filter(
+            event=event, user=debtor, currency=currency
+        ).update(balance=F("balance") + amount)
+
+        EventMemberBalance.objects.filter(
+            event=event, user=creditor, currency=currency
+        ).update(balance=F("balance") - amount)

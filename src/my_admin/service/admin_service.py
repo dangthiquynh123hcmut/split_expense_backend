@@ -398,6 +398,13 @@ class AdminService:
         self.events_query.active_event(event_uid=event_uid)
         return True
 
+    def close_event(self, event_uid: UUID) -> bool:
+        self.events_query.close_event(event_uid=event_uid)
+        self.events_query.delete_event_member_balance(
+            event=self.events_query.get_event(event_uid=event_uid)
+        )
+        return True
+
     def expense_management(self) -> ExpenseManagementResponse:
         total_expenses, total_expenses_last_month = self.expense_query.count_expenses()
         active_expenses, active_expenses_last_month = (

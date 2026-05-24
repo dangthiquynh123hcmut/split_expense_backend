@@ -344,6 +344,18 @@ class Service:
             raise GetIsDenied
         return self.expense_query.chart_expenses(user=user, group=group, year=year)
 
+    def update_debt_optimization(
+        self, user: TUser, group_uid: UUID, debt_optimization: str
+    ):
+        group = self.query.get_group_sync(group_uid=group_uid)
+        if not group:
+            raise GroupNotFound
+        if group.leader != user:
+            raise UpdatedIsDenied
+        return self.query.update_debt_optimization(
+            group=group, debt_optimization=debt_optimization
+        )
+
     @transaction.atomic
     def remind_group_members(
         self, user: TUser, group_uid: UUID, payload: RemindRequest

@@ -11,7 +11,7 @@ from expense.models import Expense
 
 class UserInformation(Schema):
     uid: UUID
-    full_name: str
+    full_name: Optional[str] = None
     avatar_url: Optional[AttachmentResponse] = None
 
 

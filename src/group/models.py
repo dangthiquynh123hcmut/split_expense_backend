@@ -3,7 +3,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.db import models
 
-from utils.enums import CurrencyEnum, StatusEnum
+from utils.enums import CurrencyEnum, DebtOptimizationEnum, StatusEnum
 from utils.functions.remove_accents import remove_accents
 from utils.models import BaseModel
 
@@ -38,6 +38,11 @@ class Group(BaseModel):
         blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    debt_optimization = models.CharField(
+        max_length=10,
+        choices=DebtOptimizationEnum.choices,
+        default=DebtOptimizationEnum.EVENT,
+    )
 
     def save(self, *args, **kwargs):
         if self.name:

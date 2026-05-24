@@ -46,8 +46,14 @@ class DebtMember(Schema):
     currency: str
 
 
+class UserBalanceGroupResponse(Schema):
+    full_name: str
+    avatar_url: Optional[AttachmentResponse] = None
+    uid: UUID
+
+
 class BalanceMembersResponse(Schema):
-    user: Optional[UserResponse] = None
+    user: Optional[UserBalanceGroupResponse] = None
     balance: Optional[Decimal] = None
 
 

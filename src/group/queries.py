@@ -598,3 +598,8 @@ class Query:
         confirm_token.is_used = True
         confirm_token.save(update_fields=["is_used"])
         return True
+
+    def update_debt_optimization(self, group: Group, debt_optimization: str):
+        group.debt_optimization = debt_optimization
+        group.save(update_fields=["debt_optimization"])
+        return True

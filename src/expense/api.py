@@ -5,7 +5,7 @@ from ninja import Query
 
 from authenticate.api import AuthenticatedRequest
 from event.services import Service as EventService
-from exceptions.event import EventNotFound
+from exceptions.event import EventClosed, EventNotFound
 from exceptions.expense import ExpenseNotFound, ListMemberNotMatch
 from exceptions.users import UserNotFound
 from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
@@ -43,7 +43,7 @@ class ExpenseAPI(Controller):
     @post(
         "",
         response=CreateExpense,
-        exceptions=(EventNotFound, UserNotFound, ListMemberNotMatch),
+        exceptions=(EventNotFound, EventClosed, UserNotFound, ListMemberNotMatch),
     )
     def create_expense(self, request: AuthenticatedRequest, payload: ExpenseRequest):
         event = self.event_service.query.get_event(event_uid=payload.event_uid)
@@ -68,7 +68,7 @@ class ExpenseAPI(Controller):
     @put(
         "/{expense_uid}",
         response=CreateExpense,
-        exceptions=(ExpenseNotFound, ListMemberNotMatch),
+        exceptions=(ExpenseNotFound, EventClosed, ListMemberNotMatch),
     )
     def update_expense(
         self,
@@ -85,7 +85,11 @@ class ExpenseAPI(Controller):
         self.service.calculate_debt(expense=expense, old_currency=old_expense.currency)
         return expense
 
-    @put("/{expense_uid}/restore", response=bool, exceptions=(ExpenseNotFound,))
+    @put(
+        "/{expense_uid}/restore",
+        response=bool,
+        exceptions=(ExpenseNotFound, EventClosed),
+    )
     def restore_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
         expense = self.service.restore_expense(
             user=request.user, expense_uid=expense_uid
@@ -93,7 +97,9 @@ class ExpenseAPI(Controller):
         self.service.calculate_debt(expense=expense, old_currency="")
         return True
 
-    @put("/{expense_uid}/soft", response=bool, exceptions=(ExpenseNotFound,))
+    @put(
+        "/{expense_uid}/soft", response=bool, exceptions=(ExpenseNotFound, EventClosed)
+    )
     def soft_delete_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
         expense = self.service.soft_delete_expense(
             user=request.user, expense_uid=expense_uid

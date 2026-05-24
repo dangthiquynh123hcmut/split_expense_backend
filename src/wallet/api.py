@@ -3,6 +3,7 @@ from uuid import UUID
 from ninja import Query
 
 from authenticate.schemas import TokenResponse
+from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
 from exceptions.wallet import (
@@ -101,7 +102,12 @@ class WalletAPI(Controller):
     @post(
         "/transaction",
         response=TransactionResponse,
-        exceptions=(UserNotFound, InvalidTokenOrAmountIncorrect, GroupNotFound),
+        exceptions=(
+            UserNotFound,
+            InvalidTokenOrAmountIncorrect,
+            GroupNotFound,
+            EventNotFound,
+        ),
     )
     def create_transaction(
         self, request: AuthenticatedRequest, payload: TransferRequest

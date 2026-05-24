@@ -158,6 +158,10 @@ class AdminController(Controller):
     def active_event(self, event_uid: UUID):
         return self.service.active_event(event_uid=event_uid)
 
+    @patch("/event/close/{event_uid}", response=bool)
+    def close_event(self, event_uid: UUID):
+        return self.service.close_event(event_uid=event_uid)
+
     @get("/expense-management", response=ExpenseManagementResponse)
     def expense_management(self):
         return self.service.expense_management()

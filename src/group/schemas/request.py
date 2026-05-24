@@ -3,6 +3,8 @@ from uuid import UUID
 
 from ninja import Schema
 
+from utils.enums import DebtOptimizationEnum
+
 
 class GroupRequest(Schema):
     name: str
@@ -26,3 +28,7 @@ class RemindRequest(Schema):
 class ExternalTransferRequest(Schema):
     amount: float
     user_uid: UUID
+
+
+class DebtOptimizationRequest(Schema):
+    debt_optimization: DebtOptimizationEnum = DebtOptimizationEnum.EVENT

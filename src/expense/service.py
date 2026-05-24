@@ -6,9 +6,9 @@ from django.db import transaction
 
 from attachment.schemas.responses import AttachmentResponse
 from authenticate.queries import Query as UserQuery
-from event.models import Event
+from event.models import Event, EventRestructureDebt
 from event.queries import Query as EventQuery
-from exceptions.event import EventNotFound
+from exceptions.event import EventClosed, EventNotFound
 from exceptions.expense import ExpenseNotFound, ListMemberNotMatch
 from exceptions.users import UserNotFound
 from expense.models import Expense, UserSharesInExpense
@@ -20,7 +20,10 @@ from group.queries import Query as GroupQuery
 from message.orm.notification_queries import NotificationORM
 from utils.enums import NotificationTypeEnum
 from utils.exceptions import GetIsDenied
-from utils.functions.debt_simplification import simplify_minflow
+from utils.functions.debt_simplification import (
+    simplify_minflow,
+    simplify_minflow_optimal,
+)
 from utils.schemas.filter_and_order_by import (
     FilterAmountSchema,
     FilterDateSchema,
@@ -43,6 +46,8 @@ class Service:
 
     @transaction.atomic
     def create_expense(self, creator: TUser, payload: ExpenseRequest, event: Event):
+        if event.status == "CLOSED":
+            raise EventClosed
         paid_by = self.user_query.get_user_by_uid(uid=payload.paid_by)
         if not paid_by:
             raise UserNotFound
@@ -134,6 +139,21 @@ class Service:
 
     @transaction.atomic
     def calculate_debt(self, expense: Expense, old_currency: Optional[str] = None):
+        group = expense.event.group
+
+        if group.debt_optimization == "EVENT":
+            event_member_count = self.event_query.total_event_members(
+                event=expense.event
+            )
+            if event_member_count <= 20:
+                self._calculate_debt_by_event(expense=expense)
+                return
+
+        self._calculate_debt_by_group(expense=expense, old_currency=old_currency)
+
+    def _calculate_debt_by_group(
+        self, expense: Expense, old_currency: Optional[str] = None
+    ):
         balances = self.group_query.list_member_balances(
             group=expense.event.group, currency=expense.currency
         )
@@ -155,15 +175,40 @@ class Service:
             )
             for i in range(len(transactions))
         ]
-        if old_currency:
-            delete_currency = old_currency
-        else:
-            delete_currency = expense.currency
+        delete_currency = old_currency if old_currency else expense.currency
         self.group_query.delete_restructure_debt(
             group=expense.event.group, currency=delete_currency
         )
         self.group_query.create_restructure_debt(restructure_debt=restructure_debt)
-        return
+
+    def _calculate_debt_by_event(self, expense: Expense):
+        """Optimal bitmask DP algorithm: compute debt at event level."""
+        balances = self.event_query.list_event_member_balances(
+            event=expense.event, currency=expense.currency
+        )
+        transactions = simplify_minflow_optimal(balances)
+        user_map = {
+            group_member.user.uid: group_member.user
+            for group_member in self.group_query.list_group_members_not_filter(
+                group=expense.event.group
+            )
+        }
+        restructure_debt = [
+            EventRestructureDebt(
+                event=expense.event,
+                debtor=user_map.get(transactions[i][0]),
+                creditor=user_map.get(transactions[i][1]),
+                value=transactions[i][2],
+                currency=expense.currency,
+            )
+            for i in range(len(transactions))
+        ]
+        self.event_query.delete_event_restructure_debt(
+            event=expense.event, currency=expense.currency
+        )
+        self.event_query.create_event_restructure_debt(
+            restructure_debts=restructure_debt
+        )
 
     def list_expenses_in_event(self, user: TUser, event_uid: UUID, status: str):
         event = self.event_query.get_event(event_uid=event_uid)
@@ -216,6 +261,8 @@ class Service:
         expense = self.query.get_expense(expense_uid=expense_uid, status="ACTIVE")
         if not expense:
             raise ExpenseNotFound
+        if expense.event.status == "CLOSED":
+            raise EventClosed
         paid_by = self.user_query.get_user_by_uid(uid=payload.paid_by)
         if not paid_by:
             raise UserNotFound
@@ -326,6 +373,8 @@ class Service:
         expense = self.query.get_expense(expense_uid=expense_uid, status="ACTIVE")
         if not expense:
             raise ExpenseNotFound
+        if expense.event.status == "CLOSED":
+            raise EventClosed
         expense_members = self.query.list_user_share_in_expense(expense=expense)
         for member in expense_members:
             if member.user == expense.paid_by:
@@ -366,6 +415,8 @@ class Service:
         expense = self.query.get_expense(expense_uid=expense_uid, status="DELETED")
         if not expense:
             raise ExpenseNotFound
+        if expense.event.status == "CLOSED":
+            raise EventClosed
         self.query.restore_expense(expense_uid=expense_uid)
         self.query.restore_user_shares_in_expense(expense=expense)
         expense_members = self.query.list_user_share_in_expense(expense=expense)

@@ -2,6 +2,8 @@ from django.db import transaction
 
 from authenticate.models import User
 from authenticate.queries import Query as AuthQuery
+from event.queries import Query as EventQuery
+from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import BalanceNotEnough, UserNotFound
 from exceptions.wallet import InvalidTokenOrAmountIncorrect, PinIncorrect, PinNotSet
@@ -28,6 +30,7 @@ class TransactionService:
         self.query = TransactionORM()
         self.auth_query = AuthQuery()
         self.group_query = GroupQuery()
+        self.event_query = EventQuery()
         self.expense_query = ExpenseQuery()
         self.fcm_service = FCMService()
 
@@ -85,6 +88,24 @@ class TransactionService:
                 debtor=user,
                 creditor=to_user,
                 group=group,
+                amount=payload.original_amount,
+                currency=payload.currency,
+            )
+        elif payload.event_uid:
+            event = self.event_query.get_event(event_uid=payload.event_uid)
+            if not event:
+                raise EventNotFound
+            self.event_query.update_event_member_balance(
+                debtor=user,
+                creditor=to_user,
+                event=event,
+                amount=payload.original_amount,
+                currency=payload.currency,
+            )
+            self.event_query.update_event_restructure_debt(
+                debtor=user,
+                creditor=to_user,
+                event=event,
                 amount=payload.original_amount,
                 currency=payload.currency,
             )

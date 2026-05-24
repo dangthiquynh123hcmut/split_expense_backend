@@ -12,6 +12,7 @@ class TransferRequest(Schema):
     description: Optional[str] = ""
     group_uid: Optional[UUID] = None
     transfer_token: str
+    event_uid: Optional[UUID] = None
 
 
 class VerifyPinRequest(Schema):

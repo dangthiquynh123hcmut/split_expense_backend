@@ -10,6 +10,13 @@ class StatusEnum(TextChoices):
 
 
 @unique
+class EventStatusEnum(TextChoices):
+    ACTIVE = "ACTIVE", "active"
+    DELETED = "DELETED", "deleted"
+    CLOSED = "CLOSED", "closed"
+
+
+@unique
 class StatusMessageEnum(TextChoices):
     ACTIVE = "ACTIVE", "active"
     EDITED = "EDITED", "edited"
@@ -253,6 +260,12 @@ class BankEnum(TextChoices):
     UNITEDOVERSEAS = "UOB"
     INDOVINABANK = "IVB"
     STANDARDCHARTERED = "SCVN"
+
+
+@unique
+class DebtOptimizationEnum(TextChoices):
+    GROUP = "GROUP", "Group"
+    EVENT = "EVENT", "Event"
 
 
 @unique

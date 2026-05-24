@@ -22,6 +22,7 @@ from utils.schemas.filter_and_order_by import (
 from utils.types import AuthenticatedRequest
 
 from .schemas.request import (
+    DebtOptimizationRequest,
     ExternalTransferRequest,
     GroupRequest,
     GroupUpdateRequest,
@@ -206,6 +207,23 @@ class GroupAPI(Controller):
             user=request.user, group_uid=group_uid, new_leader=payload.new_leader
         )
         return True
+
+    @put(
+        "/{group_uid}/debt-optimization",
+        response=bool,
+        exceptions=(GroupNotFound, UpdatedIsDenied),
+    )
+    def update_debt_optimization(
+        self,
+        request: AuthenticatedRequest,
+        group_uid: UUID,
+        payload: DebtOptimizationRequest,
+    ):
+        return self.service.update_debt_optimization(
+            user=request.user,
+            group_uid=group_uid,
+            debt_optimization=payload.debt_optimization,
+        )
 
     @get(
         "/{group_uid}/report",
