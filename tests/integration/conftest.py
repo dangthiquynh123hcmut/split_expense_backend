@@ -122,6 +122,28 @@ def event_with_members(db, group_with_members):
 
 
 @pytest.fixture
+def solo_user(db):
+    return make_user(
+        "solo@example.com", full_name="Solo User", phone_number="0955555555"
+    )
+
+
+@pytest.fixture
+def event_with_one_member(db, solo_user):
+    group = Group.objects.create(name="Solo Group", leader=solo_user)
+    GroupMember.objects.create(group=group, user=solo_user)
+    event = Event.objects.create(
+        name="Solo Event",
+        creator=solo_user,
+        group=group,
+        event_start=date.today(),
+        event_end=date.today() + timedelta(days=1),
+    )
+    EventMember.objects.create(event=event, user=solo_user)
+    return event, group, [solo_user]
+
+
+@pytest.fixture
 def bank_account(db, user_a):
     """A BankAccount belonging to user_a."""
     return BankAccount.objects.create(

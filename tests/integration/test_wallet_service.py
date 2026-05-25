@@ -13,6 +13,7 @@ from django.core.cache import cache
 
 from exceptions.users import BalanceNotEnough
 from exceptions.wallet import InvalidTokenOrAmountIncorrect, PinIncorrect, PinNotSet
+from group.models import Group, GroupMember
 from tests.integration.conftest import make_user
 from utils.functions.transfer_token import generate_transfer_token
 from wallet.schemas.request import TransferRequest, VerifyPinRequest
@@ -77,14 +78,23 @@ class TestVerifyPin:
 
 @pytest.mark.django_db
 class TestCreateTransaction:
-    def _setup_users(self, sender_balance=1000.0):
+    def _setup_users(self, db, sender_balance=1000.0):
         sender = make_user(
             "sender@example.com", phone_number="0901020304", balance=sender_balance
         )
         receiver = make_user("receiver@example.com", phone_number="0905060708")
-        return sender, receiver
+        # A shared group is required so the service can resolve the `group`
+        # variable before creating the transaction record.
+        group = Group.objects.create(name="Wallet Test Group", leader=sender)
+        GroupMember.objects.bulk_create(
+            [
+                GroupMember(group=group, user=sender),
+                GroupMember(group=group, user=receiver),
+            ]
+        )
+        return sender, receiver, group
 
-    def _make_payload(self, to_user, amount, token, currency="VND"):
+    def _make_payload(self, to_user, amount, token, currency="VND", group_uid=None):
         return TransferRequest(
             user_uid=to_user.uid,
             transfer_token=token,
@@ -92,38 +102,42 @@ class TestCreateTransaction:
             convert_amount=amount,
             currency=currency,
             description="Test transfer",
-            group_uid=None,
+            group_uid=group_uid,
         )
 
     @patch("utils.services.firebase_cm.fcm_service.FCMService.send_notification")
     def test_successful_transaction_deducts_sender_balance(self, _mock_fcm, db):
-        sender, receiver = self._setup_users(sender_balance=1000.0)
+        sender, receiver, group = self._setup_users(db, sender_balance=1000.0)
         transfer_amount = 200.0
         token = generate_transfer_token(user_uid=sender.uid, amount=transfer_amount)
         service = _make_service()
         service.create_transaction(
             user=sender,
-            payload=self._make_payload(receiver, transfer_amount, token),
+            payload=self._make_payload(
+                receiver, transfer_amount, token, group_uid=group.uid
+            ),
         )
         sender.refresh_from_db()
         assert sender.balance == pytest.approx(800.0)
 
     @patch("utils.services.firebase_cm.fcm_service.FCMService.send_notification")
     def test_successful_transaction_adds_to_receiver_balance(self, _mock_fcm, db):
-        sender, receiver = self._setup_users(sender_balance=1000.0)
+        sender, receiver, group = self._setup_users(db, sender_balance=1000.0)
         transfer_amount = 300.0
         token = generate_transfer_token(user_uid=sender.uid, amount=transfer_amount)
         service = _make_service()
         service.create_transaction(
             user=sender,
-            payload=self._make_payload(receiver, transfer_amount, token),
+            payload=self._make_payload(
+                receiver, transfer_amount, token, group_uid=group.uid
+            ),
         )
         receiver.refresh_from_db()
         assert receiver.balance == pytest.approx(300.0)
 
     @patch("utils.services.firebase_cm.fcm_service.FCMService.send_notification")
     def test_insufficient_balance_raises(self, _mock_fcm, db):
-        sender, receiver = self._setup_users(sender_balance=50.0)
+        sender, receiver, _group = self._setup_users(db, sender_balance=50.0)
         transfer_amount = 500.0  # more than balance
         token = generate_transfer_token(user_uid=sender.uid, amount=transfer_amount)
         service = _make_service()
@@ -135,7 +149,7 @@ class TestCreateTransaction:
 
     @patch("utils.services.firebase_cm.fcm_service.FCMService.send_notification")
     def test_invalid_transfer_token_raises(self, _mock_fcm, db):
-        sender, receiver = self._setup_users(sender_balance=1000.0)
+        sender, receiver, _group = self._setup_users(db, sender_balance=1000.0)
         service = _make_service()
         with pytest.raises(InvalidTokenOrAmountIncorrect):
             service.create_transaction(
@@ -145,7 +159,7 @@ class TestCreateTransaction:
 
     @patch("utils.services.firebase_cm.fcm_service.FCMService.send_notification")
     def test_amount_mismatch_in_token_raises(self, _mock_fcm, db):
-        sender, receiver = self._setup_users(sender_balance=1000.0)
+        sender, receiver, _group = self._setup_users(db, sender_balance=1000.0)
         # Generate token for 100 but send 200
         token = generate_transfer_token(user_uid=sender.uid, amount=100.0)
         service = _make_service()
@@ -158,7 +172,7 @@ class TestCreateTransaction:
     @patch("utils.services.firebase_cm.fcm_service.FCMService.send_notification")
     def test_transaction_is_atomic_on_balance_error(self, _mock_fcm, db):
         """When balance is insufficient the combined DB change must be rolled back."""
-        sender, receiver = self._setup_users(sender_balance=10.0)
+        sender, receiver, _group = self._setup_users(db, sender_balance=10.0)
         transfer_amount = 500.0
         token = generate_transfer_token(user_uid=sender.uid, amount=transfer_amount)
         service = _make_service()

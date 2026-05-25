@@ -44,7 +44,7 @@ def _expense_payload(event, paid_by, members):
         currency="VND",
         split_type=SplitTypeEnum.EQUAL,
         event_uid=event.uid,
-        paid_by=paid_by.uid,
+        paid_by=[AmountExpenseMember(user_uid=paid_by.uid, amount=Decimal("100.00"))],
         expense_date=_now(),
         list_expense_member=[
             AmountExpenseMember(user_uid=m.uid, amount=per_person) for m in members
@@ -52,12 +52,35 @@ def _expense_payload(event, paid_by, members):
     )
 
 
-MOCK_SIDE_EFFECTS = (
-    patch(
-        "utils.services.firebase_cm.fcm_service.FCMService.send_multicast_notification"
-    ),
-    patch("message.orm.notification_queries.NotificationORM.create_notification"),
-)
+def _with_mocks(fn, *args, **kwargs):
+    """Call fn(*args, **kwargs) with FCM and notification writes mocked out."""
+    with (
+        patch(
+            "utils.services.firebase_cm.fcm_service.FCMService.send_multicast_notification"
+        ),
+        patch("message.orm.notification_queries.NotificationORM.create_notification"),
+    ):
+        return fn(*args, **kwargs)
+
+
+def _approve_action(service, expense, all_users, initiator):
+    """
+    Vote ACCEPTED for each non-initiator member until the pending action
+    finalises (pending_action becomes None after majority threshold is reached).
+    """
+    for user in all_users:
+        if user.uid == initiator.uid:
+            continue
+        expense.refresh_from_db()
+        if not expense.pending_action:
+            break
+        _with_mocks(
+            service.vote_on_expense,
+            user=user,
+            expense_uid=expense.uid,
+            action="ACCEPTED",
+        )
+    expense.refresh_from_db()
 
 
 @pytest.mark.django_db
@@ -66,29 +89,30 @@ class TestCreateExpense:
         event, group, users = event_with_members
         payload = _expense_payload(event, paid_by=users[0], members=users)
         service = _make_service()
-        with (
-            patch(
-                "utils.services.firebase_cm.fcm_service.FCMService.send_multicast_notification"
-            ),
-            patch(
-                "message.orm.notification_queries.NotificationORM.create_notification"
-            ),
-        ):
-            expense = service.create_expense(
-                creator=users[0], payload=payload, event=event
-            )
-        return expense, users
+        expense = _with_mocks(
+            service.create_expense, creator=users[0], payload=payload, event=event
+        )
+        return expense, users, service
 
     def test_expense_is_saved_in_db(self, event_with_members):
-        expense, _ = self._create(event_with_members)
+        expense, _, _ = self._create(event_with_members)
         assert Expense.objects.filter(uid=expense.uid).exists()
 
     def test_expense_has_correct_name(self, event_with_members):
-        expense, _ = self._create(event_with_members)
+        expense, _, _ = self._create(event_with_members)
         assert expense.name == "Dinner"
 
+    def test_expense_starts_as_pending_approval(self, event_with_members):
+        expense, _, _ = self._create(event_with_members)
+        assert expense.status == "PENDING_APPROVAL"
+
+    def test_expense_becomes_active_after_majority_approval(self, event_with_members):
+        expense, users, service = self._create(event_with_members)
+        _approve_action(service, expense, users, initiator=users[0])
+        assert expense.status == "ACTIVE"
+
     def test_expense_creates_user_share_rows(self, event_with_members):
-        expense, users = self._create(event_with_members)
+        expense, users, _ = self._create(event_with_members)
         shares = UserSharesInExpense.objects.filter(expense=expense)
         assert shares.count() == len(users)
 
@@ -97,17 +121,9 @@ class TestCreateExpense:
         paid_by = users[0]
         payload = _expense_payload(event, paid_by=paid_by, members=users)
         service = _make_service()
-        with (
-            patch(
-                "utils.services.firebase_cm.fcm_service.FCMService.send_multicast_notification"
-            ),
-            patch(
-                "message.orm.notification_queries.NotificationORM.create_notification"
-            ),
-        ):
-            expense = service.create_expense(
-                creator=paid_by, payload=payload, event=event
-            )
+        expense = _with_mocks(
+            service.create_expense, creator=paid_by, payload=payload, event=event
+        )
         share = UserSharesInExpense.objects.get(expense=expense, user=paid_by)
         # receiver_amount = total - own share
         assert share.receiver_amount > 0
@@ -121,7 +137,9 @@ class TestCreateExpense:
             currency="VND",
             split_type=SplitTypeEnum.EQUAL,
             event_uid=event.uid,
-            paid_by=users[0].uid,
+            paid_by=[
+                AmountExpenseMember(user_uid=users[0].uid, amount=Decimal("60.00"))
+            ],
             expense_date=_now(),
             list_expense_member=[
                 AmountExpenseMember(user_uid=users[0].uid, amount=Decimal("30")),
@@ -152,7 +170,9 @@ class TestCreateExpense:
             currency="VND",
             split_type=SplitTypeEnum.EQUAL,
             event_uid=event.uid,
-            paid_by=uuid.uuid4(),  # does not exist
+            paid_by=[
+                AmountExpenseMember(user_uid=uuid.uuid4(), amount=Decimal("90.00"))
+            ],
             expense_date=_now(),
             list_expense_member=[
                 AmountExpenseMember(user_uid=u.uid, amount=Decimal("30")) for u in users
@@ -165,29 +185,24 @@ class TestCreateExpense:
 
 @pytest.mark.django_db
 class TestSoftDeleteExpense:
-    def _setup_expense(self, event_with_members):
-        event, group, users = event_with_members
+    def _setup_active_expense(self, event_with_one_member):
+        event, group, users = event_with_one_member
         payload = _expense_payload(event, paid_by=users[0], members=users)
         service = _make_service()
-        with (
-            patch(
-                "utils.services.firebase_cm.fcm_service.FCMService.send_multicast_notification"
-            ),
-            patch(
-                "message.orm.notification_queries.NotificationORM.create_notification"
-            ),
-        ):
-            expense = service.create_expense(
-                creator=users[0], payload=payload, event=event
-            )
+        expense = _with_mocks(
+            service.create_expense, creator=users[0], payload=payload, event=event
+        )
+        # Bypass the multi-step approval flow; activate directly via ORM.
+        Expense.objects.filter(uid=expense.uid).update(
+            status="ACTIVE", pending_action=None
+        )
+        expense.refresh_from_db()
         return expense, users, service
 
-    def test_soft_delete_marks_expense_as_deleted(self, event_with_members):
-        expense, users, service = self._setup_expense(event_with_members)
-        with patch(
-            "message.orm.notification_queries.NotificationORM.create_notification"
-        ):
-            service.soft_delete_expense(user=users[0], expense_uid=expense.uid)
+    def test_soft_delete_marks_expense_as_deleted(self, event_with_one_member):
+        expense, users, service = self._setup_active_expense(event_with_one_member)
+        # With 1 member threshold=1: initiator auto-approves → immediately DELETED.
+        _with_mocks(service.soft_delete_expense, user=users[0], expense_uid=expense.uid)
         expense.refresh_from_db()
         assert expense.status == "DELETED"
 
@@ -202,29 +217,23 @@ class TestSoftDeleteExpense:
 
 @pytest.mark.django_db
 class TestRestoreExpense:
-    def _setup_deleted_expense(self, event_with_members):
-        event, group, users = event_with_members
+    def _setup_deleted_expense(self, event_with_one_member):
+        event, group, users = event_with_one_member
         payload = _expense_payload(event, paid_by=users[0], members=users)
         service = _make_service()
-        with (
-            patch(
-                "utils.services.firebase_cm.fcm_service.FCMService.send_multicast_notification"
-            ),
-            patch(
-                "message.orm.notification_queries.NotificationORM.create_notification"
-            ),
-        ):
-            expense = service.create_expense(
-                creator=users[0], payload=payload, event=event
-            )
-        with patch(
-            "message.orm.notification_queries.NotificationORM.create_notification"
-        ):
-            service.soft_delete_expense(user=users[0], expense_uid=expense.uid)
+        expense = _with_mocks(
+            service.create_expense, creator=users[0], payload=payload, event=event
+        )
+        Expense.objects.filter(uid=expense.uid).update(
+            status="ACTIVE", pending_action=None
+        )
+        expense.refresh_from_db()
+        _with_mocks(service.soft_delete_expense, user=users[0], expense_uid=expense.uid)
+        expense.refresh_from_db()
         return expense, users, service
 
-    def test_restore_sets_status_to_active(self, event_with_members):
-        expense, users, service = self._setup_deleted_expense(event_with_members)
+    def test_restore_sets_status_to_active(self, event_with_one_member):
+        expense, users, service = self._setup_deleted_expense(event_with_one_member)
         with patch(
             "message.orm.notification_queries.NotificationORM.create_notification"
         ):
@@ -243,29 +252,23 @@ class TestRestoreExpense:
 
 @pytest.mark.django_db
 class TestHardDeleteExpense:
-    def _setup_deleted_expense(self, event_with_members):
-        event, group, users = event_with_members
+    def _setup_deleted_expense(self, event_with_one_member):
+        event, group, users = event_with_one_member
         payload = _expense_payload(event, paid_by=users[0], members=users)
         service = _make_service()
-        with (
-            patch(
-                "utils.services.firebase_cm.fcm_service.FCMService.send_multicast_notification"
-            ),
-            patch(
-                "message.orm.notification_queries.NotificationORM.create_notification"
-            ),
-        ):
-            expense = service.create_expense(
-                creator=users[0], payload=payload, event=event
-            )
-        with patch(
-            "message.orm.notification_queries.NotificationORM.create_notification"
-        ):
-            service.soft_delete_expense(user=users[0], expense_uid=expense.uid)
+        expense = _with_mocks(
+            service.create_expense, creator=users[0], payload=payload, event=event
+        )
+        Expense.objects.filter(uid=expense.uid).update(
+            status="ACTIVE", pending_action=None
+        )
+        expense.refresh_from_db()
+        _with_mocks(service.soft_delete_expense, user=users[0], expense_uid=expense.uid)
+        expense.refresh_from_db()
         return expense, users, service
 
-    def test_hard_delete_removes_expense_from_db(self, event_with_members):
-        expense, users, service = self._setup_deleted_expense(event_with_members)
+    def test_hard_delete_removes_expense_from_db(self, event_with_one_member):
+        expense, users, service = self._setup_deleted_expense(event_with_one_member)
         with patch(
             "message.orm.notification_queries.NotificationORM.create_notification"
         ):
@@ -277,18 +280,12 @@ class TestHardDeleteExpense:
         event, group, users = event_with_members
         payload = _expense_payload(event, paid_by=users[0], members=users)
         service = _make_service()
-        with (
-            patch(
-                "utils.services.firebase_cm.fcm_service.FCMService.send_multicast_notification"
-            ),
-            patch(
-                "message.orm.notification_queries.NotificationORM.create_notification"
-            ),
-        ):
-            expense = service.create_expense(
-                creator=users[0], payload=payload, event=event
-            )
-        # Attempt hard-delete without soft-deleting first
+        expense = _with_mocks(
+            service.create_expense, creator=users[0], payload=payload, event=event
+        )
+        # Approve creation so the expense is ACTIVE
+        _approve_action(service, expense, users, initiator=users[0])
+        # Attempt hard-delete without soft-deleting first (expense is ACTIVE)
         with patch(
             "message.orm.notification_queries.NotificationORM.create_notification"
         ):
