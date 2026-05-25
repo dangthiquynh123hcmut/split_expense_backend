@@ -6,10 +6,19 @@ from ninja import Query
 from authenticate.api import AuthenticatedRequest
 from event.services import Service as EventService
 from exceptions.event import EventClosed, EventNotFound
-from exceptions.expense import ExpenseNotFound, ListMemberNotMatch
+from exceptions.expense import (
+    ExpenseAlreadyVoted,
+    ExpenseApprovalExpired,
+    ExpenseApprovalNotFound,
+    ExpenseHasPendingAction,
+    ExpenseNotFound,
+    ExpenseNotPendingApproval,
+    ListMemberNotMatch,
+)
 from exceptions.users import UserNotFound
-from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest
+from expense.schemas.request import ExpenseRequest, UpdateExpenseRequest, VoteRequest
 from expense.schemas.response import (
+    ApprovalStatusResponse,
     CreateExpense,
     ExpenseResponse,
     ListExpenseUser,
@@ -19,7 +28,7 @@ from expense.service import Service
 from group.schemas.response import GroupChart
 from utils.exceptions import GetIsDenied
 from utils.router.authenticate import AuthBear
-from utils.router.controller import Controller, api, delete, get, post, put
+from utils.router.controller import Controller, api, delete, get, patch, post, put
 from utils.router.paginate import paginate
 from utils.router.permissions import IsAuthenticated
 from utils.schemas.filter_and_order_by import (
@@ -49,11 +58,9 @@ class ExpenseAPI(Controller):
         event = self.event_service.query.get_event(event_uid=payload.event_uid)
         if not event:
             raise EventNotFound
-        expense = self.service.create_expense(
+        return self.service.create_expense(
             creator=request.user, payload=payload, event=event
         )
-        self.service.calculate_debt(expense=expense, old_currency="")
-        return expense
 
     @get(
         "/{expense_uid}",
@@ -68,7 +75,12 @@ class ExpenseAPI(Controller):
     @put(
         "/{expense_uid}",
         response=CreateExpense,
-        exceptions=(ExpenseNotFound, EventClosed, ListMemberNotMatch),
+        exceptions=(
+            ExpenseNotFound,
+            EventClosed,
+            ListMemberNotMatch,
+            ExpenseHasPendingAction,
+        ),
     )
     def update_expense(
         self,
@@ -76,14 +88,9 @@ class ExpenseAPI(Controller):
         expense_uid: UUID,
         payload: UpdateExpenseRequest,
     ):
-        old_expense = self.service.get_expense(expense_uid=expense_uid, status="ACTIVE")
-        if not old_expense:
-            raise ExpenseNotFound
-        expense = self.service.update_expense(
+        return self.service.update_expense(
             user=request.user, expense_uid=expense_uid, payload=payload
         )
-        self.service.calculate_debt(expense=expense, old_currency=old_expense.currency)
-        return expense
 
     @put(
         "/{expense_uid}/restore",
@@ -98,19 +105,49 @@ class ExpenseAPI(Controller):
         return True
 
     @put(
-        "/{expense_uid}/soft", response=bool, exceptions=(ExpenseNotFound, EventClosed)
+        "/{expense_uid}/soft",
+        response=bool,
+        exceptions=(ExpenseNotFound, EventClosed, ExpenseHasPendingAction),
     )
     def soft_delete_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
-        expense = self.service.soft_delete_expense(
-            user=request.user, expense_uid=expense_uid
-        )
-        self.service.calculate_debt(expense=expense, old_currency="")
+        self.service.soft_delete_expense(user=request.user, expense_uid=expense_uid)
         return True
 
     @delete("/{expense_uid}/hard", response=bool, exceptions=(ExpenseNotFound,))
     def hard_delete_expense(self, request: AuthenticatedRequest, expense_uid: UUID):
         return self.service.hard_delete_expense(
             user=request.user, expense_uid=expense_uid
+        )
+
+    @get(
+        "/{expense_uid}/approval-status",
+        response=ApprovalStatusResponse,
+        exceptions=(ExpenseNotFound, ExpenseNotPendingApproval),
+    )
+    def get_approval_status(self, request: AuthenticatedRequest, expense_uid: UUID):
+        return self.service.get_approval_status(
+            user=request.user, expense_uid=expense_uid
+        )
+
+    @patch(
+        "/{expense_uid}/vote",
+        response=bool,
+        exceptions=(
+            ExpenseNotFound,
+            ExpenseNotPendingApproval,
+            ExpenseApprovalNotFound,
+            ExpenseAlreadyVoted,
+            ExpenseApprovalExpired,
+        ),
+    )
+    def vote_on_expense(
+        self,
+        request: AuthenticatedRequest,
+        expense_uid: UUID,
+        payload: VoteRequest,
+    ):
+        return self.service.vote_on_expense(
+            user=request.user, expense_uid=expense_uid, action=payload.action
         )
 
 

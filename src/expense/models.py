@@ -2,7 +2,14 @@ from django.conf import settings
 from django.db import models
 
 from event.models import Event
-from utils.enums import CurrencyEnum, SplitTypeEnum, StatusEnum
+from utils.enums import (
+    CurrencyEnum,
+    ExpenseApprovalActionEnum,
+    ExpenseApprovalStatusEnum,
+    ExpenseStatusEnum,
+    SplitTypeEnum,
+    StatusEnum,
+)
 from utils.functions.remove_accents import remove_accents
 from utils.models import BaseModel
 
@@ -28,17 +35,6 @@ class Expense(BaseModel):
     )
     total_amount = models.FloatField(null=False, blank=False)
 
-    paid_by = models.ForeignKey(
-        to=settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        to_field="uid",
-        db_column="paid_by_uid",
-        related_name="expense_fk_paid_by",
-        db_constraint=True,
-        db_index=True,
-        null=False,
-        blank=False,
-    )
     creator = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -80,9 +76,16 @@ class Expense(BaseModel):
     )
     status = models.CharField(
         max_length=20,
-        choices=StatusEnum.choices,
-        default=StatusEnum.ACTIVE,
+        choices=ExpenseStatusEnum.choices,
+        default=ExpenseStatusEnum.ACTIVE,
     )
+    pending_action = models.CharField(
+        max_length=20,
+        choices=ExpenseApprovalActionEnum.choices,
+        null=True,
+        blank=True,
+    )
+    pending_update_data = models.JSONField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if self.name:
@@ -159,6 +162,81 @@ class UserSharesInExpense(BaseModel):
     receiver_amount = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True, default=0
     )  # always >=0
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["expense", "user"]),
+        ]
+        unique_together = (("expense", "user"),)
+
+
+class ExpensePaidBy(BaseModel):
+    expense = models.ForeignKey(
+        to="expense.Expense",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="expense_uid",
+        related_name="expense_paid_by_fk_expense",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="expense_paid_by_fk_user",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=False, blank=False
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["expense", "user"]),
+        ]
+        unique_together = (("expense", "user"),)
+
+
+class ExpenseApproval(BaseModel):
+    expense = models.ForeignKey(
+        to="expense.Expense",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="expense_uid",
+        related_name="expense_approval_fk_expense",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="expense_approval_fk_user",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=ExpenseApprovalStatusEnum.choices,
+        default=ExpenseApprovalStatusEnum.PENDING,
+    )
+    action_type = models.CharField(
+        max_length=20,
+        choices=ExpenseApprovalActionEnum.choices,
+    )
+    expires_at = models.DateTimeField()
 
     class Meta:
         indexes = [

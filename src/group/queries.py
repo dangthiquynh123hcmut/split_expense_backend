@@ -215,12 +215,8 @@ class Query:
         for expense in expenses:
             share = user_share_map.get(expense.uid)
             if share:
-                amount_value = (
-                    share.receiver_amount
-                    if (share.receiver_amount) > 0  # type: ignore
-                    else -share.amount
-                )
-                amount = float(amount_value)  # type: ignore
+                amount_value = float((share.receiver_amount or 0) - share.amount)
+                amount = amount_value
             else:
                 amount = 0.0
             expenses_result.append(

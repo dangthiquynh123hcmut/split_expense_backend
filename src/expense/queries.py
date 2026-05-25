@@ -2,13 +2,19 @@ from datetime import timedelta
 from typing import List, Literal, Optional
 from uuid import UUID
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.utils.timezone import now
 
 from attachment.models import Attachment
 from authenticate.models import User
 from event.models import Event
-from expense.models import Expense, ExpenseAttachment, UserSharesInExpense
+from expense.models import (
+    Expense,
+    ExpenseApproval,
+    ExpenseAttachment,
+    ExpensePaidBy,
+    UserSharesInExpense,
+)
 from expense.schemas.request import UpdateExpenseRequest
 from expense.schemas.response import NameExpense
 from group.models import Group
@@ -23,15 +29,28 @@ from utils.types import TUser
 
 class Query:
     @staticmethod
-    def create_expense(creator: TUser, event: Event, paid_by: User, **kwargs):
-        return Expense.objects.create(
-            creator=creator, event=event, paid_by=paid_by, **kwargs
-        )
+    def create_expense(creator: TUser, event: Event, **kwargs):
+        return Expense.objects.create(creator=creator, event=event, **kwargs)
 
     @staticmethod
     def create_expense_members(expense_members: List[UserSharesInExpense]):
         UserSharesInExpense.objects.bulk_create(expense_members)
         return
+
+    @staticmethod
+    def create_expense_paid_by(expense_paid_by: List[ExpensePaidBy]):
+        ExpensePaidBy.objects.bulk_create(expense_paid_by)
+        return
+
+    @staticmethod
+    def get_expense_paid_by(expense: Expense):
+        return ExpensePaidBy.objects.filter(expense=expense).select_related(
+            "user__avatar_url"
+        )
+
+    @staticmethod
+    def delete_expense_paid_by(expense: Expense):
+        ExpensePaidBy.objects.filter(expense=expense).delete()
 
     @staticmethod
     def list_expenses_in_event(
@@ -347,4 +366,55 @@ class Query:
             )
             .annotate(amount=Sum("user_shares_in_expense_fk_expense__amount"))
             .distinct()
+        )
+
+    # ── Approval queries ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def create_expense_approvals(approvals: List[ExpenseApproval]):
+        ExpenseApproval.objects.bulk_create(approvals, ignore_conflicts=True)
+
+    @staticmethod
+    def get_expense_approval(
+        expense: Expense, user: TUser
+    ) -> Optional[ExpenseApproval]:
+        return ExpenseApproval.objects.filter(expense=expense, user=user).first()
+
+    @staticmethod
+    def get_expense_approvals(expense: Expense):
+        return ExpenseApproval.objects.filter(expense=expense).select_related(
+            "user__avatar_url"
+        )
+
+    @staticmethod
+    def delete_expense_approvals(expense: Expense):
+        ExpenseApproval.objects.filter(expense=expense).delete()
+
+    @staticmethod
+    def update_approval_status(approval: ExpenseApproval, status: str):
+        approval.status = status
+        approval.save(update_fields=["status", "updated_at"])
+        return True
+
+    @staticmethod
+    def expire_pending_approvals():
+        """Set all PENDING approvals past their expires_at to DECLINED."""
+        return ExpenseApproval.objects.filter(
+            status="PENDING", expires_at__lt=now()
+        ).update(status="DECLINED")
+
+    @staticmethod
+    def expire_pending_approvals_for_expense(expense: Expense):
+        """Set PENDING approvals past expires_at to DECLINED for one expense."""
+        return ExpenseApproval.objects.filter(
+            expense=expense, status="PENDING", expires_at__lt=now()
+        ).update(status="DECLINED")
+
+    @staticmethod
+    def count_approval_statuses(expense: Expense) -> dict:
+        return ExpenseApproval.objects.filter(expense=expense).aggregate(
+            accepted=Count("uid", filter=Q(status="ACCEPTED")),
+            declined=Count("uid", filter=Q(status="DECLINED")),
+            pending=Count("uid", filter=Q(status="PENDING")),
+            total=Count("uid"),
         )

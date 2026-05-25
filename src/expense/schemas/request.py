@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from ninja import Schema
@@ -20,7 +20,7 @@ class UpdateExpenseRequest(Schema):
     total_amount: Decimal = Field(..., gt=0)
     currency: str
     category: Optional[str] = None
-    paid_by: Optional[UUID] = None
+    paid_by: List[AmountExpenseMember]
     note: Optional[str] = None
     expense_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -35,3 +35,7 @@ class ExpenseRequest(UpdateExpenseRequest):
 class UpdateImageExpense(Schema):
     files: Optional[List[GeneratePresignedUrlSchema]] = None
     list_deleted_uids: Optional[List[UUID]] = None
+
+
+class VoteRequest(Schema):
+    action: Literal["ACCEPTED", "DECLINED"]

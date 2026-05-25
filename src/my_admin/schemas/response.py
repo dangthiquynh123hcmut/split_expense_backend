@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from ninja import ModelSchema, Schema
@@ -128,7 +128,7 @@ class ExpenseItemResponse(Schema):
     total_amount: float
     currency: str
     expense_date: datetime
-    paid_by: UserEventSchema
+    paid_by: List[UserEventSchema]
     creator: UserEventSchema
     event: NameEvent
     split_type: str

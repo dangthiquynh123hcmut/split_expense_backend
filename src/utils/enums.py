@@ -282,6 +282,30 @@ class SortTypeEnum(Enum):
 
 
 @unique
+class ExpenseStatusEnum(TextChoices):
+    ACTIVE = "ACTIVE", "active"
+    DELETED = "DELETED", "deleted"
+    PENDING_APPROVAL = "PENDING_APPROVAL", "pending approval"
+    PENDING_UPDATE = "PENDING_UPDATE", "pending update"
+    PENDING_DELETE = "PENDING_DELETE", "pending delete"
+    DECLINED = "DECLINED", "declined"
+
+
+@unique
+class ExpenseApprovalStatusEnum(TextChoices):
+    PENDING = "PENDING", "pending"
+    ACCEPTED = "ACCEPTED", "accepted"
+    DECLINED = "DECLINED", "declined"
+
+
+@unique
+class ExpenseApprovalActionEnum(TextChoices):
+    CREATE = "CREATE", "create"
+    UPDATE = "UPDATE", "update"
+    DELETE = "DELETE", "delete"
+
+
+@unique
 class NotificationTypeEnum(TextChoices):
     FRIEND_REQUEST = "FRIEND_REQUEST", "Friend Request"
     FRIEND_ACCEPTED = "FRIEND_ACCEPTED", "Friend Accepted"
@@ -304,6 +328,12 @@ class NotificationTypeEnum(TextChoices):
     EXPENSE_RESTORED = "EXPENSE_RESTORED", "Expense Restored"
     EXPENSE_SOFT_DELETED = "EXPENSE_SOFT_DELETED", "Expense Soft Deleted"
     EXPENSE_HARD_DELETED = "EXPENSE_HARD_DELETED", "Expense Hard Deleted"
+    EXPENSE_APPROVAL_REQUESTED = (
+        "EXPENSE_APPROVAL_REQUESTED",
+        "Expense Approval Requested",
+    )
+    EXPENSE_APPROVED = "EXPENSE_APPROVED", "Expense Approved"
+    EXPENSE_APPROVAL_DECLINED = "EXPENSE_APPROVAL_DECLINED", "Expense Approval Declined"
 
     SYSTEM = "SYSTEM", "System"
     WARNING = "WARNING", "Warning"

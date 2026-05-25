@@ -22,7 +22,7 @@ class UserExpense(UserInformation):
 class ExpenseResponse(ModelSchema):
     receipt_url: List[AttachmentResponse] = Field(default_factory=list)
     list_user: List[UserExpense]
-    paid_by: UserInformation
+    paid_by: List[UserExpense] = Field(default_factory=list)
 
     class Meta:
         model = Expense
@@ -43,7 +43,6 @@ class CreateExpense(ModelSchema):
             "status",
             "event",
             "creator",
-            "paid_by",
             "receipt_url",
         ]
 
@@ -91,3 +90,23 @@ class ListExpenseUser(Schema):
     status: Optional[str] = None
     category: Optional[str] = None
     event: Optional[str] = None
+
+
+class ApprovalUserInfo(Schema):
+    uid: UUID
+    full_name: Optional[str] = None
+    avatar_url: Optional[AttachmentResponse] = None
+    voted_at: Optional[datetime] = None
+
+
+class ApprovalStatusResponse(Schema):
+    total_members: int
+    accepted_count: int
+    declined_count: int
+    pending_count: int
+    threshold: int
+    expires_at: Optional[datetime] = None
+    action_type: Optional[str] = None
+    accepted_users: List[ApprovalUserInfo] = Field(default_factory=list)
+    declined_users: List[ApprovalUserInfo] = Field(default_factory=list)
+    pending_users: List[ApprovalUserInfo] = Field(default_factory=list)

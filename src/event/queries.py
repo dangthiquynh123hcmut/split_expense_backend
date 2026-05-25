@@ -288,15 +288,14 @@ class Query:
             expense__event=event,
             expense__currency=currency,
             deleted="ACTIVE",
-        ).values("user__uid", "amount", "receiver_amount", "expense__paid_by__uid")
+        ).values("user__uid", "amount", "receiver_amount")
 
         balance_map: DefaultDict = defaultdict(Decimal)
         for share in shares:
             uid = share["user__uid"]
-            if uid == share["expense__paid_by__uid"]:
-                balance_map[uid] += share["receiver_amount"] or Decimal("0")
-            else:
-                balance_map[uid] -= share["amount"] or Decimal("0")
+            balance_map[uid] += (share["receiver_amount"] or Decimal("0")) - (
+                share["amount"] or Decimal("0")
+            )
 
         return [(uid, balance) for uid, balance in balance_map.items() if balance != 0]
 

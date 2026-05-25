@@ -7,7 +7,7 @@ from attachment.schemas.responses import AttachmentResponse
 from authenticate.queries import Query as Auth_Query
 from event.queries import Query as EventQuery
 from exceptions.users import UserNotFound
-from expense.models import Expense
+from expense.models import Expense, ExpensePaidBy
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
 from group.schemas.response import GroupName
@@ -376,7 +376,12 @@ class AdminService:
                 total_amount=expense.total_amount,
                 currency=expense.currency,
                 expense_date=expense.expense_date,
-                paid_by=UserEventSchema.from_orm(expense.paid_by),
+                paid_by=[
+                    UserEventSchema.from_orm(pb.user)
+                    for pb in ExpensePaidBy.objects.filter(
+                        expense=expense
+                    ).select_related("user")
+                ],
                 creator=UserEventSchema.from_orm(expense.creator),
                 event=NameEvent(uid=expense.event.uid, name=expense.event.name),
                 split_type=expense.split_type,
@@ -474,7 +479,12 @@ class AdminService:
                 total_amount=expense.total_amount,
                 currency=expense.currency,
                 expense_date=expense.expense_date,
-                paid_by=UserEventSchema.from_orm(expense.paid_by),
+                paid_by=[
+                    UserEventSchema.from_orm(pb.user)
+                    for pb in ExpensePaidBy.objects.filter(
+                        expense=expense
+                    ).select_related("user")
+                ],
                 creator=UserEventSchema.from_orm(expense.creator),
                 name=expense.name,
                 event=NameEvent(uid=expense.event.uid, name=expense.event.name),
