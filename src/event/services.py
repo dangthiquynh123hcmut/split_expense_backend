@@ -129,6 +129,7 @@ class Service:
             raise DeleteIsDenied
         result = self.query.delete_event(event_uid=event_uid)
         event_members = self.query.get_event_members(event=event)
+        event_members = self.query.delete_event_members(event=event)
         self.notification_orm.create_notification(
             from_user=user,
             content=f"{user.full_name} have deleted an event {event.name}",

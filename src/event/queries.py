@@ -96,7 +96,9 @@ class Query:
     @staticmethod
     def list_events_groups(user: TUser, filter: FilterNameSchema):
         queryset = (
-            EventMember.objects.filter(user=user, status="ACTIVE")
+            EventMember.objects.filter(
+                user=user, status="ACTIVE", event__status="ACTIVE"
+            )
             .select_related("event__group__avatar_url")
             .annotate(
                 event_uid=F("event__uid"),
@@ -386,3 +388,6 @@ class Query:
         EventMemberBalance.objects.filter(
             event=debt.event, user=creditor, currency=currency
         ).update(balance=F("balance") - amount)
+
+    def delete_event_members(self, event: Event):
+        return EventMember.objects.filter(event=event).update(status="DELETED")
