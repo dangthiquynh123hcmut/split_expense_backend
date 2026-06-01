@@ -310,6 +310,7 @@ class NotificationTypeEnum(TextChoices):
     FRIEND_REQUEST = "FRIEND_REQUEST", "Friend Request"
     FRIEND_ACCEPTED = "FRIEND_ACCEPTED", "Friend Accepted"
     REMINDER = "REMINDER", "Reminder"
+    EVENT_REMIND = "EVENT_REMIND", "Event Remind"
 
     TRANSFER = "TRANSFER", "Transfer"
     DEPOSIT = "DEPOSIT", "Deposit"

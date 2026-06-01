@@ -64,6 +64,18 @@ class Transaction(BaseModel):
         editable=False,
     )
 
+    event = models.ForeignKey(
+        to="event.Event",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="event_uid",
+        related_name="transaction_fk_event",
+        db_constraint=True,
+        db_index=True,
+        null=True,
+        blank=True,
+    )
+
     def save(self, *args, **kwargs):
         if not self.code:
             self.code = generate_code_transfer(user=self.from_user)

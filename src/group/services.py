@@ -426,7 +426,10 @@ class Service:
         if not tranfer:
             raise GetIsDenied
 
-        if tranfer.event is not None:
+        if (
+            tranfer.group.debt_optimization == DebtOptimizationEnum.EVENT
+            and tranfer.event is None
+        ):
             event_debts = self.event_query.get_event_restructure_debts_by_event(
                 debtor=tranfer.from_user,
                 creditor=tranfer.to_user,
@@ -465,23 +468,20 @@ class Service:
                 currency="VND",
             )
         else:
-            event_debts = self.event_query.get_event_restructure_debts_between_users(
+            self.event_query.update_event_member_balance(
                 debtor=tranfer.from_user,
                 creditor=tranfer.to_user,
-                group=tranfer.group,
-                currency="VND",
+                event=tranfer.event,
+                amount=tranfer.amount,
+                currency=tranfer.currency,
             )
-            settlements = settle_event_debts_by_group_payment(
-                event_debts, tranfer.amount
+            self.event_query.update_event_restructure_debt(
+                debtor=tranfer.from_user,
+                creditor=tranfer.to_user,
+                event=tranfer.event,
+                amount=tranfer.amount,
+                currency=tranfer.currency,
             )
-            for debt, settled_amount in settlements:
-                self.event_query.settle_event_restructure_debt(
-                    debt=debt,
-                    amount=settled_amount,
-                    debtor=tranfer.from_user,
-                    creditor=tranfer.to_user,
-                    currency="VND",
-                )
 
         self.transaction_orm.create_transaction(
             from_user=tranfer.from_user,

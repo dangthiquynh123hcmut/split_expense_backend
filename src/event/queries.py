@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any, DefaultDict, Dict, List
 from uuid import UUID
 
-from django.db.models import DecimalField, ExpressionWrapper, F, Q
+from django.db.models import Case, DecimalField, ExpressionWrapper, F, Q, Sum, When
 from django.db.models.functions import Round
 from django.utils.timezone import now
 
@@ -165,12 +165,14 @@ class Query:
             )
             .values("user__full_name")
             .annotate(
-                percent=Round(
-                    ExpressionWrapper(
-                        (F("amount") / total_amount) * 100,
-                        output_field=DecimalField(max_digits=5, decimal_places=2),
-                    ),
-                    2,
+                percent=Sum(
+                    Round(
+                        ExpressionWrapper(
+                            (F("amount") / total_amount) * 100,
+                            output_field=DecimalField(max_digits=5, decimal_places=2),
+                        ),
+                        2,
+                    )
                 )
             )
             .values(full_name=F("user__full_name"), percent=F("percent"))
@@ -391,3 +393,30 @@ class Query:
 
     def delete_event_members(self, event: Event):
         return EventMember.objects.filter(event=event).update(status="DELETED")
+
+    def create_event_member_balances(
+        self, event_member_balances: List[EventMemberBalance]
+    ):
+        EventMemberBalance.objects.bulk_create(event_member_balances)
+
+    def update_total_amount(
+        self, event: Event, expense_members: List[UserSharesInExpense], currency: str
+    ):
+        whens = []
+        users = []
+
+        for em in expense_members:
+            users.append(em.user)
+            whens.append(When(user=em.user, then=F("balance") + em.amount))
+
+        return EventMemberBalance.objects.filter(
+            event=event, user__in=users, currency=currency
+        ).update(balance=Case(*whens, default=F("balance")))
+
+    def get_users_in_event_member_balance(self, event: Event, currency: str):
+        return EventMemberBalance.objects.filter(
+            event=event, currency=currency
+        ).values_list("user__uid", flat=True)
+
+    def get_all_users_debtors(self, event: Event, user: TUser):
+        return EventRestructureDebt.objects.filter(event=event, creditor=user)

@@ -42,6 +42,7 @@ class TransactionResponse(Schema):
     group: Optional[str] = None
     code: str
     created_at: datetime
+    event: Optional[str] = None
 
 
 class ListTransactionResponse(Schema):

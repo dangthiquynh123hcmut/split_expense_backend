@@ -116,6 +116,14 @@ class TransactionService:
                         creditor=to_user,
                         currency=payload.currency,
                     )
+
+                transaction = self.query.create_transaction(
+                    from_user=user,
+                    to_user=to_user,
+                    amount=payload.convert_amount,
+                    description=payload.description,
+                    group=group,
+                )
         elif payload.event_uid:
             event = self.event_query.get_event(event_uid=payload.event_uid)
             if not event:
@@ -134,18 +142,18 @@ class TransactionService:
                 amount=payload.original_amount,
                 currency=payload.currency,
             )
+            transaction = self.query.create_transaction(
+                from_user=user,
+                to_user=to_user,
+                amount=payload.convert_amount,
+                description=payload.description,
+                event=event,
+            )
         self.query.update_balance_in_wallet(
             uid=user.uid, amount=-payload.convert_amount
         )
         self.query.update_balance_in_wallet(
             uid=payload.user_uid, amount=payload.convert_amount
-        )
-        transaction = self.query.create_transaction(
-            from_user=user,
-            to_user=to_user,
-            amount=payload.convert_amount,
-            description=payload.description,
-            group=group,
         )
         self.fcm_service.send_notification(
             token=user.fcm_token,
@@ -165,6 +173,7 @@ class TransactionService:
             group=group.name if payload.group_uid else None,
             code=transaction.code,
             created_at=transaction.created_at,
+            event=event.name if payload.event_uid else None,
         )
 
     def list_transactions(

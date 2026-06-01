@@ -31,7 +31,7 @@ class ExpenseResponse(ModelSchema):
             "creator",
             "receipt_url",
             "created_at",
-            "split_type",
+            "updated_by",
         ]
 
 
