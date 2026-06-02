@@ -27,6 +27,12 @@ class ExpenseApprovalExpired(APIException):
     message = "The approval period for this expense has expired"
 
 
+class ExpenseTimeInvalid(APIException):
+    error_code = HTTPStatus.BAD_REQUEST
+    message_code = "EXPENSE_TIME_INVALID"
+    message = "The event time is invalid for creating an expense"
+
+
 class ExpenseApprovalNotFound(APIException):
     error_code = HTTPStatus.NOT_FOUND
     message_code = "EXPENSE_APPROVAL_NOT_FOUND"

@@ -10,7 +10,7 @@ from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
 from expense.queries import Query as ExpenseQuery
 from group.queries import Query as GroupQuery
-from group.schemas.request import ExternalTransferRequest
+from group.schemas.request import ExternalTransferRequest, RemindRequest
 from group.schemas.response import UserBalanceGroupResponse
 from message.orm.notification_queries import NotificationORM
 from utils.enums import NotificationTypeEnum
@@ -210,6 +210,8 @@ class Service:
         if not is_member_in_event:
             raise GetIsDenied
         queries = self.query.get_event_balance(event=event, user=user)
+        if not queries:
+            return []
         if user == queries[0].debtor:
             return (
                 EventBalanceResponse(
@@ -281,4 +283,51 @@ class Service:
             confirm_token=confirm_token.uid,
         )
         self.email_client.send(messages=[email])
+        return True
+
+    def remind_event_members(
+        self,
+        user: TUser,
+        event_uid: UUID,
+        payload: RemindRequest,
+    ) -> bool:
+        event = self.query.get_event(event_uid=event_uid)
+        if not event:
+            raise EventNotFound
+
+        if payload.user_uid:
+            target_user = self.user_query.get_user_by_uid(uid=payload.user_uid)
+            if not target_user:
+                raise UserNotFound
+
+            to_users = [target_user]
+        else:
+            debtors = self.query.get_all_users_debtors(
+                event=event,
+                user=user,
+            )
+            to_users = [debtor.user for debtor in debtors]
+
+        if not to_users:
+            return True
+
+        content = f"You owe money for the event {event.name}. Click to see details"
+
+        self.notification_orm.create_notification(
+            from_user=user,
+            content=content,
+            type=NotificationTypeEnum.EVENT_REMIND,
+            related_uid=event.uid,
+            to_users=to_users,
+        )
+
+        tokens = [recipient.fcm_token for recipient in to_users if recipient.fcm_token]
+
+        if tokens:
+            self.fcm_service.send_multicast_notification(
+                tokens=tokens,
+                title="Event Reminder",
+                body=content,
+            )
+
         return True

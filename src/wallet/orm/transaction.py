@@ -7,6 +7,7 @@ from django.db.models import CharField, F, Q, Value
 from django.utils.timezone import now
 
 from authenticate.models import User
+from event.models import Event
 from group.models import Group
 from utils.functions.get_last_month import get_last_month
 from utils.schemas.filter_and_order_by import (
@@ -50,6 +51,7 @@ class TransactionORM:
         amount: Decimal,
         description: str,
         group: Optional[Group] = None,
+        event: Optional[Event] = None,
     ):
         return Transaction.objects.create(
             from_user=from_user,
@@ -58,6 +60,7 @@ class TransactionORM:
             currency=from_user.currency,
             description=description,
             group=group,
+            event=event,
         )
 
     @staticmethod

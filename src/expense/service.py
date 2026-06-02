@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from decimal import Decimal
 from typing import Optional
@@ -8,7 +9,7 @@ from django.utils.timezone import now
 
 from attachment.schemas.responses import AttachmentResponse
 from authenticate.queries import Query as UserQuery
-from event.models import Event, EventRestructureDebt
+from event.models import Event, EventMemberBalance, EventRestructureDebt
 from event.queries import Query as EventQuery
 from exceptions.event import EventClosed, EventNotFound
 from exceptions.expense import (
@@ -18,6 +19,7 @@ from exceptions.expense import (
     ExpenseHasPendingAction,
     ExpenseNotFound,
     ExpenseNotPendingApproval,
+    ExpenseTimeInvalid,
     ListMemberNotMatch,
 )
 from exceptions.users import UserNotFound
@@ -71,6 +73,8 @@ class Service:
     def create_expense(self, creator: TUser, payload: ExpenseRequest, event: Event):
         if event.status == "CLOSED":
             raise EventClosed
+        if event.event_start > now() or event.event_end < now():
+            raise ExpenseTimeInvalid
         paid_by_uids = [p.user_uid for p in payload.paid_by]
         if len(paid_by_uids) != len(set(paid_by_uids)):
             raise ListMemberNotMatch
@@ -328,7 +332,7 @@ class Service:
             raise ListMemberNotMatch
 
         # Store proposed update data and set status to PENDING_UPDATE
-        expense.pending_update_data = payload.dict()
+        expense.pending_update_data = json.loads(payload.model_dump_json())
         expense.pending_action = ExpenseApprovalActionEnum.UPDATE
         expense.updated_by = user
         expense.save(
@@ -352,8 +356,6 @@ class Service:
             event_members=all_event_members,
             action_type=ExpenseApprovalActionEnum.UPDATE,
         )
-        self._check_and_finalize_approval(expense=expense)
-        expense.refresh_from_db()
 
         self.notification_orm.create_notification(
             from_user=user,
@@ -398,8 +400,6 @@ class Service:
             event_members=all_event_members,
             action_type=ExpenseApprovalActionEnum.DELETE,
         )
-        self._check_and_finalize_approval(expense=expense)
-        expense.refresh_from_db()
 
         self.notification_orm.create_notification(
             from_user=user,
@@ -555,35 +555,64 @@ class Service:
             expense_members = list(
                 self.query.list_user_share_in_expense(expense=expense)
             )
-            user_exits = self.group_query.get_users_in_group_member_balance(
-                group=expense.event.group, currency=expense.currency
-            )
+            if expense.event.group.debt_optimization == "EVENT":
+                user_exits = self.event_query.get_users_in_event_member_balance(
+                    event=expense.event, currency=expense.currency
+                )
+            if expense.event.group.debt_optimization == "GROUP":
+                user_exits = self.group_query.get_users_in_group_member_balance(
+                    group=expense.event.group, currency=expense.currency
+                )
             if len(user_exits) < len(expense_members):
                 new_user_uids = list(
                     set([m.user.uid for m in expense_members]) - set(user_exits)
                 )
-                new_user_balance = [
-                    GroupMemberBalance(
-                        group=expense.event.group,
-                        user=m.user,
-                        currency=expense.currency,
-                        balance=(m.receiver_amount or Decimal("0")) - m.amount,
+
+                if expense.event.group.debt_optimization == "EVENT":
+                    new_event_member_balances = [
+                        EventMemberBalance(
+                            event=expense.event,
+                            user=m.user,
+                            currency=expense.currency,
+                            balance=(m.receiver_amount or Decimal("0")) - m.amount,
+                        )
+                        for m in expense_members
+                        if m.user.uid in new_user_uids
+                    ]
+                    self.event_query.create_event_member_balances(
+                        event_member_balances=new_event_member_balances
                     )
-                    for m in expense_members
-                    if m.user.uid in new_user_uids
-                ]
-                self.group_query.create_group_member_balance(
-                    group_member_balance=new_user_balance
-                )
+
+                if expense.event.group.debt_optimization == "GROUP":
+                    new_group_member_balances = [
+                        GroupMemberBalance(
+                            group=expense.event.group,
+                            user=m.user,
+                            currency=expense.currency,
+                            balance=(m.receiver_amount or Decimal("0")) - m.amount,
+                        )
+                        for m in expense_members
+                        if m.user.uid in new_user_uids
+                    ]
+                    self.group_query.create_group_member_balance(
+                        group_member_balance=new_group_member_balances
+                    )
             if len(user_exits) > 0:
                 user_update = [m for m in expense_members if m.user.uid in user_exits]
                 for m in user_update:
                     m.amount = (m.receiver_amount or Decimal("0")) - m.amount
-                self.group_query.update_total_amount(
-                    group=expense.event.group,
-                    expense_members=user_update,
-                    currency=expense.currency,
-                )
+                if expense.event.group.debt_optimization == "EVENT":
+                    self.event_query.update_total_amount(
+                        event=expense.event,
+                        expense_members=user_update,
+                        currency=expense.currency,
+                    )
+                if expense.event.group.debt_optimization == "GROUP":
+                    self.group_query.update_total_amount(
+                        group=expense.event.group,
+                        expense_members=user_update,
+                        currency=expense.currency,
+                    )
             self.calculate_debt(expense=expense, old_currency="")
             self.notification_orm.create_notification(
                 from_user=expense.creator,
@@ -651,26 +680,46 @@ class Service:
                     old_currency=old_currency,
                     new_currency=payload.currency,
                 )
-            user_exits = self.group_query.get_users_in_group_member_balance(
-                group=expense.event.group, currency=payload.currency
-            )
+            if expense.event.group.debt_optimization == "EVENT":
+                user_exits = self.event_query.get_users_in_event_member_balance(
+                    event=expense.event, currency=payload.currency
+                )
+            if expense.event.group.debt_optimization == "GROUP":
+                user_exits = self.group_query.get_users_in_group_member_balance(
+                    group=expense.event.group, currency=payload.currency
+                )
             if len(user_exits) < len(expense_members):
                 new_user_uids = list(
                     set([m.user.uid for m in expense_members]) - set(user_exits)
                 )
-                new_user_balance = [
-                    GroupMemberBalance(
-                        group=expense.event.group,
-                        user=m.user,
-                        currency=payload.currency,
-                        balance=(m.receiver_amount or Decimal("0")) - m.amount,
+                if expense.event.group.debt_optimization == "EVENT":
+                    new_event_member_balances = [
+                        EventMemberBalance(
+                            event=expense.event,
+                            user=m.user,
+                            currency=payload.currency,
+                            balance=(m.receiver_amount or Decimal("0")) - m.amount,
+                        )
+                        for m in expense_members
+                        if m.user.uid in new_user_uids
+                    ]
+                    self.event_query.create_event_member_balances(
+                        event_member_balances=new_event_member_balances
                     )
-                    for m in expense_members
-                    if m.user.uid in new_user_uids
-                ]
-                self.group_query.create_group_member_balance(
-                    group_member_balance=new_user_balance
-                )
+                if expense.event.group.debt_optimization == "GROUP":
+                    new_group_member_balances = [
+                        GroupMemberBalance(
+                            group=expense.event.group,
+                            user=m.user,
+                            currency=payload.currency,
+                            balance=(m.receiver_amount or Decimal("0")) - m.amount,
+                        )
+                        for m in expense_members
+                        if m.user.uid in new_user_uids
+                    ]
+                    self.group_query.create_group_member_balance(
+                        group_member_balance=new_group_member_balances
+                    )
             if len(user_exits) > 0:
                 user_update = [m for m in expense_members if m.user.uid in user_exits]
                 for member in user_update:
@@ -681,11 +730,18 @@ class Service:
                         if old
                         else new_net
                     )
-                self.group_query.update_total_amount(
-                    group=expense.event.group,
-                    expense_members=user_update,
-                    currency=payload.currency,
-                )
+                if expense.event.group.debt_optimization == "EVENT":
+                    self.event_query.update_total_amount(
+                        event=expense.event,
+                        expense_members=user_update,
+                        currency=payload.currency,
+                    )
+                if expense.event.group.debt_optimization == "GROUP":
+                    self.group_query.update_total_amount(
+                        group=expense.event.group,
+                        expense_members=user_update,
+                        currency=payload.currency,
+                    )
 
             expense.pending_action = None
             expense.pending_update_data = None
@@ -700,11 +756,18 @@ class Service:
             )
             for member in expense_members:
                 member.amount = (member.receiver_amount or Decimal("0")) - member.amount
-            self.group_query.update_total_amount(
-                group=expense.event.group,
-                expense_members=expense_members,
-                currency=expense.currency,
-            )
+            if expense.event.group.debt_optimization == "EVENT":
+                self.event_query.update_total_amount(
+                    event=expense.event,
+                    expense_members=expense_members,
+                    currency=expense.currency,
+                )
+            if expense.event.group.debt_optimization == "GROUP":
+                self.group_query.update_total_amount(
+                    group=expense.event.group,
+                    expense_members=expense_members,
+                    currency=expense.currency,
+                )
             self.query.soft_delete_expense_members(expense=expense)
             self.query.soft_delete_expense(expense_uid=expense.uid)
             expense.pending_action = None

@@ -585,8 +585,8 @@ class Query:
         amount: Decimal,
         to_user: TUser,
         from_user: TUser,
-        group: Group,
-        event=None,
+        group: Group = None,  # type: ignore
+        event: Event = None,  # type: ignore
     ) -> TransferConfirmToken:
         return TransferConfirmToken.objects.create(
             amount=amount,

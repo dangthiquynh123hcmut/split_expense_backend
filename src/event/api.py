@@ -7,7 +7,7 @@ from event.schemas.response import ListEventGroup
 from exceptions.event import EventNotFound
 from exceptions.group import GroupNotFound
 from exceptions.users import UserNotFound
-from group.schemas.request import ExternalTransferRequest
+from group.schemas.request import ExternalTransferRequest, RemindRequest
 from group.schemas.response import GroupChart, GroupMembersReport
 from utils.exceptions import (
     CreateIsDenied,
@@ -165,6 +165,19 @@ class EventAPI(Controller):
         return self.service.event_external_transfer(
             user=request.user, event_uid=event_uid, payload=payload
         )
+
+    @post(
+        "/{event_uid}/remind",
+        response=bool,
+        exceptions=(EventNotFound, UserNotFound),
+    )
+    def remind_event_members(
+        self, request: AuthenticatedRequest, event_uid: UUID, payload: RemindRequest
+    ):
+        self.service.remind_event_members(
+            user=request.user, event_uid=event_uid, payload=payload
+        )
+        return True
 
 
 @api(
