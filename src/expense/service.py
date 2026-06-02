@@ -73,7 +73,7 @@ class Service:
     def create_expense(self, creator: TUser, payload: ExpenseRequest, event: Event):
         if event.status == "CLOSED":
             raise EventClosed
-        if event.event_start > now() or event.event_end < now():
+        if event.event_start > now().date() or event.event_end < now().date():
             raise ExpenseTimeInvalid
         paid_by_uids = [p.user_uid for p in payload.paid_by]
         if len(paid_by_uids) != len(set(paid_by_uids)):
