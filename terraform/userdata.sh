@@ -11,6 +11,17 @@ apt-get install -y curl git awscli
 curl -fsSL https://get.docker.com | sh
 usermod -aG docker ubuntu
 
+apt-get update
+
+apt-get install -y unzip curl
+
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+  -o "awscliv2.zip"
+
+unzip awscliv2.zip
+
+./aws/install
+
 # Docker Compose v2 plugin
 mkdir -p /usr/local/lib/docker/cli-plugins
 curl -SL "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" \
