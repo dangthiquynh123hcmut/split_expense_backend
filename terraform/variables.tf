@@ -84,6 +84,12 @@ variable "db_username" {
   default     = "split_expense_admin"
 }
 
+variable "certificate_arn" {
+  description = "ARN của ACM certificate cho HTTPS listener (cần tạo trên tài khoản mới)"
+  type        = string
+  # Bắt buộc set trong terraform.tfvars
+}
+
 variable "db_password" {
   description = "Database master password – TRUYỀN QUA ENV: TF_VAR_db_password"
   type        = string

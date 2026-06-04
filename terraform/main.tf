@@ -13,7 +13,7 @@ terraform {
 
   # Backend: lưu state trên S3
   backend "s3" {
-    bucket  = "split-expense-tf-state-ap-southeast-1"
+    bucket  = "split-expense-tf-state-807304180967"
     key     = "split-expense/prod/terraform.tfstate"
     region  = "ap-southeast-1"
     encrypt = true
@@ -299,7 +299,7 @@ resource "aws_lb_listener" "https" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = "arn:aws:acm:ap-southeast-1:807304180967:certificate/a5e21bc1-59ac-4424-93b4-02d17ff43324"
+  certificate_arn   = var.certificate_arn
 
   default_action {
     type             = "forward"
