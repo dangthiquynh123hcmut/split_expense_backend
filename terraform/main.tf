@@ -11,9 +11,9 @@ terraform {
     }
   }
 
-  # Backend: lưu state trên S3
+  # Backend: lưu state trên S3 (tài khoản 516292808133)
   backend "s3" {
-    bucket  = "split-expense-tf-state-807304180967"
+    bucket  = "split-expense-state-516292808133"
     key     = "split-expense/prod/terraform.tfstate"
     region  = "ap-southeast-1"
     encrypt = true
