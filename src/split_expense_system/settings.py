@@ -218,7 +218,7 @@ CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "CSRF_TRUSTED_ORIGINS",
-        "https://dividex-admin-dashboard.vercel.app,https://split-expense.app",
+        "https://dividex-admin-dashboard.vercel.app,https://split-expense.app,https://www.split-expense.app",
     ).split(",")
     if origin.strip()
 ]

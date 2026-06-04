@@ -46,3 +46,47 @@ variable "asg_desired_capacity" {
   type        = number
   default     = 1
 }
+
+# ── RDS ────────────────────────────────────────────
+variable "rds_instance_class" {
+  description = "RDS instance type"
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "rds_allocated_storage" {
+  description = "Allocated storage (GB)"
+  type        = number
+  default     = 20
+}
+
+variable "rds_max_storage" {
+  description = "Max storage với autoscaling (GB)"
+  type        = number
+  default     = 100
+}
+
+variable "rds_backup_retention_days" {
+  description = "Số ngày giữ backup (Free Tier: tối đa 1)"
+  type        = number
+  default     = 1
+}
+
+variable "db_name" {
+  description = "Tên database"
+  type        = string
+  default     = "split_expense_db"
+}
+
+variable "db_username" {
+  description = "Database master username"
+  type        = string
+  default     = "split_expense_admin"
+}
+
+variable "db_password" {
+  description = "Database master password – TRUYỀN QUA ENV: TF_VAR_db_password"
+  type        = string
+  sensitive   = true
+  # Không có default — bắt buộc set qua environment variable
+}

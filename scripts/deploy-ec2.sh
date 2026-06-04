@@ -80,6 +80,26 @@ if [[ ! -f "$FIREBASE_FILE" ]]; then
   log_info "firebase.json fetched from SSM ✓"
 fi
 
+# ── 2c. Tự động fetch DATABASE_URL từ SSM Parameter Store ──────
+log_info "Fetching DATABASE_URL from SSM Parameter Store..."
+DB_URL=$(aws ssm get-parameter \
+  --region "${AWS_REGION:-ap-southeast-1}" \
+  --name "/split-expense/prod/database-url" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text 2>/dev/null || echo "")
+
+if [[ -n "$DB_URL" ]]; then
+  if grep -q "^DATABASE_URL=" "$ENV_FILE"; then
+    sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${DB_URL}|" "$ENV_FILE"
+  else
+    echo "DATABASE_URL=${DB_URL}" >> "$ENV_FILE"
+  fi
+  log_info "DATABASE_URL updated in .env.prod ✓"
+else
+  log_warn "Could not fetch DATABASE_URL from SSM — keeping existing value"
+fi
+
 # ── 3. Pull image mới từ Docker Hub ──────────────────────────
 log_info "Pulling image: $FULL_IMAGE"
 docker pull "$FULL_IMAGE"

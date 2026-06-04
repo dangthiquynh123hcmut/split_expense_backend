@@ -97,7 +97,8 @@ class Query:
     def list_events_groups(user: TUser, filter: FilterNameSchema):
         queryset = (
             EventMember.objects.filter(
-                user=user, status="ACTIVE", event__status="ACTIVE"
+                user=user,
+                status="ACTIVE",
             )
             .select_related("event__group__avatar_url")
             .annotate(

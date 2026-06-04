@@ -126,6 +126,33 @@ for i in 1 2 3 4 5; do
     fi
 done
 
+# Fetch DATABASE_URL (RDS connection string) from SSM
+for i in 1 2 3 4 5; do
+    if DB_URL=$(aws ssm get-parameter \
+        --region ap-southeast-1 \
+        --name "/split-expense/prod/database-url" \
+        --with-decryption \
+        --query "Parameter.Value" \
+        --output text 2>/dev/null)
+    then
+        # Append to .env.prod (DATABASE_URL sẽ override nếu đã có)
+        if grep -q "^DATABASE_URL=" "$${PROJECT_DIR}/env/.env.prod"; then
+            sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$${DB_URL}|" "$${PROJECT_DIR}/env/.env.prod"
+        else
+            echo "DATABASE_URL=$${DB_URL}" >> "$${PROJECT_DIR}/env/.env.prod"
+        fi
+        echo "Fetched DATABASE_URL from SSM successfully"
+        break
+    fi
+
+    echo "Attempt $${i}: waiting for DATABASE_URL SSM parameter..."
+    sleep 10
+
+    if [ $i -eq 5 ]; then
+        echo "WARNING: Failed to fetch DATABASE_URL — app will fail to connect to DB"
+    fi
+done
+
 chown -R ubuntu:ubuntu "$${PROJECT_DIR}"
 
 # =====================================================
