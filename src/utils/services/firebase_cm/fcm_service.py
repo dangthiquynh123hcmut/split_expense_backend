@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional
 
 import firebase_admin
@@ -5,8 +6,12 @@ from django.conf import settings
 from firebase_admin import credentials, messaging
 
 
+logger = logging.getLogger(__name__)
+
+
 class FCMService:
     _instance = None
+    _firebase_ready = False
 
     def __new__(cls):
         if cls._instance is None:
@@ -19,12 +24,28 @@ class FCMService:
         """Initialize Firebase app with credentials from service account JSON file."""
         try:
             firebase_admin.get_app()
+            cls._firebase_ready = True
             return
         except ValueError:
             pass
 
-        cred = credentials.Certificate(str(settings.FIREBASE_CREDENTIALS_PATH))
-        firebase_admin.initialize_app(cred)
+        cred_path = settings.FIREBASE_CREDENTIALS_PATH
+        if not cred_path or not cred_path.exists():
+            logger.warning(
+                "FIREBASE_CREDENTIALS_PATH is missing or does not exist: %s; FCM disabled",
+                cred_path,
+            )
+            return
+
+        try:
+            cred = credentials.Certificate(str(cred_path))
+            firebase_admin.initialize_app(cred)
+            cls._firebase_ready = True
+        except Exception:
+            logger.exception(
+                "Failed to initialize Firebase with credentials at %s; FCM disabled",
+                cred_path,
+            )
 
     def send_notification(
         self,
@@ -37,6 +58,10 @@ class FCMService:
         """
         Send a notification to a device.
         """
+        if not self._firebase_ready:
+            logger.warning("Firebase not initialized; skipping send_notification")
+            return "FCM not configured"
+
         message = messaging.Message(
             notification=messaging.Notification(title=title, body=body, image=image),
             token=token,
@@ -62,6 +87,12 @@ class FCMService:
         Returns:
             BatchResponse: Response containing the results of the send operation
         """
+        if not self._firebase_ready:
+            logger.warning(
+                "Firebase not initialized; skipping send_multicast_notification"
+            )
+            return None
+
         message = messaging.MulticastMessage(
             notification=messaging.Notification(title=title, body=body, image=image),
             tokens=tokens,
@@ -84,6 +115,12 @@ class FCMService:
     ):
         """Convenience wrapper to send chat notifications to multiple devices."""
         if not device_tokens:
+            return None
+
+        if not self._firebase_ready:
+            logger.warning(
+                "Firebase not initialized; skipping send_chat_message_notification"
+            )
             return None
 
         message = messaging.MulticastMessage(

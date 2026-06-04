@@ -233,9 +233,10 @@ def str_to_bool(value: Optional[str]) -> bool:
     return str(value).lower() in ("true", "1", "yes")
 
 
-if os.getenv("SENDGRID_API_KEY"):
+# SendGrid email settings — always defined so code referencing them doesn't AttributeError
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+if SENDGRID_API_KEY:
     EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
-    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
     SENDGRID_SANDBOX_MODE_IN_DEBUG = str_to_bool(
         os.getenv("SENDGRID_SANDBOX_MODE_IN_DEBUG")
     )
