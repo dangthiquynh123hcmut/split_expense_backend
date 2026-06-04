@@ -66,10 +66,23 @@ if [[ ! -f "$ENV_FILE" ]]; then
   log_info ".env.prod fetched from SSM ✓"
 fi
 
-# ── 2b. Tự động fetch firebase.json từ SSM Parameter Store nếu chưa có ───
+# ── 2b. Fetch firebase.json từ SSM (validate và re-fetch nếu lỗi) ───
 FIREBASE_FILE="${PROJECT_DIR}/firebase.json"
+NEED_FETCH=false
+
 if [[ ! -f "$FIREBASE_FILE" ]]; then
-  log_warn "firebase.json not found locally – fetching from SSM Parameter Store..."
+  NEED_FETCH=true
+  log_warn "firebase.json not found – fetching from SSM Parameter Store..."
+else
+  # Validate JSON structure; re-fetch if invalid/broken
+  if ! python3 -c "import json; json.load(open('$FIREBASE_FILE'))" 2>/dev/null; then
+    NEED_FETCH=true
+    log_warn "firebase.json is invalid JSON – re-fetching from SSM..."
+    rm -f "$FIREBASE_FILE"
+  fi
+fi
+
+if [[ "$NEED_FETCH" == "true" ]]; then
   aws ssm get-parameter \
     --region "${AWS_REGION:-ap-southeast-1}" \
     --name "/split-expense/prod/firebase" \
@@ -77,7 +90,7 @@ if [[ ! -f "$FIREBASE_FILE" ]]; then
     --query "Parameter.Value" \
     --output text > "$FIREBASE_FILE"
   chmod 600 "$FIREBASE_FILE"
-  log_info "firebase.json fetched from SSM ✓"
+  log_info "firebase.json fetched from SSM ($(wc -c < "$FIREBASE_FILE") bytes) ✓"
 fi
 
 # ── 2c. Tự động fetch DATABASE_URL từ SSM Parameter Store ──────
