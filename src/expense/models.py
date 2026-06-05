@@ -242,4 +242,3 @@ class ExpenseApproval(BaseModel):
         indexes = [
             models.Index(fields=["expense", "user"]),
         ]
-        unique_together = (("expense", "user"),)

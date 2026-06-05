@@ -381,12 +381,6 @@ class Query:
         return ExpenseApproval.objects.filter(expense=expense, user=user).first()
 
     @staticmethod
-    def get_expense_approvals(expense: Expense):
-        return ExpenseApproval.objects.filter(expense=expense).select_related(
-            "user__avatar_url"
-        )
-
-    @staticmethod
     def delete_expense_approvals(expense: Expense):
         ExpenseApproval.objects.filter(expense=expense).delete()
 
@@ -413,6 +407,23 @@ class Query:
     @staticmethod
     def count_approval_statuses(expense: Expense) -> dict:
         return ExpenseApproval.objects.filter(expense=expense).aggregate(
+            accepted=Count("uid", filter=Q(status="ACCEPTED")),
+            declined=Count("uid", filter=Q(status="DECLINED")),
+            pending=Count("uid", filter=Q(status="PENDING")),
+            total=Count("uid"),
+        )
+
+    @staticmethod
+    def get_expense_approvals_by_action_type(expense: Expense, action_type: str):
+        return ExpenseApproval.objects.filter(
+            expense=expense, action_type=action_type
+        ).select_related("user__avatar_url")
+
+    @staticmethod
+    def count_approval_statuses_by_action_type(expense: Expense, action_type: str):
+        return ExpenseApproval.objects.filter(
+            expense=expense, action_type=action_type
+        ).aggregate(
             accepted=Count("uid", filter=Q(status="ACCEPTED")),
             declined=Count("uid", filter=Q(status="DECLINED")),
             pending=Count("uid", filter=Q(status="PENDING")),

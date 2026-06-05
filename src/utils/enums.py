@@ -303,6 +303,7 @@ class ExpenseApprovalActionEnum(TextChoices):
     CREATE = "CREATE", "create"
     UPDATE = "UPDATE", "update"
     DELETE = "DELETE", "delete"
+    AVAILABLE = "AVAILABLE", "available"
 
 
 @unique

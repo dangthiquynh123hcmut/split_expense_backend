@@ -73,7 +73,17 @@ class Service:
     def create_expense(self, creator: TUser, payload: ExpenseRequest, event: Event):
         if event.status == "CLOSED":
             raise EventClosed
-        if event.event_start > now().date() or event.event_end < now().date():
+
+        if payload.expense_date is not None and (
+            payload.expense_date.date() < event.event_start
+            or payload.expense_date.date() > event.event_end
+        ):
+            raise ExpenseTimeInvalid
+
+        if payload.end_date is not None and (
+            payload.end_date.date() < event.event_start
+            or payload.end_date.date() > event.event_end
+        ):
             raise ExpenseTimeInvalid
         paid_by_uids = [p.user_uid for p in payload.paid_by]
         if len(paid_by_uids) != len(set(paid_by_uids)):
@@ -549,7 +559,7 @@ class Service:
         action = expense.pending_action
         if action == ExpenseApprovalActionEnum.CREATE:
             expense.status = ExpenseStatusEnum.ACTIVE
-            expense.pending_action = None
+            expense.pending_action = ExpenseApprovalActionEnum.AVAILABLE
             expense.save(update_fields=["status", "pending_action", "updated_at"])
             # Build group balances and calculate debt (same as old create_expense)
             expense_members = list(
@@ -743,7 +753,7 @@ class Service:
                         currency=payload.currency,
                     )
 
-            expense.pending_action = None
+            expense.pending_action = ExpenseApprovalActionEnum.AVAILABLE
             expense.pending_update_data = None
             expense.save(
                 update_fields=["pending_action", "pending_update_data", "updated_at"]
@@ -770,7 +780,7 @@ class Service:
                 )
             self.query.soft_delete_expense_members(expense=expense)
             self.query.soft_delete_expense(expense_uid=expense.uid)
-            expense.pending_action = None
+            expense.pending_action = ExpenseApprovalActionEnum.AVAILABLE
             expense.save(update_fields=["pending_action", "updated_at"])
             self.calculate_debt(expense=expense, old_currency="")
 
@@ -781,16 +791,16 @@ class Service:
             return
         if action == ExpenseApprovalActionEnum.CREATE:
             expense.status = ExpenseStatusEnum.DECLINED
-            expense.pending_action = None
+            expense.pending_action = ExpenseApprovalActionEnum.AVAILABLE
             expense.save(update_fields=["status", "pending_action", "updated_at"])
         elif action == ExpenseApprovalActionEnum.UPDATE:
-            expense.pending_action = None
+            expense.pending_action = ExpenseApprovalActionEnum.AVAILABLE
             expense.pending_update_data = None
             expense.save(
                 update_fields=["pending_action", "pending_update_data", "updated_at"]
             )
         elif action == ExpenseApprovalActionEnum.DELETE:
-            expense.pending_action = None
+            expense.pending_action = ExpenseApprovalActionEnum.AVAILABLE
             expense.save(update_fields=["pending_action", "updated_at"])
 
         all_members = list(
@@ -809,7 +819,9 @@ class Service:
     # ── Public approval API methods ───────────────────────────────────────────
 
     def get_approval_status(
-        self, user: TUser, expense_uid: UUID
+        self,
+        expense_uid: UUID,
+        action_type: str,
     ) -> ApprovalStatusResponse:
         expense = self.query.get_expense(expense_uid=expense_uid)
         if not expense:
@@ -820,10 +832,28 @@ class Service:
         # Lazily expire overdue votes
         self.query.expire_pending_approvals_for_expense(expense=expense)
 
-        approvals = list(self.query.get_expense_approvals(expense=expense))
-        counts = self.query.count_approval_statuses(expense=expense)
+        # Get approvals: filter by action_type if provided, else get all
+        approvals = list(
+            self.query.get_expense_approvals_by_action_type(
+                expense=expense, action_type=action_type
+            )
+        )
+        if not approvals:
+            raise ExpenseNotPendingApproval
+        counts = self.query.count_approval_statuses_by_action_type(
+            expense=expense, action_type=action_type
+        )
+
         total = counts["total"]
         threshold = total // 2 + 1
+
+        # Determine final status
+        if counts["accepted"] >= threshold:
+            final_status = "APPROVED"
+        elif counts["declined"] >= threshold or counts["pending"] == 0:
+            final_status = "DECLINED"
+        else:
+            final_status = "PENDING"
 
         accepted_users, declined_users, pending_users = [], [], []
         expires_at = None
@@ -854,7 +884,8 @@ class Service:
             pending_count=counts["pending"],
             threshold=threshold,
             expires_at=expires_at,
-            action_type=expense.pending_action,
+            action_type=action_type,
+            final_status=final_status,
             accepted_users=accepted_users,
             declined_users=declined_users,
             pending_users=pending_users,

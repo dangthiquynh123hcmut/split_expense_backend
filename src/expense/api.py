@@ -124,9 +124,15 @@ class ExpenseAPI(Controller):
         response=ApprovalStatusResponse,
         exceptions=(ExpenseNotFound, ExpenseNotPendingApproval),
     )
-    def get_approval_status(self, request: AuthenticatedRequest, expense_uid: UUID):
+    def get_approval_status(
+        self,
+        expense_uid: UUID,
+        action_type: str = Query(
+            description="Filter by action type: CREATE, UPDATE, DELETE"
+        ),
+    ):
         return self.service.get_approval_status(
-            user=request.user, expense_uid=expense_uid
+            expense_uid=expense_uid, action_type=action_type
         )
 
     @patch(

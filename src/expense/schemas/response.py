@@ -107,6 +107,7 @@ class ApprovalStatusResponse(Schema):
     threshold: int
     expires_at: Optional[datetime] = None
     action_type: Optional[str] = None
+    final_status: Optional[str] = None
     accepted_users: List[ApprovalUserInfo] = Field(default_factory=list)
     declined_users: List[ApprovalUserInfo] = Field(default_factory=list)
     pending_users: List[ApprovalUserInfo] = Field(default_factory=list)
