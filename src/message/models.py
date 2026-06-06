@@ -1,7 +1,11 @@
 from django.conf import settings
 from django.db import models
 
-from utils.enums import NotificationTypeEnum, StatusMessageEnum
+from utils.enums import (
+    ExpenseApprovalActionEnum,
+    NotificationTypeEnum,
+    StatusMessageEnum,
+)
 from utils.models import BaseModel
 
 
@@ -96,6 +100,12 @@ class Notification(BaseModel):
         settings.AUTH_USER_MODEL, related_name="received_notifications"
     )
     is_broadcast = models.BooleanField(default=False)
+    action_type = models.CharField(
+        max_length=20,
+        choices=ExpenseApprovalActionEnum.choices,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-created_at"]

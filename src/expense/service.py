@@ -156,6 +156,7 @@ class Service:
             type=NotificationTypeEnum.EXPENSE_APPROVAL_REQUESTED,
             related_uid=expense.uid,
             to_users=[em.user for em in all_event_members if em.user != creator],
+            action_type=ExpenseApprovalActionEnum.CREATE,
         )
         self.fcm_service.send_multicast_notification(
             tokens=[
@@ -408,6 +409,7 @@ class Service:
             type=NotificationTypeEnum.EXPENSE_APPROVAL_REQUESTED,
             related_uid=expense.uid,
             to_users=[em.user for em in all_event_members if em.user != user],
+            action_type=ExpenseApprovalActionEnum.UPDATE,
         )
         self.fcm_service.send_multicast_notification(
             tokens=[
@@ -452,6 +454,7 @@ class Service:
             type=NotificationTypeEnum.EXPENSE_APPROVAL_REQUESTED,
             related_uid=expense.uid,
             to_users=[em.user for em in all_event_members if em.user != user],
+            action_type=ExpenseApprovalActionEnum.DELETE,
         )
         self.fcm_service.send_multicast_notification(
             tokens=[

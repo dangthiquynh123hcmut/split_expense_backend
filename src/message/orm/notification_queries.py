@@ -8,7 +8,7 @@ from event.models import Event
 from expense.models import Expense
 from message.models import Notification
 from my_admin.schemas.request import FilterNotificationSchema
-from utils.enums import NotificationTypeEnum
+from utils.enums import ExpenseApprovalActionEnum, NotificationTypeEnum
 from utils.functions.get_last_month import get_last_month
 from utils.types import TUser
 
@@ -22,6 +22,7 @@ class NotificationORM:
         type: NotificationTypeEnum,
         to_users: list[TUser],
         is_broadcast: bool = False,
+        action_type: ExpenseApprovalActionEnum | None = None,
     ):
         notification = Notification.objects.create(
             from_user=from_user,
@@ -29,6 +30,7 @@ class NotificationORM:
             content=content,
             type=type,
             is_broadcast=is_broadcast,
+            action_type=action_type,
         )
         notification.to_users.add(*to_users)
         return notification
