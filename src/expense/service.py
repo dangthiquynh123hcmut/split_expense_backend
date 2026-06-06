@@ -32,7 +32,7 @@ from expense.schemas.response import (
     ListExpenseUser,
     UserExpense,
 )
-from group.models import GroupMemberBalance, RestructureDebt
+from group.models import Group, GroupMemberBalance, RestructureDebt
 from group.queries import Query as GroupQuery
 from message.orm.notification_queries import NotificationORM
 from utils.enums import (
@@ -178,6 +178,14 @@ class Service:
             )
             if event_member_count <= 20:
                 self._calculate_debt_by_event(expense=expense)
+                # Also compute group-level debt by aggregating all event debts
+                self._aggregate_group_debt_from_events(
+                    group=group, currency=expense.currency
+                )
+                if old_currency and old_currency != expense.currency:
+                    self.group_query.delete_restructure_debt(
+                        group=group, currency=old_currency
+                    )
                 return
 
         self._calculate_debt_by_group(expense=expense, old_currency=old_currency)
@@ -240,6 +248,33 @@ class Service:
         self.event_query.create_event_restructure_debt(
             restructure_debts=restructure_debt
         )
+
+    def _aggregate_group_debt_from_events(self, group: Group, currency: str):
+        """Compute group-level debt by aggregating event-level debts across all events.
+
+        When debt_optimization == EVENT, the debt between any two people at the group
+        level equals the sum of their debts across ALL events in the group.
+        """
+        debts = self.event_query.get_all_event_restructure_debts_by_group(
+            group=group, currency=currency
+        )
+        user_map = {
+            m.user.uid: m.user
+            for m in self.group_query.list_group_members_not_filter(group=group)
+        }
+        restructure_debts = [
+            RestructureDebt(
+                group=group,
+                debtor=user_map[debt["debtor"]],
+                creditor=user_map[debt["creditor"]],
+                value=debt["total_value"],
+                currency=currency,
+            )
+            for debt in debts
+            if debt["debtor"] in user_map and debt["creditor"] in user_map
+        ]
+        self.group_query.delete_restructure_debt(group=group, currency=currency)
+        self.group_query.create_restructure_debt(restructure_debt=restructure_debts)
 
     def list_expenses_in_event(self, user: TUser, event_uid: UUID, status: str):
         event = self.event_query.get_event(event_uid=event_uid)
@@ -565,6 +600,7 @@ class Service:
             expense_members = list(
                 self.query.list_user_share_in_expense(expense=expense)
             )
+            user_exits = []
             if expense.event.group.debt_optimization == "EVENT":
                 user_exits = self.event_query.get_users_in_event_member_balance(
                     event=expense.event, currency=expense.currency

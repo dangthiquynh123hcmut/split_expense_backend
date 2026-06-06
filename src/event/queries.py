@@ -421,3 +421,13 @@ class Query:
 
     def get_all_users_debtors(self, event: Event, user: TUser):
         return EventRestructureDebt.objects.filter(event=event, creditor=user)
+
+    @staticmethod
+    def get_all_event_restructure_debts_by_group(group: Group, currency: str):
+        return (
+            EventRestructureDebt.objects.filter(
+                event__group=group, currency=currency, value__gt=0
+            )
+            .values("debtor", "creditor", "currency")
+            .annotate(total_value=Sum("value"))
+        )
