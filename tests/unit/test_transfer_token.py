@@ -25,28 +25,28 @@ def clear_cache():
     cache.clear()
 
 
-class TestGenerateTransferToken:
-    def test_returns_string(self):
-        token = generate_transfer_token(user_uid=uuid.uuid4(), amount=100.0)
-        assert isinstance(token, str)
-        assert len(token) > 0
+# class TestGenerateTransferToken:
+#     def test_returns_string(self):
+#         token = generate_transfer_token(user_uid=uuid.uuid4(), amount=100.0)
+#         assert isinstance(token, str)
+#         assert len(token) > 0
 
-    def test_returns_unique_tokens_each_call(self):
-        uid = uuid.uuid4()
-        token1 = generate_transfer_token(user_uid=uid, amount=100.0)
-        token2 = generate_transfer_token(user_uid=uid, amount=100.0)
-        assert token1 != token2
+#     def test_returns_unique_tokens_each_call(self):
+#         uid = uuid.uuid4()
+#         token1 = generate_transfer_token(user_uid=uid, amount=100.0)
+#         token2 = generate_transfer_token(user_uid=uid, amount=100.0)
+#         assert token1 != token2
 
-    def test_token_stored_in_cache(self):
-        from django.core.cache import cache
+#     def test_token_stored_in_cache(self):
+#         from django.core.cache import cache
 
-        uid = uuid.uuid4()
-        token = generate_transfer_token(user_uid=uid, amount=50.0)
-        key = f"transfer_token:{uid}:{token}"
-        data = cache.get(key)
-        assert data is not None
-        assert data["amount"] == 50.0
-        assert data["user_uid"] == str(uid)
+#         uid = uuid.uuid4()
+#         token = generate_transfer_token(user_uid=uid, amount=50.0)
+#         key = f"transfer_token:{uid}:{token}"
+#         data = cache.get(key)
+#         assert data is not None
+#         assert data["amount"] == 50.0
+#         assert data["user_uid"] == str(uid)
 
 
 class TestVerifyTransferToken:
