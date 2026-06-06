@@ -121,6 +121,34 @@ class WalletDeposit(BaseModel):
         return super().save(*args, **kwargs)
 
 
+class TransferToken(BaseModel):
+    user = models.ForeignKey(
+        to="authenticate.User",
+        on_delete=models.CASCADE,
+        to_field="uid",
+        db_column="user_uid",
+        related_name="transfer_token_fk_user",
+        db_constraint=True,
+        db_index=True,
+        null=False,
+        blank=False,
+    )
+    token = models.CharField(
+        max_length=36,
+        unique=True,
+        db_index=True,
+        editable=False,
+        default=uuid.uuid4,
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        null=False,
+        blank=False,
+    )
+
+
 class Withdraw(models.Model):
     uid = models.UUIDField(
         primary_key=True,

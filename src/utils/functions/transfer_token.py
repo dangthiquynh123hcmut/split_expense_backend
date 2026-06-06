@@ -1,27 +1,45 @@
-import uuid
 from uuid import UUID
 
 from django.conf import settings
-from django.core.cache import cache
+from django.utils.timezone import now
+
+from wallet.models import TransferToken
+
+
+TRANSFER_TOKEN_EXPIRY_MINUTES = settings.TRANSFER_TOKEN_LIFETIME
 
 
 def generate_transfer_token(user_uid: UUID, amount: float) -> str:
-    token = str(uuid.uuid4())
-    key = f"transfer_token:{user_uid}:{token}"
-    data = {"user_uid": str(user_uid), "amount": amount}
-    timeout = settings.OTP_LIFETIME * 60
-    cache.set(key, data, timeout=timeout)
-    return token
+    """Store transfer token directly in DB instead of Redis."""
+    token_obj = TransferToken.objects.create(
+        user_id=user_uid,
+        amount=amount,
+    )
+    return str(token_obj.token)
 
 
-def verify_transfer_token(user_uid: UUID, token: str, amount: float):
-    key = f"transfer_token:{user_uid}:{token}"
-    data = cache.get(key)
-    if not data:
+def verify_transfer_token(user_uid: UUID, token: str, amount: float) -> bool:
+    """Verify transfer token, enforce 2-min expiry, then delete on success."""
+    try:
+        token_obj = TransferToken.objects.get(
+            user_id=user_uid,
+            token=token,
+        )
+    except TransferToken.DoesNotExist:
         return False
-    if str(data.get("user_uid")) != str(user_uid):
+
+    # Check expiry (N minutes from creation)
+    age = (now() - token_obj.created_at).total_seconds()
+    if age > TRANSFER_TOKEN_EXPIRY_MINUTES * 60:
+        token_obj.delete()
+        from exceptions.wallet import TransferTokenExpired
+
+        raise TransferTokenExpired
+
+    # Validate amount
+    if float(token_obj.amount) != float(amount):
         return False
-    if data.get("amount") != amount:
-        return False
-    cache.delete(key)
+
+    # Token is valid and used → delete it
+    token_obj.delete()
     return True

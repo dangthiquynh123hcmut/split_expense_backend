@@ -39,6 +39,12 @@ class InvalidTokenOrAmountIncorrect(APIException):
     message = "Invalid token or amount incorrect"
 
 
+class TransferTokenExpired(APIException):
+    error_code = HTTPStatus.BAD_REQUEST
+    message_code = "TRANSFER_TOKEN_EXPIRED"
+    message = "Transfer token has expired"
+
+
 class PinNotSet(APIException):
     error_code = HTTPStatus.BAD_REQUEST
     message_code = "PIN_NOT_SET"

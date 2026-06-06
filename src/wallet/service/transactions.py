@@ -117,13 +117,13 @@ class TransactionService:
                         currency=payload.currency,
                     )
 
-                transaction = self.query.create_transaction(
-                    from_user=user,
-                    to_user=to_user,
-                    amount=payload.convert_amount,
-                    description=payload.description,
-                    group=group,
-                )
+            transaction = self.query.create_transaction(
+                from_user=user,
+                to_user=to_user,
+                amount=payload.convert_amount,
+                description=payload.description,
+                group=group,
+            )
         elif payload.event_uid:
             event = self.event_query.get_event(event_uid=payload.event_uid)
             if not event:
@@ -148,6 +148,14 @@ class TransactionService:
                 amount=payload.convert_amount,
                 description=payload.description,
                 event=event,
+            )
+        else:
+            # Direct wallet-to-wallet transfer (no group or event)
+            transaction = self.query.create_transaction(
+                from_user=user,
+                to_user=to_user,
+                amount=payload.convert_amount,
+                description=payload.description,
             )
         self.query.update_balance_in_wallet(
             uid=user.uid, amount=-payload.convert_amount
