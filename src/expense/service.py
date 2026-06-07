@@ -16,7 +16,6 @@ from exceptions.expense import (
     ExpenseAlreadyVoted,
     ExpenseApprovalExpired,
     ExpenseApprovalNotFound,
-    ExpenseHasPendingAction,
     ExpenseNotFound,
     ExpenseNotPendingApproval,
     ExpenseTimeInvalid,
@@ -356,8 +355,6 @@ class Service:
             raise ExpenseNotFound
         if expense.event.status == "CLOSED":
             raise EventClosed
-        if expense.pending_action:
-            raise ExpenseHasPendingAction
         paid_by_uids = [p.user_uid for p in payload.paid_by]
         if len(paid_by_uids) != len(set(paid_by_uids)):
             raise ListMemberNotMatch
@@ -429,8 +426,6 @@ class Service:
             raise ExpenseNotFound
         if expense.event.status == "CLOSED":
             raise EventClosed
-        if expense.pending_action:
-            raise ExpenseHasPendingAction
 
         expense.pending_action = ExpenseApprovalActionEnum.DELETE
         expense.save(update_fields=["pending_action", "updated_at"])
@@ -865,8 +860,6 @@ class Service:
         expense = self.query.get_expense(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
-        if not expense.pending_action:
-            raise ExpenseNotPendingApproval
 
         # Lazily expire overdue votes
         self.query.expire_pending_approvals_for_expense(expense=expense)
@@ -935,9 +928,6 @@ class Service:
         expense = self.query.get_expense(expense_uid=expense_uid)
         if not expense:
             raise ExpenseNotFound
-        if not expense.pending_action:
-            raise ExpenseNotPendingApproval
-
         approval = self.query.get_expense_approval(expense=expense, user=user)
         if not approval:
             raise ExpenseApprovalNotFound

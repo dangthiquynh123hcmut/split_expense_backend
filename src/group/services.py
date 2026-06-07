@@ -447,6 +447,25 @@ class Service:
                     creditor=tranfer.to_user,
                     currency="VND",
                 )
+            self.query.update_balance_in_group(
+                user=tranfer.from_user,
+                group=tranfer.group,
+                amount=-tranfer.amount,
+                currency="VND",
+            )
+            self.query.update_balance_in_group(
+                user=tranfer.to_user,
+                group=tranfer.group,
+                amount=tranfer.amount,
+                currency="VND",
+            )
+            self.query.update_restructure_debt(
+                debtor=tranfer.from_user,
+                creditor=tranfer.to_user,
+                group=tranfer.group,
+                amount=tranfer.amount,
+                currency="VND",
+            )
         elif tranfer.group.debt_optimization == DebtOptimizationEnum.GROUP:
             self.query.update_balance_in_group(
                 user=tranfer.from_user,
@@ -473,14 +492,34 @@ class Service:
                 creditor=tranfer.to_user,
                 event=tranfer.event,
                 amount=tranfer.amount,
-                currency=tranfer.currency,
+                currency="VND",
             )
             self.event_query.update_event_restructure_debt(
                 debtor=tranfer.from_user,
                 creditor=tranfer.to_user,
                 event=tranfer.event,
                 amount=tranfer.amount,
-                currency=tranfer.currency,
+                currency="VND",
+            )
+            self.query.update_balance_in_group(
+                user=tranfer.from_user,
+                group=tranfer.group,
+                amount=-tranfer.amount,
+                currency="VND",
+            )
+            self.query.update_balance_in_group(
+                user=tranfer.to_user,
+                group=tranfer.group,
+                amount=tranfer.amount,
+                currency="VND",
+            )
+
+            self.query.update_restructure_debt(
+                debtor=tranfer.from_user,
+                creditor=tranfer.to_user,
+                group=tranfer.group,
+                amount=tranfer.amount,
+                currency="VND",
             )
 
         self.transaction_orm.create_transaction(
