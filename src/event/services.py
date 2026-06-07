@@ -212,42 +212,24 @@ class Service:
         queries = self.query.get_event_balance(event=event, user=user)
         if not queries:
             return []
-        if user == queries[0].debtor:
-            return (
-                EventBalanceResponse(
-                    debtor=UserBalanceGroupResponse(
-                        full_name=query.debtor.full_name,
-                        avatar_url=query.debtor.avatar_url,
-                        uid=query.debtor.uid,
-                    ),
-                    creditor=UserBalanceGroupResponse(
-                        full_name=query.creditor.full_name,
-                        avatar_url=query.creditor.avatar_url,
-                        uid=query.creditor.uid,
-                    ),
-                    value=query.value,
-                    currency=query.currency,
-                )
-                for query in queries
+
+        return (
+            EventBalanceResponse(
+                debtor=UserBalanceGroupResponse(
+                    full_name=query.debtor.full_name,
+                    avatar_url=query.debtor.avatar_url,
+                    uid=query.debtor.uid,
+                ),
+                creditor=UserBalanceGroupResponse(
+                    full_name=query.creditor.full_name,
+                    avatar_url=query.creditor.avatar_url,
+                    uid=query.creditor.uid,
+                ),
+                value=query.value,
+                currency=query.currency,
             )
-        else:
-            return (
-                EventBalanceResponse(
-                    debtor=UserBalanceGroupResponse(
-                        full_name=query.creditor.full_name,
-                        avatar_url=query.creditor.avatar_url,
-                        uid=query.creditor.uid,
-                    ),
-                    creditor=UserBalanceGroupResponse(
-                        full_name=query.debtor.full_name,
-                        avatar_url=query.debtor.avatar_url,
-                        uid=query.debtor.uid,
-                    ),
-                    value=query.value,
-                    currency=query.currency,
-                )
-                for query in queries
-            )
+            for query in queries
+        )
 
     def event_external_transfer(
         self, user: TUser, event_uid: UUID, payload: ExternalTransferRequest
