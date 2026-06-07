@@ -200,18 +200,34 @@ resource "aws_iam_role_policy_attachment" "ssm_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# Allow EC2 to read .env.prod from SSM Parameter Store
+# Allow EC2 to read .env.prod from SSM Parameter Store and access S3 file storage
 resource "aws_iam_role_policy" "ec2_ssm_params" {
   name = "${var.project_name}-ec2-ssm-params"
   role = aws_iam_role.ec2_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["ssm:GetParameter", "ssm:GetParameters"]
-      Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/split-expense/*"
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+        Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/split-expense/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket",
+          "s3:AbortMultipartUpload"
+        ]
+        Resource = [
+          "${aws_s3_bucket.file_storage.arn}",
+          "${aws_s3_bucket.file_storage.arn}/*"
+        ]
+      }
+    ]
   })
 }
 

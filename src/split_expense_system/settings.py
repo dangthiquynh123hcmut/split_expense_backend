@@ -244,12 +244,11 @@ if SENDGRID_API_KEY:
     SENDGRID_ECHO_TO_STDOUT = str_to_bool(os.getenv("SENDGRID_ECHO_TO_STDOUT"))
     DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@yourapp.com")
 
-# S3
-S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "")
 S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
 S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")
-S3_REGION = os.getenv("S3_REGION")
-S3_PUBLIC_URL = os.getenv("S3_PUBLIC_URL")
+S3_REGION = os.getenv("S3_REGION", "ap-southeast-1")
+S3_PUBLIC_URL = os.getenv("S3_PUBLIC_URL", "")
 S3_EXPIRES_IN = int(os.getenv("S3_EXPIRES_IN", "3600"))
 
 VNPAY_CONFIG = {

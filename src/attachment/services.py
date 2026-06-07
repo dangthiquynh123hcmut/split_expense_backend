@@ -28,12 +28,7 @@ class AttachmentService(BaseService):
     def __init__(self) -> None:
         self.query = Query()
         self.utils = Utils()
-        self.s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=settings.S3_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
-            region_name=settings.S3_REGION,
-        )
+        self.s3_client = self._create_s3_client()
         self.bucket_name = settings.S3_BUCKET_NAME or ""
         self.public_url = (
             settings.S3_PUBLIC_URL.rstrip("/") if settings.S3_PUBLIC_URL else ""
@@ -157,23 +152,24 @@ class AttachmentService(BaseService):
         return True
 
     # ------------- Helper functions -------------
+    @staticmethod
+    def _create_s3_client():
+        """Create an S3 client using IAM role creds (EC2) or explicit access keys."""
+        kwargs = {"region_name": settings.S3_REGION}
+        if settings.S3_ACCESS_KEY_ID and settings.S3_SECRET_ACCESS_KEY:
+            kwargs["aws_access_key_id"] = settings.S3_ACCESS_KEY_ID
+            kwargs["aws_secret_access_key"] = settings.S3_SECRET_ACCESS_KEY
+        # When access keys are not set, boto3 falls back to the default credential
+        # chain: IAM role (EC2), env vars (AWS_ACCESS_KEY_ID), or ~/.aws/credentials.
+        return boto3.client("s3", **kwargs)
+
     def delete_attachment_s3(self, public_url: str):
-        s3 = boto3.client(
-            "s3",
-            aws_access_key_id=settings.S3_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
-            region_name=settings.S3_REGION,
-        )
+        s3 = self._create_s3_client()
         key = self.utils.extract_file_key_from_s3_url(public_url)
         s3.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
 
     def delete_multiple_from_s3(self, file_keys: list[str]):
-        s3 = boto3.client(
-            "s3",
-            aws_access_key_id=settings.S3_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
-            region_name=settings.S3_REGION,
-        )
+        s3 = self._create_s3_client()
 
         objects_to_delete = self.utils.extract_file_key_from_s3_url(file_keys)
 
