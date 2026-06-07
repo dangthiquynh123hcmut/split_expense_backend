@@ -1,19 +1,38 @@
 # terraform/s3-file-storage.tf
 # S3 bucket để lưu trữ file upload từ application (avatar, expense attachments, message attachments)
-# Sử dụng presigned URL để upload/download → không cần public access
+# Upload qua presigned URL (PutObject) — Download qua public URL (GetObject công khai)
 
 resource "aws_s3_bucket" "file_storage" {
   bucket = "${var.project_name}-files-${var.aws_region}"
   tags   = { Name = "${var.project_name}-files" }
 }
 
-# Block all public access — chỉ truy cập qua presigned URL hoặc IAM role
+# Chặn ACL public (dùng bucket policy thay thế) — chỉ cho phép GetObject công khai
 resource "aws_s3_bucket_public_access_block" "file_storage" {
   bucket                  = aws_s3_bucket.file_storage.id
   block_public_acls       = true
-  block_public_policy     = true
+  block_public_policy     = false
   ignore_public_acls      = true
-  restrict_public_buckets = true
+  restrict_public_buckets = false
+}
+
+# Bucket policy: cho phép tất cả mọi người GetObject (download/xem file công khai)
+resource "aws_s3_bucket_policy" "file_storage_public_read" {
+  bucket = aws_s3_bucket.file_storage.id
+  depends_on = [aws_s3_bucket_public_access_block.file_storage]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.file_storage.arn}/*"
+      }
+    ]
+  })
 }
 
 # CORS để frontend có thể upload trực tiếp lên S3 qua presigned URL
