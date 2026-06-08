@@ -117,6 +117,26 @@ class TransactionService:
                         currency=payload.currency,
                     )
 
+                self.group_query.update_balance_in_group(
+                    user=to_user,
+                    group=group,
+                    amount=payload.convert_amount,
+                    currency="VND",
+                )
+                self.group_query.update_balance_in_group(
+                    user=user,
+                    group=group,
+                    amount=-payload.convert_amount,
+                    currency="VND",
+                )
+                self.group_query.update_restructure_debt(
+                    debtor=user,
+                    creditor=to_user,
+                    group=group,
+                    amount=payload.convert_amount,
+                    currency="VND",
+                )
+
             transaction = self.query.create_transaction(
                 from_user=user,
                 to_user=to_user,
@@ -141,6 +161,25 @@ class TransactionService:
                 event=event,
                 amount=payload.original_amount,
                 currency=payload.currency,
+            )
+            self.group_query.update_balance_in_group(
+                user=to_user,
+                group=event.group,
+                amount=-payload.convert_amount,
+                currency="VND",
+            )
+            self.group_query.update_balance_in_group(
+                user=user,
+                group=event.group,
+                amount=payload.convert_amount,
+                currency="VND",
+            )
+            self.group_query.update_restructure_debt(
+                debtor=user,
+                creditor=to_user,
+                group=event.group,
+                amount=payload.convert_amount,
+                currency="VND",
             )
             transaction = self.query.create_transaction(
                 from_user=user,
