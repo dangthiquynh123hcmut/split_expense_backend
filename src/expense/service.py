@@ -584,7 +584,7 @@ class Service:
 
         if counts["accepted"] >= threshold:
             self._execute_approved_action(expense=expense)
-        if counts["rejected"] > threshold:
+        if counts["declined"] > threshold:
             self._execute_declined_action(expense=expense)
 
     @transaction.atomic
