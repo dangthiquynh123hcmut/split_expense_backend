@@ -341,14 +341,14 @@ class Query:
 
     @staticmethod
     def get_event_restructure_debts_by_event(
-        debtor: TUser, creditor: TUser, event: "Event", currency: str
+        debtor: TUser, creditor: TUser, currency: str, group: Group
     ):
         return (
             EventRestructureDebt.objects.select_for_update()
             .filter(
                 debtor=debtor,
                 creditor=creditor,
-                event=event,
+                event__group=group,
                 currency=currency,
                 value__gt=0,
             )

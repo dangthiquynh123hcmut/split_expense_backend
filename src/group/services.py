@@ -433,7 +433,7 @@ class Service:
             event_debts = self.event_query.get_event_restructure_debts_by_event(
                 debtor=tranfer.from_user,
                 creditor=tranfer.to_user,
-                event=tranfer.event,
+                group=tranfer.group,
                 currency="VND",
             )
             settlements = settle_event_debts_by_group_payment(
@@ -466,7 +466,10 @@ class Service:
                 amount=tranfer.amount,
                 currency="VND",
             )
-        elif tranfer.group.debt_optimization == DebtOptimizationEnum.GROUP:
+        elif tranfer.group.debt_optimization == DebtOptimizationEnum.GROUP or (
+            tranfer.group.debt_optimization == DebtOptimizationEnum.EVENT
+            and tranfer.event is None
+        ):
             self.query.update_balance_in_group(
                 user=tranfer.from_user,
                 group=tranfer.group,
