@@ -223,7 +223,7 @@ class Service:
     def _calculate_debt_by_event(self, expense: Expense):
         """Optimal bitmask DP algorithm: compute debt at event level."""
         balances = self.event_query.list_event_member_balances(
-            event=expense.event, currency=expense.currency, expense=expense
+            event=expense.event, currency=expense.currency
         )
         transactions = simplify_minflow_optimal(balances)
         user_map = {

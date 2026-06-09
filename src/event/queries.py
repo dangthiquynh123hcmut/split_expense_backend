@@ -1,6 +1,6 @@
 from collections import defaultdict
 from decimal import Decimal
-from typing import Any, DefaultDict, Dict, List
+from typing import Any, DefaultDict, Dict, List, Tuple
 from uuid import UUID
 
 from django.db.models import Case, DecimalField, ExpressionWrapper, F, Q, Sum, When
@@ -10,7 +10,7 @@ from django.utils.timezone import now
 from attachment.schemas.responses import AttachmentResponse
 from event.models import Event, EventMember, EventMemberBalance, EventRestructureDebt
 from event.schemas.request import EventUpdateRequest
-from expense.models import Expense, UserSharesInExpense
+from expense.models import UserSharesInExpense
 from group.models import Group
 from utils.functions.get_last_month import get_last_month
 from utils.schemas.filter_and_order_by import (
@@ -291,10 +291,7 @@ class Query:
     def list_event_member_balances(
         event: Event,
         currency: str,
-        expense: Expense,
-    ):
-        balance_map: DefaultDict[UUID, Decimal] = defaultdict(Decimal)
-
+    ) -> List[Tuple[UUID, Decimal]]:
         balances = EventMemberBalance.objects.filter(
             event=event,
             currency=currency,
@@ -303,27 +300,14 @@ class Query:
             "balance",
         )
 
-        for balance_row in balances:
-            uid = balance_row["user__uid"]
-            balance_map[uid] += balance_row["balance"] or Decimal("0")
-
-        shares = UserSharesInExpense.objects.filter(
-            expense=expense,
-            expense__currency=currency,
-            deleted="ACTIVE",
-        ).values(
-            "user__uid",
-            "amount",
-            "receiver_amount",
-        )
-
-        for share_row in shares:
-            uid = share_row["user__uid"]
-            balance_map[uid] += (share_row["receiver_amount"] or Decimal("0")) - (
-                share_row["amount"] or Decimal("0")
+        return [
+            (
+                row["user__uid"],
+                row["balance"] or Decimal("0"),
             )
-
-        return [(uid, balance) for uid, balance in balance_map.items() if balance != 0]
+            for row in balances
+            if (row["balance"] or Decimal("0")) != 0
+        ]
 
     @staticmethod
     def delete_event_restructure_debt(event: Event, currency: str):
