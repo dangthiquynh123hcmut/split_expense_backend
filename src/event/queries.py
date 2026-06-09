@@ -10,7 +10,7 @@ from django.utils.timezone import now
 from attachment.schemas.responses import AttachmentResponse
 from event.models import Event, EventMember, EventMemberBalance, EventRestructureDebt
 from event.schemas.request import EventUpdateRequest
-from expense.models import UserSharesInExpense
+from expense.models import Expense, UserSharesInExpense
 from group.models import Group
 from utils.functions.get_last_month import get_last_month
 from utils.schemas.filter_and_order_by import (
@@ -288,18 +288,39 @@ class Query:
         EventMemberBalance.objects.filter(event=event).delete()
 
     @staticmethod
-    def list_event_member_balances(event: Event, currency: str):
+    def list_event_member_balances(
+        event: Event,
+        currency: str,
+        expense: Expense,
+    ):
+        balance_map: DefaultDict[UUID, Decimal] = defaultdict(Decimal)
+
+        balances = EventMemberBalance.objects.filter(
+            event=event,
+            currency=currency,
+        ).values(
+            "user__uid",
+            "balance",
+        )
+
+        for balance_row in balances:
+            uid = balance_row["user__uid"]
+            balance_map[uid] += balance_row["balance"] or Decimal("0")
+
         shares = UserSharesInExpense.objects.filter(
-            expense__event=event,
+            expense=expense,
             expense__currency=currency,
             deleted="ACTIVE",
-        ).values("user__uid", "amount", "receiver_amount")
+        ).values(
+            "user__uid",
+            "amount",
+            "receiver_amount",
+        )
 
-        balance_map: DefaultDict = defaultdict(Decimal)
-        for share in shares:
-            uid = share["user__uid"]
-            balance_map[uid] += (share["receiver_amount"] or Decimal("0")) - (
-                share["amount"] or Decimal("0")
+        for share_row in shares:
+            uid = share_row["user__uid"]
+            balance_map[uid] += (share_row["receiver_amount"] or Decimal("0")) - (
+                share_row["amount"] or Decimal("0")
             )
 
         return [(uid, balance) for uid, balance in balance_map.items() if balance != 0]
